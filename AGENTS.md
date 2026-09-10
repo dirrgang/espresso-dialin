@@ -36,7 +36,7 @@ Treat the decision log as authoritative for current project decisions. Treat mod
 
 Preferred PoC stack:
 
-- Python
+- Python 3.12+
 - Streamlit
 - SQLite
 - NumPy / SciPy
@@ -44,6 +44,37 @@ Preferred PoC stack:
 - Jupyter notebooks for model exploration/backtesting
 
 A future production frontend/backend architecture is explicitly premature until the modelling concept has been validated.
+
+## Repository conventions
+
+- Source code lives under `src/espresso_dialin/`.
+- Tests live under `tests/` and should mirror behavior rather than implementation details.
+- Exploratory notebooks live under `notebooks/`; reusable logic must move into `src/`.
+- Small research datasets with explicit provenance may live under `data/`; runtime databases and generated state must not be committed.
+- Dependencies and tool configuration belong in `pyproject.toml`.
+- Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
+- Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
+- Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history.
+- Do not add a license until the repository owner has explicitly chosen one.
+
+## Quality gates
+
+Before considering a code change complete, run:
+
+```sh
+ruff check .
+ruff format --check .
+mypy src
+pytest --cov=espresso_dialin --cov-report=term-missing
+```
+
+For normal development, install the pre-commit hooks once:
+
+```sh
+pre-commit install
+```
+
+CI runs the same core checks on supported Python versions. Do not weaken a quality gate merely to make a change pass; either fix the issue or document why the rule is inappropriate and adjust the configuration deliberately.
 
 ## Initial real setup
 
