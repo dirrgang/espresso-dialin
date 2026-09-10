@@ -1,0 +1,153 @@
+# espresso-dialin
+
+Experimental, local-first proof of concept for adaptive espresso dial-in.
+
+The project is not intended to be another generic espresso diary. Its primary research question is whether a small learning model can use the measurements a home barista already makes to reach a target recipe with fewer wasted shots and less manual trial-and-error than simple heuristics.
+
+## Current target
+
+Default recipe target for the initial proof of concept:
+
+- **Puck dose:** 18.0 g
+- **Final beverage yield:** 36.0 g
+- **Brew time:** 30–35 s (nominal center: 32.5 s)
+
+The first real setup is a **Baratza Sette 270** grinder and **Sage/Breville Dual Boiler (BES920/SES920)** espresso machine. Grinder-specific behavior must nevertheless be abstracted rather than hard-coded into the statistical model.
+
+## User workflow
+
+The MVP must work without Bluetooth scales, machine telemetry, pressure sensors, power monitoring, or time-critical data entry.
+
+For each shot the user can enter data at leisure:
+
+1. Before grinding: grinder setting and grind duration.
+2. After grinding: grinder output mass.
+3. Optionally correct the puck dose to the target (normally 18 g).
+4. After brewing: brew duration and final beverage yield.
+
+The system then stores the observation and recommends the grinder setting and grind duration for the next shot.
+
+### Dose correction is intentional
+
+During dial-in, manually correcting grinder output to 18 g is considered a useful controlled intervention rather than an error. It decouples two problems:
+
+- learning how grinder setting affects extraction while puck dose is approximately fixed;
+- learning how grind duration and grinder state affect grinder output.
+
+The system therefore distinguishes **grinder output** from **actual puck dose**. Historical shots for which the output was corrected to approximately 18 g remain useful for both models.
+
+## Why final yield remains a measured variable
+
+The user aims for 36 g but cannot stop the brew at exactly 36 g because of reaction time and post-stop flow. Therefore brew time must not be interpreted independently of the observed final yield.
+
+A shot such as `31 s / 34 g` does not imply the same flow behavior as `31 s / 38 g`. The model should use `(brew duration, final yield)` jointly to estimate behavior around the 36 g target instead of assuming that every logged brew time corresponds to exactly 36 g.
+
+Measuring the exact scale weight at the instant the pump is stopped is a possible future hardware-assisted feature, but explicitly **out of scope for the MVP**.
+
+## Key modelling goals
+
+The proof of concept should investigate, rather than assume, the value of the following model complexity:
+
+- robust dose prediction from grind duration and grinder setting;
+- extraction prediction using grinder setting, actual puck dose, brew duration, and final yield;
+- robust down-weighting of anomalous shots (e.g. channeling from poor puck preparation);
+- learning from all previous shots instead of reacting only to the immediately preceding shot;
+- optional retention / dead-space model using previous grinder settings as a latent dynamic state;
+- grinder-independent representation of stepped, stepless, and macro/micro adjustment systems.
+
+Retention-aware operation is intended to make **purging optional**, not mandatory. This is currently a hypothesis to test, not an assumption that the extra complexity is worthwhile.
+
+## Proof-of-concept architecture
+
+Start deliberately small in Python. The uncertainty is in the model, not in the UI.
+
+Suggested stack:
+
+- Python
+- Streamlit for the local UI
+- SQLite for persistent shot/recommendation storage
+- NumPy / SciPy for numerical work
+- notebooks for exploratory analysis and backtesting
+- pytest for deterministic model tests
+
+Suggested structure:
+
+```text
+espresso-dialin/
+├── app.py
+├── src/espresso_dialin/
+│   ├── domain.py
+│   ├── repository.py
+│   └── optimizer/
+│       ├── base.py
+│       ├── heuristic.py
+│       ├── regression.py
+│       └── retention.py
+├── tests/
+├── notebooks/
+├── docs/
+└── data/
+```
+
+The optimizer must be independent of Streamlit and SQLite. It should consume domain objects / shot history and return a recommendation. This allows the Python core to survive a later migration to a proper web frontend/API if the concept proves useful.
+
+## Evaluation principle
+
+Do not judge a model by fitting historical shots and then showing that it explains those same shots. Store recommendations **before** the outcome is known and use chronological / rolling validation.
+
+Useful metrics include:
+
+- dose prediction error;
+- estimated time-to-36-g prediction error;
+- calibration / uncertainty quality;
+- number of shots required to reach the target region;
+- total coffee consumed before reaching the target region.
+
+Simple models are baselines, not straw men. If a heuristic or linear model performs as well as a retention-aware/Bayesian model, prefer the simpler model.
+
+## Existing work / baseline
+
+**EspressoPost** is the closest known existing project. It already learns a grinder/time relationship using Bayesian linear regression and recommends grind settings. Therefore “use regression to recommend grind size” is not novel by itself.
+
+This project is only worthwhile if the extra information already available in the intended workflow — especially actual grinder output, actual final yield, dose correction, and possibly previous grinder state — produces measurably better or lower-waste dial-in.
+
+EspressoPost should be treated as a conceptual baseline rather than something to reproduce.
+
+## Historical data
+
+There is an existing handwritten dataset with chronological entries containing approximately:
+
+- grinder setting;
+- grind duration;
+- grinder output mass;
+- brew duration;
+- final beverage yield;
+- boundaries between at least some bean changes.
+
+For these historical entries, grinder output was generally manually corrected to approximately 18 g before brewing when necessary. Import must therefore preserve:
+
+- recorded grinder output as the dose-model observation;
+- puck dose as approximately 18 g with explicit uncertainty / correction status;
+- chronological order, because it is required to test retention / previous-setting effects;
+- bean/session boundaries where known;
+- unknown or illegible values as missing/uncertain rather than guessed.
+
+The historical dataset should be transcribed before building much UI so it can be used for exploratory analysis and rolling backtests.
+
+## Current scope boundaries
+
+Explicitly **not required for the initial proof of concept**:
+
+- user accounts;
+- cloud sync;
+- PostgreSQL;
+- public REST API;
+- Bluetooth scales;
+- machine telemetry;
+- pump-stop weight measurement;
+- grinder purging as a mandatory prerequisite;
+- taste optimization;
+- neural networks or complex ML for their own sake;
+- a large database of grinder-specific calibration curves.
+
+See `docs/` for the current modelling assumptions, data model, experiment plan, and decision log.
