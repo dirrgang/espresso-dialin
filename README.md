@@ -151,3 +151,9 @@ Explicitly **not required for the initial proof of concept**:
 - a large database of grinder-specific calibration curves.
 
 See `docs/` for the current modelling assumptions, data model, experiment plan, and decision log.
+
+## Development
+
+The repository is bootstrapped as a typed Python 3.12+ project using a `src/` layout, Ruff, mypy, pytest, pre-commit, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
+
+The historical staging dataset is versioned under `data/`; its provenance and editing rules are documented in [`data/README.md`](data/README.md).
