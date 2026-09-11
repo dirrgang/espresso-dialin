@@ -2,6 +2,8 @@
 
 The project should validate modelling assumptions with prospective data and deliberately designed experiments before spending heavily on product architecture or advanced models.
 
+Project-wide mathematical symbols used below are defined in [`notation.md`](notation.md).
+
 ## Phase 0 — Historical dataset
 
 1. Transcribe the existing handwritten shot sheet into a staging CSV.
@@ -97,7 +99,7 @@ Initial experiment families should be selected for concrete identification quest
 4. **Extraction response to setting**
    - keep puck dose approximately fixed via manual correction;
    - test selected neighbouring settings with replication;
-   - use `(brew_duration, final_yield)` jointly rather than treating linear `T36` as truth.
+   - use the observed pair $(t_{\mathrm{brew}},Y)$ jointly rather than treating $T_{36}^{\mathrm{linear}}$ as truth.
 
 5. **Transition / retention signal**
    - deliberately compare first shot after a setting change with an immediate repeat;
@@ -123,8 +125,8 @@ Candidate progression:
 2. recursive least squares / adaptive estimation if online updating is useful;
 3. forgetting/recency weighting only if measurable drift exists;
 4. robust residual handling where anomalous observations materially affect prediction;
-5. learned joint use of `(brew_duration, final_yield)` for extraction;
-6. simple previous-setting/change features;
+5. learned joint use of $(t_{\mathrm{brew}},Y)$ for extraction;
+6. simple previous-setting/change features that do not assume an unvalidated numeric grinder scale;
 7. latent state-space retention model only if the simple temporal features add validated value;
 8. Gaussian-process surrogate only when the grinder/action representation and data density make its uncertainty useful.
 
