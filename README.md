@@ -57,6 +57,26 @@ The proof of concept should investigate, rather than assume, the value of the fo
 
 Retention-aware operation is intended to make **purging optional**, not mandatory. This is currently a hypothesis to test, not an assumption that the extra complexity is worthwhile.
 
+## Research methodology
+
+The project is being treated primarily as a **system-identification and adaptive-control problem with an optimisation layer**, not as a generic black-box machine-learning exercise.
+
+The preferred direction is **gray-box modelling**: use known process structure where it improves sample efficiency, and learn the unknown parameters, residuals, drift, or latent state from data.
+
+Two operating objectives should eventually be explicit:
+
+- **Normal / assisted mode:** prioritize a good next drink with minimal waste.
+- **Learning / experiment mode:** deliberately request informative, controlled shots to identify process behaviour efficiently.
+
+Learning Mode should begin with transparent Design-of-Experiments principles such as replication and controlled factor changes. Gaussian-process / Bayesian-optimisation methods are later candidates once the action-space representation and uncertainty model are trustworthy.
+
+See:
+
+- [`docs/research-methods.md`](docs/research-methods.md) — mathematical foundations, RLS/adaptive control, DoE, state-space methods, Gaussian processes and Bayesian optimisation;
+- [`docs/research.md`](docs/research.md) — related software, espresso research and control/process analogies;
+- [`docs/model.md`](docs/model.md) — current mathematical project model and hypotheses;
+- [`docs/decision-log.md`](docs/decision-log.md) — decisions versus unresolved questions.
+
 ## Proof-of-concept architecture
 
 Start deliberately small in Python. The uncertainty is in the model, not in the UI.
@@ -101,7 +121,8 @@ Useful metrics include:
 - estimated time-to-36-g prediction error;
 - calibration / uncertainty quality;
 - number of shots required to reach the target region;
-- total coffee consumed before reaching the target region.
+- total coffee consumed before reaching the target region;
+- information gained per deliberately designed Learning-Mode shot where that objective applies.
 
 Simple models are baselines, not straw men. If a heuristic or linear model performs as well as a retention-aware/Bayesian model, prefer the simpler model.
 
@@ -132,7 +153,7 @@ For these historical entries, grinder output was generally manually corrected to
 - bean/session boundaries where known;
 - unknown or illegible values as missing/uncertain rather than guessed.
 
-The historical dataset should be transcribed before building much UI so it can be used for exploratory analysis and rolling backtests.
+The historical dataset remains useful as an observational warm start, baseline/regression fixture and source of hypotheses. It should not be retrospectively treated as a designed experiment.
 
 ## Current scope boundaries
 
