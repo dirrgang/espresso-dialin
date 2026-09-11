@@ -1,0 +1,52 @@
+sequence,bean_label,grind_setting,grind_macro,grind_micro,grind_duration_s,grinder_output_g,dose_correction_mode,puck_dose_g,brew_duration_s,final_yield_g,transcription_status,source_region,notes
+1,unknown_pre_bio,2I,2,I,10.1,18.4,TO_TARGET,18.0,35,35.6,ok,left_table,
+2,unknown_pre_bio,2I,2,I,10.1,17.8,TO_TARGET,18.0,34,35.8,ok,left_table,Grind duration is not reliably legible in the source image; left blank.
+3,unknown_pre_bio,2I,2,I,10.7,17.5,TO_TARGET,18.0,43,39.6,ok,left_table,
+4,unknown_pre_bio,2I,2,I,10.7,18.6,TO_TARGET,18.0,47,35.7,ok,left_table,
+5,unknown_pre_bio,3A,3,A,10.0,16.76,TO_TARGET,18.0,48,36.5,ok,left_table,
+6,unknown_pre_bio,3F,3,F,10.0,17.93,TO_TARGET,18.0,48,34.2,ok,left_table,
+7,unknown_pre_bio,3I,3,I,10.0,19.56,TO_TARGET,18.0,30,35.43,ok,left_table,
+8,unknown_pre_bio,3I,3,I,9.9,19.5,TO_TARGET,18.0,26,36.2,ok,left_table,
+9,unknown_pre_bio,3I,3,I,9.8,19.6,TO_TARGET,18.0,28,43.0,ok,left_table,
+10,unknown_pre_bio,3H,3,H,9.7,18.6,TO_TARGET,18.0,28,37.7,ok,left_table,
+11,unknown_pre_bio,3H,3,H,9.7,17.9,TO_TARGET,18.0,27,36.0,ok,left_table,
+12,unknown_pre_bio,3H,3,H,9.7,18.3,TO_TARGET,18.0,32,36.0,ok,left_table,
+13,unknown_pre_bio,3H,3,H,9.7,18.2,TO_TARGET,18.0,25,36.3,ok,left_table,
+14,unknown_pre_bio,3H,3,H,9.7,,UNKNOWN,18.0,26,36.0,partial,left_table,Grinder-output mass is absent/illegible in the source.
+15,unknown_pre_bio,3F,3,F,9.7,18.3,TO_TARGET,18.0,24,38.6,ok,left_table,
+16,unknown_pre_bio,3G,3,G,9.7,18.45,TO_TARGET,18.0,25,36.0,ok,left_table,
+17,unknown_pre_bio,3G,3,G,9.65,19.27,TO_TARGET,18.0,24,37.0,ok,left_table,
+18,unknown_pre_bio,3E,3,E,9.65,16.74,TO_TARGET,18.0,31,36.4,ok,left_table,
+19,unknown_pre_bio,3E,3,E,10.0,18.68,TO_TARGET,18.0,26,37.0,ok,left_table,
+20,unknown_pre_bio,3D,3,D,10.0,17.6,TO_TARGET,18.0,31,36.77,ok,left_table,
+21,unknown_pre_bio,3D,3,D,10.0,19.46,TO_TARGET,18.0,49,38.76,ok,left_table,
+22,unknown_pre_bio,3D,3,D,9.9,19.6,TO_TARGET,18.0,46,34.3,ok,left_table,
+23,unknown_pre_bio,3E,3,E,9.65,19.45,TO_TARGET,18.0,28,36.01,ok,left_table,
+24,unknown_pre_bio,3E,3,E,9.65,17.81,TO_TARGET,18.0,32,37.65,ok,left_table,
+25,unknown_pre_bio,3E,3,E,9.65,18.34,TO_TARGET,18.0,38,36.0,ok,left_table,
+26,unknown_pre_bio,3E,3,E,9.65,18.18,TO_TARGET,18.0,,,partial,left_table,Brew duration and final yield are not recorded on this row.
+27,unknown_pre_bio,3E,3,E,9.65,19.0,TO_TARGET,18.0,34,37.49,ok,left_table,
+28,unknown_pre_bio,3E,3,E,9.65,19.0,TO_TARGET,18.0,29,36.64,ok,left_table,Grind duration and grinder-output mass are not recorded on this row.
+29,unknown_pre_bio,3E,3,E,10.65,19.35,TO_TARGET,18.0,28,35.97,ok,right_upper,"Grind-duration entry is overwritten/unclear; a nearby '3E 9.65' note may relate, but this is intentionally not inferred."
+30,unknown_pre_bio,3E,3,E,9.5,17.89,TO_TARGET,18.0,37,36.0,ok,right_upper,
+31,unknown_pre_bio,3E,3,E,9.5,18.37,TO_TARGET,18.0,35,36.3,ok,right_upper,
+32,unknown_pre_bio,3E,3,E,9.4,17.96,TO_TARGET,18.0,37,38.0,ok,right_upper,
+33,unknown_pre_bio,3E,3,E,9.4,18.76,TO_TARGET,18.0,,,partial,right_upper,Only grinder-output mass is present/legible; missing setting/duration are not carried forward.
+34,unknown_pre_bio,3E,3,E,9.4,17.66,TO_TARGET,18.0,36,35.77,ok,right_upper,Grinder setting and grind duration are blank in the source and are not inferred.
+35,unknown_pre_bio,3E,3,E,9.4,18.19,TO_TARGET,18.0,39,37.0,ok,right_upper,Grinder setting and grind duration are blank in the source and are not inferred.
+36,unknown_pre_bio,3E,3,E,9.4,18.36,TO_TARGET,18.0,42,,partial,right_upper,Setting/duration and final yield are absent/illegible.
+37,unknown_pre_bio,3E,3,E,9.4,16.9,TO_TARGET,18.0,,,partial,right_upper,Brew duration and final yield are not recorded on this row.
+38,unknown_pre_bio,3E,3,E,9.5,17.9,TO_TARGET,18.0,34,33.0,ok,right_upper,Grinder setting is blank in the source and is not inferred.
+39,unknown_pre_bio,3E,3,E,9.5,17.7,TO_TARGET,18.0,40,35.0,ok,right_upper,Grinder setting and grind duration are blank in the source and are not inferred.
+40,new_bio_espresso,3E,3,E,9.45,16.5,TO_TARGET,18.0,58,33.87,ok,right_lower,Source explicitly marks grinder output as approximately 16.5 g.
+41,new_bio_espresso,3G,3,G,9.45,18.2,TO_TARGET,18.0,80,33.7,ok,right_lower,
+42,new_bio_espresso,3I,3,I,9.45,18.02,TO_TARGET,18.0,67,34.0,ok,right_lower,
+43,new_bio_espresso,4E,4,E,9.45,16.55,TO_TARGET,18.0,62,36.5,ok,right_lower,
+44,new_bio_espresso,4F,4,F,11.0,18.6,TO_TARGET,18.0,33,35.2,ok,right_lower,
+45,new_bio_espresso,5E,5,E,11.0,19.6,TO_TARGET,18.0,27,35.4,ok,right_lower,
+46,new_bio_espresso,5F,5,F,11.0,19.75,TO_TARGET,18.0,31,34.7,ok,right_lower,
+47,new_bio_espresso,5G,5,G,8.0,17.4,TO_TARGET,18.0,32,36.5,ok,right_lower,
+48,new_bio_espresso,5G,5,G,8.5,17.99,TO_TARGET,18.0,25,36.5,ok,right_lower,
+49,new_bio_espresso,5H,5,H,8.5,17.5,TO_TARGET,18.0,17,36.0,ok,right_lower,
+50,new_bio_espresso,5H,5,H,8.75,19.28,TO_TARGET,18.0,22,,partial,right_lower,Grinder setting and final yield are blank in the source and are not inferred.
+51,new_bio_espresso,4E,4,E,8.75,15.8,TO_TARGET,18.0,38,34.97,ok,right_lower,Grind duration is blank in the source and is not inferred.
