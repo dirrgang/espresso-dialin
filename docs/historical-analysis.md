@@ -64,21 +64,21 @@ At earlier 3H, four identical 9.7 s grinds yield 17.9–18.6 g (rate SD 0.030 g/
 
 The dose baseline computes
 
-$$
+```math
 t_{\mathrm{new}}
 =
 t_{\mathrm{old}}
 \frac{18}{D_{\mathrm{old}}}.
-$$
+```
 
 To evaluate its rate assumption on observed outcomes, the next output is predicted as
 
-$$
+```math
 \hat D_{\mathrm{next}}
 =
 \frac{D_{\mathrm{old}}}{t_{\mathrm{old}}}
 t_{\mathrm{actual,next}}
-$$
+```
 
 for immediate same-setting neighbours within a block. No missing neighbour is skipped. Recommendations and actual durations are displayed separately.
 
@@ -93,20 +93,20 @@ Across 17 pairs, proportional MAE is **0.678 g**, RMSE **0.853 g**, median absol
 
 Actual yield ranges from **33–43 g** among 35 earlier time/yield pairs and **33.7–36.5 g** among 11 newer pairs. The linear normalization used in the analysis is
 
-$$
+```math
 T_{36}^{\mathrm{linear}}
 =
 t_{\mathrm{brew}}\frac{36}{Y}.
-$$
+```
 
 For shot 9, $t_{\mathrm{brew}}=28\,\mathrm s$ and $Y=43\,\mathrm g$, giving
 
-$$
+```math
 T_{36}^{\mathrm{linear}}
 =
 28\frac{36}{43}
 \approx23.44\,\mathrm s.
-$$
+```
 
 That is a material change of interpretation, but it does not establish that $23.44\,\mathrm s$ was the actual time to $36\,\mathrm g$.
 
@@ -121,12 +121,12 @@ Pooling here weights within-group sample variances by $n-1$, never combines raw 
 
 The chronological comparison uses an expanding median of earlier eligible shots at the same setting/block/puck target (minimum one prior shot). For a common observed target, the normalized prediction maps the past median back to the current observed yield:
 
-$$
+```math
 \hat t_{\mathrm{brew,current}}
 =
 \operatorname{median}\!\left(T_{36,\mathrm{past}}\right)
 \frac{Y_{\mathrm{current}}}{36}.
-$$
+```
 
 Both this and the raw-time median are scored against observed current brew time.
 
@@ -143,12 +143,12 @@ Matching settings also vary sharply across bean labels: earlier 3G has times 25 
 
 The transparent robust screen uses the absolute modified z-score
 
-$$
+```math
 z_i^*
 =
 0.67448975
 \frac{|x_i-\operatorname{median}(x)|}{\operatorname{MAD}(x)},
-$$
+```
 
 and flags $z_i^*>3.5$ within extraction comparison groups with at least five observations. MAD is unscaled in descriptive tables; zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
 
