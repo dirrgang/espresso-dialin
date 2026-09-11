@@ -77,6 +77,16 @@ See:
 - [`docs/model.md`](docs/model.md) — current mathematical project model and hypotheses;
 - [`docs/decision-log.md`](docs/decision-log.md) — decisions versus unresolved questions.
 
+## Working style
+
+The project intentionally separates **research/explanation** from **implementation execution**.
+
+Repository-aware interactive ChatGPT sessions are used primarily for mathematical explanations, literature review, interpretation of results, exploration of model assumptions, and preparation/review of implementation tasks. Codex/coding agents are used primarily for bounded implementation, tests, refactoring, and reproducible execution against explicit acceptance criteria.
+
+The separation is about objectives, not a hard tool boundary. Production code should remain concise and maintainable rather than becoming tutorial material, while important mathematical assumptions and design rationale discovered in either workflow should be committed to durable repository documentation.
+
+See `AGENTS.md` for the detailed agent-facing conventions.
+
 ## Proof-of-concept architecture
 
 Start deliberately small in Python. The uncertainty is in the model, not in the UI.
