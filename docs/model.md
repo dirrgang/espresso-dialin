@@ -2,22 +2,24 @@
 
 This document records the current mathematical framing. It intentionally distinguishes **established requirements** from **hypotheses to test**.
 
+Mathematical notation uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and `$$...$$` for display equations.
+
 ## 1. Variables
 
-For shot `n`, observable inputs and outputs are initially:
+For shot $n$, observable inputs and outputs are initially:
 
-- `G_n`: grinder setting;
-- `t_grind_n`: grind duration;
-- `D_out_n`: grinder output mass;
-- `D_puck_n`: mass actually brewed;
-- `t_brew_n`: recorded brew duration;
-- `Y_n`: final beverage yield.
+- $G_n$: grinder setting;
+- $t_{\mathrm{grind},n}$: grind duration;
+- $D_{\mathrm{out},n}$: grinder output mass;
+- $D_{\mathrm{puck},n}$: mass actually brewed;
+- $t_{\mathrm{brew},n}$: recorded brew duration;
+- $Y_n$: final beverage yield.
 
 Default target:
 
-- `D_puck* = 18.0 g`;
-- `Y* = 36.0 g`;
-- acceptable target brew time `30–35 s`, nominal center `32.5 s`.
+- $D_{\mathrm{puck}}^*=18.0\,\mathrm g$;
+- $Y^*=36.0\,\mathrm g$;
+- acceptable target brew time $30$–$35\,\mathrm s$, nominal center $32.5\,\mathrm s$.
 
 The control outputs are initially:
 
@@ -32,73 +34,80 @@ An exact pump-stop mass is **not** available in the MVP.
 
 Learn the grinder output produced by grind duration and setting:
 
-```text
-D_out = f(t_grind, G, grinder_state, bean/session, ...) + error
-```
+$$
+D_{\mathrm{out}}
+=
+f\!\left(t_{\mathrm{grind}},G,x_{\mathrm{grinder}},B,\ldots\right)
++
+\varepsilon_D.
+$$
 
 A trivial first baseline is proportional correction:
 
-```text
-t_new = t_old * target_dose / measured_output
-```
+$$
+t_{\mathrm{new}}
+=
+t_{\mathrm{old}}
+\frac{D_{\mathrm{target}}}{D_{\mathrm{measured}}}.
+$$
 
 A slightly richer model can include grinder setting because mass flow may vary with adjustment.
 
-The preferred longer-term family is a structured / gray-box model rather than an unconstrained black box, e.g. conceptually:
+The preferred longer-term family is a structured/gray-box model rather than an unconstrained black box, e.g. conceptually:
 
-```text
-D_out,n = t_grind,n * r(G_n, bean/session_n, ...) + h(previous_state_n, G_n) + error_n
-```
+$$
+D_{\mathrm{out},n}
+=
+t_{\mathrm{grind},n}\,r(G_n,B_n,\ldots)
++
+h(x_{n-1},G_n)
++
+\varepsilon_n,
+$$
 
-where `r(...)` is a learned output-rate function and `h(...)` is an optional transition/retention term only if prospective data justify it.
+where $r(\cdot)$ is a learned output-rate function and $h(\cdot)$ is an optional transition/retention term only if prospective data justify it.
 
 ### 2.2 Extraction / flow model
 
-The user normally corrects the puck to approximately 18 g while dialing in. This intentionally reduces confounding and lets the extraction model focus primarily on grinder setting:
+The user normally corrects the puck to approximately $18\,\mathrm g$ while dialing in. This intentionally reduces confounding and lets the extraction model focus primarily on grinder setting:
 
-```text
-flow / time-to-target = g(G_effective, D_puck, bean/session, ...) + error
-```
+$$
+\text{flow / time-to-target}
+=
+g\!\left(G_{\mathrm{effective}},D_{\mathrm{puck}},B,x_{\mathrm{brew}},\ldots\right)
++
+\varepsilon_E.
+$$
 
-Because the final yield is not exactly 36 g, `t_brew` must not be treated as if every shot ended at the same yield.
+Because the final yield is not exactly $36\,\mathrm g$, $t_{\mathrm{brew}}$ must not be treated as if every shot ended at the same yield.
 
 ## 3. Using final yield rather than discarding it
 
-A recorded pair such as:
+A recorded pair such as $31\,\mathrm s / 34\,\mathrm g$ contains different information from $31\,\mathrm s / 38\,\mathrm g$, although the brew duration is identical.
 
-```text
-31 s, 34 g
-```
+The quantity of interest is approximately
 
-contains different information from:
+$$
+T_{36}=\text{time required for a }36\,\mathrm g\text{ final yield},
+$$
 
-```text
-31 s, 38 g
-```
-
-although the brew duration is identical.
-
-The quantity of interest is approximately:
-
-```text
-T_36 = time required for a 36 g final yield
-```
-
-but `T_36` is not directly observed whenever the actual final yield differs from 36 g.
+but $T_{36}$ is not directly observed whenever the actual final yield differs from $36\,\mathrm g$.
 
 ### Baseline normalization
 
-A deliberately crude baseline can estimate:
+A deliberately crude baseline can estimate
 
-```text
-T_36_approx = t_brew * 36 / Y
-```
+$$
+T_{36}^{\mathrm{approx}}
+=
+t_{\mathrm{brew}}\frac{36}{Y}.
+$$
 
 This assumes approximately constant average flow and is not physically exact. Historical analysis did not show consistent improvement from this normalization, so it must not be promoted to ground truth.
 
 ### Preferred direction
 
-Use `(t_brew, Y)` jointly and learn the relationship empirically. Do not hard-code linear yield/time scaling unless new evidence shows it is adequate.
+Use $(t_{\mathrm{brew}},Y)$ jointly and learn the relationship empirically. Do not hard-code linear yield/time scaling unless new evidence shows it is adequate.
 
 ## 4. Dose correction
 
@@ -116,18 +125,29 @@ puck dose: approximately 18.0 g
 
 This one observation provides useful information to two different models:
 
-```text
-(5E, 9.65 s) -> 17.4 g        # grinder-output model
-5E, ~18.0 g -> brew behavior  # extraction model
-```
+$$
+(G=5E,\;t_{\mathrm{grind}}=9.65\,\mathrm s)
+\longrightarrow
+D_{\mathrm{out}}=17.4\,\mathrm g,
+$$
+
+and, after correction,
+
+$$
+(G=5E,\;D_{\mathrm{puck}}\approx18.0\,\mathrm g)
+\longrightarrow
+\text{brew behaviour}.
+$$
 
 The correction should therefore never overwrite the original grinder-output mass.
 
 For an approximate `TO_TARGET` correction, the brewed dose should carry uncertainty rather than false precision, e.g. conceptually:
 
-```text
-D_puck ~ Normal(18.0 g, sigma_dose)
-```
+$$
+D_{\mathrm{puck}}
+\sim
+\mathcal N\!\left(18.0\,\mathrm g,\sigma_{\mathrm{dose}}^2\right).
+$$
 
 The exact uncertainty is to be chosen empirically/configurably; it should not be invented as measurement precision.
 
@@ -135,12 +155,12 @@ The exact uncertainty is to be chosen empirically/configurably; it should not be
 
 Puck preparation introduces unobserved disturbance variables: tamping, distribution, channeling, etc.
 
-A single abnormal result such as `15 s -> 36 g` should not cause an aggressive grinder correction.
+A single abnormal result such as $15\,\mathrm s\rightarrow36\,\mathrm g$ should not cause an aggressive grinder correction.
 
 The model should therefore use robust estimation rather than ordinary least squares alone where richer regression is introduced. Candidate approaches:
 
 - Huber loss;
-- Student-t residual model;
+- Student-$t$ residual model;
 - other robust M-estimators;
 - uncertainty inflation for highly surprising observations.
 
@@ -156,19 +176,31 @@ A useful UI message may be: “Unusual shot; this observation has reduced influe
 
 Purging simplifies the mathematics but wastes coffee. A research goal is to determine whether previous grinder state can be modelled well enough that purging is optional.
 
-A simple latent-state model could be:
+A simple latent-state model could be
 
-```text
-G_effective_n = lambda * G_effective_(n-1) + (1 - lambda) * G_n
-```
+$$
+G^{\mathrm{effective}}_n
+=
+\lambda G^{\mathrm{effective}}_{n-1}
++
+(1-\lambda)G_n,
+$$
 
 or an equivalent parameterization based on the previous setting/change.
 
-A simpler regression test before introducing a latent model is:
+A simpler regression test before introducing a latent model is
 
-```text
-T_n = beta0 + beta1 * G_n + beta2 * (G_n - G_(n-1)) + error
-```
+$$
+T_n
+=
+\beta_0
++
+\beta_1G_n
++
+\beta_2\left(G_n-G_{n-1}\right)
++
+\varepsilon_n.
+$$
 
 If the previous-setting term has little predictive value out of sample, drop the retention model.
 
@@ -263,13 +295,19 @@ A planned **Learning / Experiment mode** should deliberately prescribe informati
 
 A simple second-order response-surface model illustrates what a structured DoE may estimate:
 
-```text
-y = beta_0
-  + sum_i beta_i x_i
-  + sum_i beta_ii x_i^2
-  + sum_(i<j) beta_ij x_i x_j
-  + error
-```
+$$
+y
+=
+\beta_0
++
+\sum_{i=1}^{p}\beta_i x_i
++
+\sum_{i=1}^{p}\beta_{ii}x_i^2
++
+\sum_{i<j}\beta_{ij}x_i x_j
++
+\varepsilon.
+$$
 
 The first Learning Mode should use transparent replicated/DoE-style experiments before using Bayesian acquisition functions. The app must record the experiment intent before the shot so that designed experiments can be distinguished from normal-use observations.
 
@@ -293,17 +331,7 @@ This is the classical exploration/exploitation distinction. A later Bayesian-opt
 
 The initial target is objective dial-in, not sensory optimization.
 
-A later system could accept a low-friction binary preference such as:
-
-```text
-liked / disliked
-```
-
-or pairwise preference:
-
-```text
-shot A better than shot B
-```
+A later system could accept a low-friction binary preference such as `liked / disliked` or a pairwise preference such as `shot A better than shot B`.
 
 This can support classification / preference learning without forcing detailed tasting scores. It is a stretch goal, not an MVP requirement.
 
