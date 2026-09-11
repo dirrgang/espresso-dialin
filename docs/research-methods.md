@@ -2,6 +2,8 @@
 
 This document records the methodological families that are most relevant to the espresso-dialin problem and explains why they may be useful. It is intentionally educational: the project should not only produce recommendations, but make the modelling assumptions and mathematics understandable and testable.
 
+Mathematical notation in this repository uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and `$$...$$` for display equations.
+
 Nothing in this document selects a final model. Simple baselines remain the null hypothesis that richer methods must beat prospectively.
 
 ## 1. Problem framing: system identification before optimisation
@@ -10,17 +12,25 @@ The project contains two coupled but separable systems.
 
 For the grinder:
 
-```text
-D_out,n = f(G_n, t_grind,n, grinder_state_n, bean/session_n, ...) + error
-```
+$$
+D_{\mathrm{out},n}
+=
+f\!\left(G_n, t_{\mathrm{grind},n}, x^{\mathrm{grinder}}_n, B_n, \ldots\right)
++ \varepsilon^{(D)}_n
+$$
 
 For extraction:
 
-```text
-(t_brew,n, Y_n) = g(G_n, D_puck,n, puck/grinder_state_n, bean/session_n, ...) + error
-```
+$$
+\left(t_{\mathrm{brew},n}, Y_n\right)
+=
+g\!\left(G_n, D_{\mathrm{puck},n}, x^{\mathrm{brew}}_n, B_n, \ldots\right)
++ \varepsilon^{(E)}_n
+$$
 
-The first statistical task is **system identification**: infer useful approximations of the unknown functions `f` and `g` from observed inputs and outputs.
+where $G_n$ is grinder setting, $B_n$ denotes bean/session context, the $x_n$ terms represent possible latent process state, and the $\varepsilon_n$ terms collect residual disturbance/noise.
+
+The first statistical task is **system identification**: infer useful approximations of the unknown functions $f$ and $g$ from observed inputs and outputs.
 
 The second task is **control / optimisation**: given the current model and uncertainty, choose the next controllable input that best serves the current objective.
 
@@ -33,72 +43,129 @@ https://www.control.isy.liu.se/books/sysid/
 
 The current dose-control baselines assume locally:
 
-```text
-D_out ~= r * t_grind
-```
+$$
+D_{\mathrm{out}} \approx r\,t_{\mathrm{grind}}
+$$
 
-where `r` is the grinder output rate in g/s.
+where $r$ is the grinder output rate in g/s.
 
 The last-shot proportional controller estimates
 
-```text
-r_hat = D_previous / t_previous
+$$
+\hat r_n
+=
+\frac{D_{\mathrm{out},n-1}}{t_{\mathrm{grind},n-1}}
+$$
 
-t_next = D_target / r_hat
-```
+and recommends
 
-The median-rate controller instead uses
+$$
+t_{\mathrm{next}}
+=
+\frac{D_{\mathrm{target}}}{\hat r_n}
+=
+t_{\mathrm{previous}}
+\frac{D_{\mathrm{target}}}{D_{\mathrm{previous}}}.
+$$
 
-```text
-r_hat = median(D_i / t_i)
-```
+The median-rate controller instead uses compatible earlier observations:
 
-over compatible past observations.
+$$
+\hat r_n
+=
+\operatorname{median}_{i<n}
+\left(
+\frac{D_{\mathrm{out},i}}{t_{\mathrm{grind},i}}
+\right),
+$$
+
+then again sets
+
+$$
+t_{\mathrm{next}}=\frac{D_{\mathrm{target}}}{\hat r_n}.
+$$
 
 These are deliberately small models. They are valuable because every richer model must demonstrate practical improvement over them; they are not assumed to be the final description of the grinder.
 
 ## 3. Least squares, recursive least squares, and adaptive control
 
-A natural next family is a linear-in-parameters model:
+A natural next family is a model that is linear in unknown parameters:
 
-```text
-y_n = phi_n^T theta + epsilon_n
-```
+$$
+y_n = \boldsymbol\phi_n^{\mathsf T}\boldsymbol\theta + \varepsilon_n.
+$$
 
-For a grinder model, `y_n` could be grinder output and `phi_n` could contain features such as grind duration, duration-by-setting effects, or deliberately chosen basis functions.
+For a grinder model, $y_n$ could be grinder output and $\boldsymbol\phi_n$ could contain features such as grind duration, duration-by-setting effects, or deliberately chosen basis functions.
 
-For a batch of observations, ordinary least squares estimates `theta` by minimising
+For a batch of observations, ordinary least squares estimates $\boldsymbol\theta$ by minimising
 
-```text
-sum_i (y_i - phi_i^T theta)^2
-```
+$$
+J(\boldsymbol\theta)
+=
+\sum_{i=1}^{N}
+\left(y_i-\boldsymbol\phi_i^{\mathsf T}\boldsymbol\theta\right)^2.
+$$
 
-and, when the usual matrix inverse exists,
+Writing the observations as design matrix $X$ and output vector $\mathbf y$, the usual closed-form solution, when the inverse exists, is
 
-```text
-theta_hat = (X^T X)^(-1) X^T y
-```
+$$
+\hat{\boldsymbol\theta}
+=
+\left(X^{\mathsf T}X\right)^{-1}X^{\mathsf T}\mathbf y.
+$$
 
 ### Recursive least squares (RLS)
 
-RLS updates the parameter estimate after each new observation instead of refitting from scratch. One common exponentially-forgetting form is:
+RLS updates the parameter estimate after each new observation instead of refitting from scratch. One common exponentially-forgetting form is
 
-```text
-K_n = P_(n-1) phi_n / (lambda + phi_n^T P_(n-1) phi_n)
+$$
+\mathbf K_n
+=
+\frac{
+\mathbf P_{n-1}\boldsymbol\phi_n
+}{
+\lambda + \boldsymbol\phi_n^{\mathsf T}\mathbf P_{n-1}\boldsymbol\phi_n
+},
+$$
 
-theta_n = theta_(n-1) + K_n (y_n - phi_n^T theta_(n-1))
+$$
+\hat{\boldsymbol\theta}_n
+=
+\hat{\boldsymbol\theta}_{n-1}
++
+\mathbf K_n
+\left(
+ y_n-\boldsymbol\phi_n^{\mathsf T}\hat{\boldsymbol\theta}_{n-1}
+\right),
+$$
 
-P_n = (1/lambda) [P_(n-1) - K_n phi_n^T P_(n-1)]
-```
+and
 
-where:
+$$
+\mathbf P_n
+=
+\frac{1}{\lambda}
+\left[
+\mathbf P_{n-1}
+-
+\mathbf K_n\boldsymbol\phi_n^{\mathsf T}\mathbf P_{n-1}
+\right].
+$$
 
-- `theta_n` is the updated parameter estimate;
-- `P_n` represents parameter uncertainty / information;
-- `K_n` is the update gain;
-- `0 < lambda <= 1` is a forgetting factor.
+Here:
 
-`lambda = 1` weights the full history equally. `lambda < 1` gradually discounts old observations, which may be useful if bean age, grinder state, temperature, or other slow drift changes the process.
+- $\hat{\boldsymbol\theta}_n$ is the updated parameter estimate;
+- $\mathbf P_n$ represents parameter uncertainty/information in the RLS recursion;
+- $\mathbf K_n$ is the update gain;
+- $0<\lambda\leq1$ is a forgetting factor.
+
+$\lambda=1$ weights the full history equally. $\lambda<1$ gradually discounts old observations. Equivalently, the estimator approximately gives observation $i$ at time $n$ a weight proportional to
+
+$$
+\lambda^{\,n-i}.
+$$
+
+That may be useful if bean age, grinder state, temperature, or another slow drift changes the process.
 
 This is a classical route from system identification to **adaptive control**: estimate the process online, then recompute the control action from the current estimate.
 
@@ -113,20 +180,26 @@ Important practical warning: adaptive control can perform well in ideal simulati
 
 Some relevant variables may not be directly observable. Retained grounds are one candidate example.
 
-A generic state-space model is:
+A generic linear state-space model is
 
-```text
-x_n = A x_(n-1) + B u_n + w_n
+$$
+\mathbf x_n
+=
+A\mathbf x_{n-1}+B\mathbf u_n+\mathbf w_n,
+$$
 
-y_n = C x_n     + D u_n + v_n
-```
+$$
+\mathbf y_n
+=
+C\mathbf x_n+D\mathbf u_n+\mathbf v_n,
+$$
 
 where:
 
-- `x_n` is a latent internal state;
-- `u_n` is the controlled input;
-- `y_n` is the observed output;
-- `w_n` and `v_n` represent process and measurement noise.
+- $\mathbf x_n$ is a latent internal state;
+- $\mathbf u_n$ is the controlled input;
+- $\mathbf y_n$ is the observed output;
+- $\mathbf w_n$ and $\mathbf v_n$ represent process and measurement noise.
 
 A Kalman filter is the classical solution for linear-Gaussian state-space models; extended/unscented or particle methods handle progressively more nonlinear cases.
 
@@ -142,19 +215,31 @@ This matters because normal dial-in behaviour is confounded: the user changes se
 
 ### Replication
 
-Repeated shots at identical controlled settings estimate process variability. Without replication, an observed difference between two settings cannot be cleanly separated from random shot-to-shot variation.
+Repeated shots at identical controlled settings estimate process variability. If a response at fixed inputs is modelled as
+
+$$
+y_i = \mu + \varepsilon_i,
+$$
+
+then replication gives empirical information about the variance of $\varepsilon_i$. Without replication, an observed difference between two settings cannot be cleanly separated from random shot-to-shot variation.
 
 ### Factorial / response-surface designs
 
-For quantitative factors `x_1, x_2, ...`, a second-order response surface can be written as:
+For quantitative factors $x_1,x_2,\ldots,x_p$, a second-order response surface can be written as
 
-```text
-y = beta_0
-  + sum_i beta_i x_i
-  + sum_i beta_ii x_i^2
-  + sum_(i<j) beta_ij x_i x_j
-  + error
-```
+$$
+y
+=
+\beta_0
++
+\sum_{i=1}^{p}\beta_i x_i
++
+\sum_{i=1}^{p}\beta_{ii}x_i^2
++
+\sum_{i<j}\beta_{ij}x_i x_j
++
+\varepsilon.
+$$
 
 The linear terms estimate main effects, the squared terms capture curvature, and the interaction terms capture effects that depend on combinations of factors.
 
@@ -177,7 +262,7 @@ The controller should exploit what is currently known and avoid unnecessary expe
 
 ### Learning / experiment mode
 
-Primary objective: gain information about the grinder / extraction process efficiently, subject to practical constraints on coffee use and acceptable operating ranges.
+Primary objective: gain information about the grinder/extraction process efficiently, subject to practical constraints on coffee use and acceptable operating ranges.
 
 The tool may deliberately request experiments such as:
 
@@ -195,15 +280,19 @@ The first Learning Mode should be transparent and rule/DoE based. Bayesian activ
 
 A Gaussian process (GP) treats an unknown function as a probability distribution over functions:
 
-```text
-f(x) ~ GP(m(x), k(x, x'))
-```
+$$
+f(x)\sim\mathcal{GP}\!\left(m(x),k(x,x')\right).
+$$
 
-After observations, GP regression produces both a posterior mean and posterior uncertainty:
+After observations $\mathcal D$, GP regression produces a posterior predictive distribution. At a candidate input $x$ this can be summarised by posterior mean and variance,
 
-```text
-f(x) | data -> mean mu(x), variance sigma^2(x)
-```
+$$
+f(x)\mid\mathcal D
+\sim
+\mathcal N\!\left(\mu(x),\sigma^2(x)\right),
+$$
+
+under the usual Gaussian observation assumptions.
 
 This is attractive for espresso because shots are expensive, datasets are likely to remain small, and uncertainty is operationally useful.
 
@@ -217,11 +306,16 @@ Bayesian optimisation builds a probabilistic surrogate for an expensive objectiv
 - exploitation: try inputs already predicted to be good;
 - exploration: try inputs whose outcome would be informative because uncertainty is high.
 
-Conceptually:
+Conceptually,
 
-```text
-x_next = argmax_x acquisition(mu(x), sigma(x), objective, constraints)
-```
+$$
+x_{\mathrm{next}}
+=
+\arg\max_x
+\alpha\!\left(x;\mu(x),\sigma(x),\mathcal D,\text{objective},\text{constraints}\right),
+$$
+
+where $\alpha$ is the acquisition function.
 
 Common acquisition functions include Expected Improvement, Knowledge Gradient, and entropy/information-based methods.
 
@@ -234,18 +328,24 @@ BO is a strong long-term candidate for Learning Mode because each espresso shot 
 
 The project should prefer combining known process structure with learned parameters/residuals rather than asking a completely unconstrained black box to rediscover obvious physics.
 
-For the grinder, a useful family may look like:
+For the grinder, a useful family may look like
 
-```text
-D_out,n = t_n * r(G_n, bean_n, ...) + h(previous_state_n, G_n) + epsilon_n
-```
+$$
+D_{\mathrm{out},n}
+=
+t_n\,r(G_n,B_n,\ldots)
++
+h(x_{n-1},G_n)
++
+\varepsilon_n.
+$$
 
 Here:
 
 - proportionality to grind duration is used as structural knowledge where it remains adequate;
-- `r(...)` is learned and may vary with grind setting or bean/session;
-- `h(...)` is an optional transition/retention term only if data support it;
-- `epsilon_n` models residual process noise.
+- $r(\cdot)$ is learned and may vary with grind setting or bean/session;
+- $h(\cdot)$ is an optional transition/retention term only if data support it;
+- $\varepsilon_n$ models residual process noise.
 
 This is a **gray-box** approach: neither a fixed physical model nor an unconstrained black box.
 
@@ -285,9 +385,6 @@ A reasonable evidence ladder is:
 
 For every step, ask:
 
-```text
-Does this improve prospective prediction, calibration, shots-to-target,
-or coffee-to-target enough to justify the additional complexity?
-```
+> Does this improve prospective prediction, calibration, shots-to-target, or coffee-to-target enough to justify the additional complexity?
 
 The intended end state is not “use the most advanced statistics available”. It is a scientifically defensible, sample-efficient controller whose behaviour can be explained and whose additional complexity is validated against simpler baselines.
