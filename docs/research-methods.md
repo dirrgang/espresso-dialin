@@ -2,7 +2,7 @@
 
 This document records the methodological families that are most relevant to the espresso-dialin problem and explains why they may be useful. It is intentionally educational: the project should not only produce recommendations, but make the modelling assumptions and mathematics understandable and testable.
 
-Project-wide espresso symbols are defined in [`notation.md`](notation.md). Generic statistical symbols in this document are **method-local** and are defined when introduced; they should not be assumed to carry the same meaning in unrelated sections.
+Project-wide espresso symbols are defined in [`notation.md`](notation.md). Method-local notation follows conventional usage; specialist or non-obvious roles are introduced where needed.
 
 Mathematical notation uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and fenced `math` blocks for display equations.
 
@@ -35,9 +35,7 @@ f_E\!\left(G_n,D_{\mathrm{puck},n},B_n,\mathbf z_n^{(e)}\right)
 \boldsymbol\varepsilon_n^{(E)}.
 ```
 
-The project-wide meanings of $G_n$, $t_{\mathrm{grind},n}$, $D_{\mathrm{out},n}$, $D_{\mathrm{puck},n}$, $t_{\mathrm{brew},n}$, $Y_n$, $B_n$, and the conceptual state/context placeholders $\mathbf z_n^{(g)}$ and $\mathbf z_n^{(e)}$ are defined in [`notation.md`](notation.md).
-
-$f_D$ and $f_E$ are unknown process mappings to be identified from data. The residual terms $\varepsilon_n^{(D)}$ and $\boldsymbol\varepsilon_n^{(E)}$ represent measurement error, shot-to-shot variation and modelled-system effects omitted from the current approximation; they are not assumed to be pure sensor noise.
+The project-wide variables, context/state placeholders, process mappings, and residual semantics are defined in [`notation.md`](notation.md).
 
 The first statistical task is **system identification**: infer useful approximations of the unknown process mappings from observed inputs and outputs.
 
@@ -58,7 +56,7 @@ D_{\mathrm{out}}
 r\,t_{\mathrm{grind}},
 ```
 
-where $r$ is the grinder output rate in g/s. The missing shot index means this is a generic local relation rather than one specific observation.
+where $r$ is the grinder output rate in g/s.
 
 The last-shot proportional controller estimates the rate for the next shot from the most recent compatible earlier observation. In simplified notation:
 
@@ -76,7 +74,7 @@ t_{\mathrm{grind,next}}^{\mathrm{rec}}
 \frac{D_{\mathrm{out}}^*}{\hat r}.
 ```
 
-Here $\hat r$ is the estimated rate, $D_{\mathrm{out}}^*$ is the target raw grinder output, and the superscript `rec` distinguishes the recommended duration from the duration actually used. [`dose-control-baseline.md`](dose-control-baseline.md) gives the exact chronological implementation notation.
+[`notation.md`](notation.md) defines $D_{\mathrm{out}}^*$ and the `rec`/`actual` convention; [`dose-control-baseline.md`](dose-control-baseline.md) gives the exact chronological implementation notation.
 
 The median-rate controller instead uses a set $\mathcal H$ of compatible earlier observations. For each $i\in\mathcal H$:
 
@@ -105,19 +103,12 @@ y_n
 =
 \boldsymbol\phi_n^{\mathsf T}\boldsymbol\theta
 +
-\varepsilon_n.
+\varepsilon_n,
 ```
 
-This subsection uses generic regression notation:
+with feature vector $\boldsymbol\phi_n$ and coefficient vector $\boldsymbol\theta$. For a grinder model, $y_n$ could be $D_{\mathrm{out},n}$ and $\boldsymbol\phi_n$ could contain grind duration plus explicitly justified grinder-setting/context features.
 
-- $y_n$ is the scalar response observed at sample $n$;
-- $\boldsymbol\phi_n$ is the feature vector for that sample;
-- $\boldsymbol\theta$ is the unknown coefficient vector;
-- $\varepsilon_n$ is the regression residual for that sample.
-
-For a grinder model, for example, $y_n$ could be $D_{\mathrm{out},n}$ and $\boldsymbol\phi_n$ could contain grind duration plus explicitly justified grinder-setting/context features.
-
-For a batch of $N$ observations, ordinary least squares estimates $\boldsymbol\theta$ by minimising:
+For $N$ observations, ordinary least squares minimizes:
 
 ```math
 J(\boldsymbol\theta)
@@ -126,17 +117,13 @@ J(\boldsymbol\theta)
 \left(y_i-\boldsymbol\phi_i^{\mathsf T}\boldsymbol\theta\right)^2.
 ```
 
-Here $J$ is the sum-of-squared-errors objective and $N$ is the number of fitted observations.
-
-Define the design matrix $X$ by stacking the feature row vectors $\boldsymbol\phi_i^{\mathsf T}$ and define $\mathbf y=(y_1,\ldots,y_N)^{\mathsf T}$. When $X^{\mathsf T}X$ is invertible, the usual closed-form ordinary-least-squares estimator is:
+With design matrix $X$ and response vector $\mathbf y$, the usual closed-form estimator, when $X^{\mathsf T}X$ is invertible, is:
 
 ```math
 \hat{\boldsymbol\theta}
 =
 \left(X^{\mathsf T}X\right)^{-1}X^{\mathsf T}\mathbf y.
 ```
-
-The hat marks $\hat{\boldsymbol\theta}$ as an estimate rather than the unknown true parameter vector.
 
 ### Recursive least squares (RLS)
 
@@ -178,16 +165,11 @@ and:
 
 In this recursion:
 
-- $\hat{\boldsymbol\theta}_n$ is the coefficient estimate after observing sample $n$;
 - $\mathbf P_n$ is the RLS covariance/information matrix controlling how uncertain/adaptable the parameter estimate remains;
-- $\mathbf K_n$ is the update gain applied to the new prediction error;
+- $\mathbf K_n$ is the update gain;
 - $0\lt\lambda\leq1$ is the forgetting factor.
 
-$\lambda=1$ weights the full history equally. $\lambda\lt1$ gradually discounts old observations. Equivalently, an observation $i$ steps in the past at current step $n$ receives weight proportional to:
-
-```math
-\lambda^{\,n-i}.
-```
+$\lambda=1$ weights the full history equally. $\lambda\lt1$ gradually discounts old observations; an observation from step $i$ has weight proportional to $\lambda^{n-i}$ at step $n$.
 
 That may be useful if bean age, grinder state, temperature, or another slow drift changes the process. It should not be introduced merely because drift is plausible; prospective data should show that recency weighting improves prediction or control.
 
@@ -226,17 +208,7 @@ D\mathbf u_n
 \mathbf v_n.
 ```
 
-Here:
-
-- $\mathbf s_n$ is the latent internal state at step $n$;
-- $\mathbf u_n$ is the controlled/input vector;
-- $\mathbf y_n$ is the observed-output vector;
-- $A$ is the state-transition matrix;
-- $B$ maps current inputs into the state update;
-- $C$ maps latent state into observations;
-- $D$ represents any direct input-to-output effect;
-- $\mathbf w_n$ is process noise;
-- $\mathbf v_n$ is measurement/observation noise.
+Here $A$ is the state-transition matrix, $B$ the input-to-state matrix, $C$ the state-to-observation matrix, and $D$ the direct input-to-output matrix; $\mathbf w_n$ and $\mathbf v_n$ are process and observation noise respectively.
 
 A Kalman filter is the classical solution for linear-Gaussian state-space models; extended/unscented or particle methods handle progressively more nonlinear cases.
 
@@ -252,7 +224,7 @@ This matters because normal dial-in behaviour is confounded: the user changes se
 
 ### Replication
 
-Repeated shots at identical controlled settings estimate process variability. For one fixed experimental condition, suppose the response is modelled as:
+Repeated shots at identical controlled settings estimate process variability. For one fixed experimental condition:
 
 ```math
 y_i
@@ -262,7 +234,7 @@ y_i
 \varepsilon_i.
 ```
 
-Here $y_i$ is response measurement $i$, $\mu$ is the mean response under that fixed condition, and $\varepsilon_i$ is shot-to-shot residual variation. Replication gives empirical information about the distribution/variance of $\varepsilon_i$. Without replication, an observed difference between two settings cannot be cleanly separated from random shot-to-shot variation.
+With $\mu$ the fixed-condition mean, replication provides empirical information about shot-to-shot variance. Without replication, an observed difference between two settings cannot be cleanly separated from random shot-to-shot variation.
 
 ### Factorial / response-surface designs
 
@@ -282,13 +254,7 @@ y
 \varepsilon.
 ```
 
-Here:
-
-- $\beta_0$ is the intercept;
-- $\beta_i$ are first-order/main-effect coefficients;
-- $\beta_{ii}$ are quadratic coefficients capturing curvature;
-- $\beta_{ij}$ are pairwise interaction coefficients;
-- $\varepsilon$ is residual experimental variation.
+The coefficients represent the intercept, main effects, curvature, and pairwise interactions respectively.
 
 A **Central Composite Design (CCD)** combines factorial points, axial points, and repeated centre points so that such a quadratic surface can be estimated efficiently.
 
@@ -335,14 +301,7 @@ f(\mathbf a)
 \mathcal{GP}\!\left(m(\mathbf a),k(\mathbf a,\mathbf a')\right).
 ```
 
-Here:
-
-- $f$ is the unknown scalar response/objective function being modelled;
-- $\mathbf a$ and $\mathbf a'$ are candidate input/action vectors;
-- $m(\mathbf a)$ is the GP prior mean function;
-- $k(\mathbf a,\mathbf a')$ is the kernel/covariance function expressing how similar two inputs are expected to be.
-
-Let $\mathcal D$ denote the observations collected so far. Under the usual Gaussian observation assumptions, GP regression produces a posterior predictive distribution at candidate $\mathbf a$ that can be summarized as:
+Here $m$ is the prior mean function and $k$ the kernel/covariance function over candidate inputs. Let $\mathcal D$ denote the observations collected so far. Under the usual Gaussian observation assumptions:
 
 ```math
 f(\mathbf a)\mid\mathcal D
@@ -350,7 +309,7 @@ f(\mathbf a)\mid\mathcal D
 \mathcal N\!\left(\mu(\mathbf a),\sigma^2(\mathbf a)\right),
 ```
 
-where $\mu(\mathbf a)$ is the posterior predictive mean and $\sigma^2(\mathbf a)$ the posterior predictive variance.
+where $\mu(\mathbf a)$ and $\sigma^2(\mathbf a)$ are the posterior predictive mean and variance.
 
 This is attractive for espresso because shots are expensive, datasets are likely to remain small, and uncertainty is operationally useful.
 
@@ -359,12 +318,9 @@ https://gaussianprocess.org/gpml/
 
 ### Bayesian optimisation (BO)
 
-Bayesian optimisation builds a probabilistic surrogate for an expensive objective and uses an **acquisition function** to choose the next experiment. The acquisition function trades off:
+Bayesian optimisation builds a probabilistic surrogate for an expensive objective and uses an **acquisition function** to choose the next experiment. The acquisition function trades off exploitation against exploration.
 
-- exploitation: try inputs already predicted to be good;
-- exploration: try inputs whose outcome would be informative because uncertainty is high.
-
-Let $\alpha(\mathbf a;\mathcal D)$ denote an acquisition score calculated from the current surrogate/posterior. Then conceptually:
+Let $\alpha(\mathbf a;\mathcal D)$ denote the acquisition score. Conceptually:
 
 ```math
 \mathbf a_{\mathrm{next}}
@@ -395,12 +351,7 @@ h\!\left(\mathbf z_{n-1}^{(g)},G_n\right)
 \varepsilon_n^{(D)}.
 ```
 
-The project-wide variables are defined in [`notation.md`](notation.md). In this equation:
-
-- proportionality to grind duration is used as structural knowledge where it remains adequate;
-- $r(\cdot)$ is learned and may vary with grind setting or bean/session context;
-- $h(\cdot)$ is an optional transition/retention term only if data support it;
-- $\varepsilon_n^{(D)}$ models residual grinder-output disturbance.
+Here proportionality to grind duration is the structural assumption; $r(\cdot)$ is a learned output-rate function and $h(\cdot)$ an optional transition/retention term. The latter should be retained only if data support it.
 
 This is a **gray-box** approach: neither a fixed physical model nor an unconstrained black box.
 
