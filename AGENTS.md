@@ -91,7 +91,7 @@ A future production frontend/backend architecture is explicitly premature until 
 - Dependencies and tool configuration belong in `pyproject.toml`.
 - Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
-- In Markdown documentation, render mathematical notation using GitHub's LaTeX/MathJax-compatible syntax (`$...$` inline and `$$...$$` for display equations). Use code fences only for code, commands, schemas, or literal text—not as a substitute for mathematical typesetting.
+- In GitHub Markdown, use `$...$` for inline mathematics and fenced `math` blocks (triple backticks followed by `math`) for display equations. Prefer fenced `math` blocks over multiline `$$...$$`, because the latter can be parsed incorrectly by GitHub Markdown. Use ordinary code fences only for code, commands, schemas, or literal text.
 - Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history.
 - Do not add a license until the repository owner has explicitly chosen one.
 
