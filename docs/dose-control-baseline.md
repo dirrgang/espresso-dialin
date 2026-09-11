@@ -10,48 +10,48 @@ Both controllers implement the typed `DoseController` interface in `espresso_dia
 
 Use the most recent earlier compatible observation. Estimate the grinder rate as
 
-$$
+```math
 \hat r
 =
 \frac{D_{\mathrm{previous}}}{t_{\mathrm{previous}}},
-$$
+```
 
 then recommend
 
-$$
+```math
 t_{\mathrm{next}}
 =
 \frac{D_{\mathrm{target}}}{\hat r}
 =
 t_{\mathrm{previous}}
 \frac{D_{\mathrm{target}}}{D_{\mathrm{previous}}}.
-$$
+```
 
 ### Past-only median rate
 
 For each compatible earlier observation $i$,
 
-$$
+```math
 r_i
 =
 \frac{D_i}{t_i}.
-$$
+```
 
 Estimate the current rate as
 
-$$
+```math
 \hat r
 =
 \operatorname{median}(r_1,\ldots,r_k),
-$$
+```
 
 then recommend
 
-$$
+```math
 t_{\mathrm{next}}
 =
 \frac{D_{\mathrm{target}}}{\hat r}.
-$$
+```
 
 Neither result is silently clamped. Targets and observed measurements must be finite and positive. Missing duration or output remains explicit and makes that observation unusable for dose control. With no usable compatible history, the controller raises `InsufficientDoseHistoryError` rather than borrowing unrelated data.
 
@@ -66,9 +66,9 @@ The initial `ExactDoseCompatibility` policy requires equality of every one of:
 
 The controllers also require an observation sequence strictly below the target sequence,
 
-$$
+```math
 \mathrm{sequence}_i < \mathrm{sequence}_{\mathrm{target}}.
-$$
+```
 
 They therefore reject future observations even if a caller supplies them. Grinder-setting labels are categorical: no Sette macro/micro ordering, spacing, or overlap is assumed.
 
@@ -82,19 +82,19 @@ Both models expect the target output at their recommended duration by constructi
 
 `score_recommendation` does not refit. Given stored rate $\hat r$ and the duration actually used $t_{\mathrm{actual}}$, it predicts
 
-$$
+```math
 \hat D_{\mathrm{actual}}
 =
 \hat r\,t_{\mathrm{actual}}.
-$$
+```
 
 The signed prediction error is
 
-$$
+```math
 e
 =
 \hat D_{\mathrm{actual}}-D_{\mathrm{actual}},
-$$
+```
 
 with absolute error $|e|$. The scorer also reports whether actual output is within a target band. Its $0.2\,\mathrm g$ default is named and documented as provisional; comparative trial tolerances must be fixed before results are examined.
 
@@ -112,25 +112,25 @@ This produces 22 predictions per strategy: 21 in `unknown_pre_bio` / historical 
 
 For prediction errors $e_1,\ldots,e_n$, the reported metrics are
 
-$$
+```math
 \mathrm{MAE}
 =
 \frac{1}{n}\sum_{i=1}^{n}|e_i|,
-$$
+```
 
-$$
+```math
 \mathrm{RMSE}
 =
 \sqrt{\frac{1}{n}\sum_{i=1}^{n}e_i^2},
-$$
+```
 
 and
 
-$$
+```math
 \operatorname{MedAE}
 =
 \operatorname{median}(|e_1|,\ldots,|e_n|).
-$$
+```
 
 | Block | Strategy | n | MAE (g) | RMSE (g) | Median absolute error (g) |
 | --- | --- | ---: | ---: | ---: | ---: |
