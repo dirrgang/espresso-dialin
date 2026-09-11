@@ -2,6 +2,8 @@
 
 The proof of concept succeeds only if it improves real dial-in decisions out of sample. This document defines how to test that claim without fooling ourselves.
 
+Project-wide espresso symbols are defined in [`notation.md`](notation.md). Validation-specific indices and metrics are defined below when introduced.
+
 ## Research question
 
 Primary question:
@@ -29,9 +31,16 @@ At minimum compare against:
 
 ### B. Simple proportional dose controller
 
-```text
-t_new = t_old * target_dose / measured_grinder_output
+Using the notation from [`notation.md`](notation.md), the generic proportional update is:
+
+```math
+t_{\mathrm{grind,new}}
+=
+t_{\mathrm{grind,old}}
+\frac{D_{\mathrm{out}}^*}{D_{\mathrm{out,old}}}.
 ```
+
+$D_{\mathrm{out}}^*$ is the target raw grinder output; `old` and `new` denote successive controller actions, not necessarily adjacent absolute shot numbers in every analysis.
 
 ### C. EspressoPost-like static model
 
@@ -55,7 +64,7 @@ Ablation tests are important: compare a rich model with the same model minus one
 
 ## Historical rolling validation
 
-For chronological shots `S_1 ... S_N`, never train on the observation being predicted.
+Let $S_n$ denote the $n$th chronological shot within the relevant bean/session sequence. Never train on the observation being predicted.
 
 Example:
 
@@ -83,6 +92,8 @@ Once a model is usable:
 
 Do not overwrite historical recommendations after model updates.
 
+Where recommended and actual actions differ, keep them separate using notation such as $t_{\mathrm{grind},n}^{\mathrm{rec}}$ and $t_{\mathrm{grind},n}^{\mathrm{actual}}$ rather than silently substituting one for the other.
+
 ## Metrics
 
 ### Prediction metrics
@@ -90,9 +101,11 @@ Do not overwrite historical recommendations after model updates.
 Possible metrics:
 
 - MAE / RMSE of grinder output prediction;
-- MAE / RMSE of estimated `T_36` or another target-time representation;
+- MAE / RMSE of estimated $T_{36}$ or another explicitly defined target-time representation;
 - sign accuracy (did the model correctly predict that a change would be faster/slower?);
 - interval coverage / calibration if uncertainty intervals are emitted.
+
+When using MAE or RMSE, define the error sign convention in the analysis producing them. For example, [`dose-control-baseline.md`](dose-control-baseline.md) defines $e=$ prediction minus observation.
 
 ### Dial-in outcome metrics
 
@@ -120,7 +133,7 @@ A useful aggregate objective is:
 dial_in_cost = total grams of coffee consumed before first acceptable recipe
 ```
 
-This matches the low-waste motivation better than prediction error alone.
+This is a named evaluation metric rather than a new physical variable. It matches the low-waste motivation better than prediction error alone.
 
 ## Robustness tests
 
@@ -140,13 +153,15 @@ The desired behavior is stable recommendations and appropriately increased uncer
 
 Before implementing a complicated latent-state model, test simpler evidence for retention.
 
-For example, evaluate whether prediction improves when adding:
+For example, evaluate whether prediction improves when adding explicit features such as:
 
 ```text
 previous_grind_setting
-change_from_previous_setting
+setting_changed
 first_shot_after_setting_change
 ```
+
+Do **not** define `change_from_previous_setting` as arithmetic subtraction unless a validated numeric grinder representation $z(G)$ exists. For opaque Sette-style settings, transition features should remain categorical/structured as described in [`notation.md`](notation.md).
 
 If these features do not improve chronological out-of-sample metrics, do not add a retention model merely because it is physically plausible.
 
@@ -154,9 +169,18 @@ If these features do not improve chronological out-of-sample metrics, do not add
 
 Compare at least:
 
-1. ignore yield and use raw brew duration;
-2. linear normalization `T_36 ~= t * 36 / Y`;
-3. a learned relationship using both brew duration and final yield.
+1. ignore yield and use raw brew duration $t_{\mathrm{brew}}$;
+2. use the crude linear normalization:
+
+```math
+T_{36}^{\mathrm{linear}}
+=
+t_{\mathrm{brew}}\frac{36}{Y};
+```
+
+3. learn a relationship using both $t_{\mathrm{brew}}$ and final yield $Y$.
+
+$T_{36}^{\mathrm{linear}}$ is defined in [`notation.md`](notation.md) as a derived approximation, not ground truth.
 
 This directly tests one of the project's main hypotheses.
 
