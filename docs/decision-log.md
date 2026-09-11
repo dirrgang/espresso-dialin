@@ -115,6 +115,54 @@ Do not evaluate only by in-sample fit.
 
 Prefer simpler models unless additional complexity demonstrably improves out-of-sample prediction or dial-in cost.
 
+## 2026-09-11 — Methodological strategy
+
+**Decision:** Treat the project primarily as a system-identification / adaptive-control problem with an optimisation layer, not as a generic “throw all inputs into ML” problem.
+
+Prefer **gray-box models** where known process structure can reduce the amount of data required, while allowing unknown parameters, residuals, drift, and latent state to be learned statistically.
+
+Simple proportional/median/heuristic baselines remain mandatory comparison points. Recursive least squares, state-space methods, Gaussian processes, and Bayesian optimisation are candidate methods to evaluate when the data support the corresponding assumptions; none is selected as the final model yet.
+
+Reason: established control/statistical methods provide more interpretable, sample-efficient structure than an unconstrained black box, while still allowing richer behaviour to be learned from prospective data.
+
+See `docs/research-methods.md`.
+
+## 2026-09-11 — Learning / Experiment mode
+
+**Decision:** Plan a first-class **Learning / Experiment mode** distinct from normal assisted dial-in.
+
+Normal mode primarily tries to produce a good next drink with minimal waste. Learning Mode may deliberately prescribe controlled, replicated, or perturbed shots to gain information about the process.
+
+Examples include:
+
+- repeated identical shots to estimate process noise;
+- controlled grind-duration changes at fixed setting;
+- neighbouring grind-setting comparisons with corrected puck dose held approximately constant;
+- first-shot-after-change versus immediate-repeat experiments;
+- later return to a reference setting to test drift.
+
+Experiment intent must be recorded before the shot and remain distinguishable from ordinary-use observations.
+
+Initial Learning Mode should use transparent DoE-style schedules/replication. Bayesian active-learning / acquisition-function selection is a later candidate once the action space and uncertainty model are credible.
+
+Reason: normal dial-in observations are operator-adapted and confounded. Deliberately designed experiments can separate process effects from noise with fewer, more informative shots.
+
+## 2026-09-11 — Research and educational transparency
+
+**Decision:** Mathematical assumptions, model updates, validation logic, and experiment rationale should be documented so that the project is understandable as a learning exercise as well as usable software.
+
+Reason: the project is intentionally being approached as a serious modelling/control problem, and interpretability is valuable both scientifically and for deciding whether extra model complexity is justified.
+
+## 2026-09-11 — Split research/explanation from coding-agent execution
+
+**Decision:** Use a two-track working style by default.
+
+Repository-aware interactive ChatGPT sessions are the preferred venue for conceptual exploration, mathematical explanations, literature synthesis, interpretation of results, and review/preparation of implementation tasks. Codex/coding agents are primarily used for bounded implementation, testing, refactoring, and reproducible execution against explicit acceptance criteria.
+
+This is not a hard restriction on which tool may perform which task. It is a separation of objectives: educational explanation should not force production code or coding-agent prompts to become tutorial-oriented, while durable modelling rationale discovered during either workflow must still be committed to repository documentation.
+
+Reason: this preserves implementation focus and code quality while allowing the project to remain mathematically transparent and useful as a learning exercise.
+
 ## Open decisions
 
 The following are intentionally unresolved:
@@ -125,5 +173,8 @@ The following are intentionally unresolved:
 - exact grinder-setting representation/calibration for the Sette 270;
 - acceptable target bands for dose/yield when benchmarking “dialed in”;
 - how much uncertainty to assign to a puck dose that was manually corrected “to approximately 18 g”;
-- whether the first usable application needs Streamlit immediately or should begin as notebook/CLI analysis over historical data;
+- exact first Learning-Mode experiment plan and stopping criteria;
+- when/if recursive forgetting should be introduced for drift;
+- whether a Gaussian-process surrogate has enough prospective data and a defensible grinder-distance representation to be useful;
+- when Bayesian optimisation provides enough value over transparent DoE schedules to justify autonomous experiment selection;
 - whether taste/preference optimization is worth pursuing after objective dial-in works.

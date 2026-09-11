@@ -1,6 +1,6 @@
 # Next steps
 
-The project should validate the modelling assumptions before spending time on product architecture.
+The project should validate modelling assumptions with prospective data and deliberately designed experiments before spending heavily on product architecture or advanced models.
 
 ## Phase 0 — Historical dataset
 
@@ -33,71 +33,132 @@ eligibility rules, retains raw yield/output and compares simple chronological ba
 Linear normalization does not consistently improve repeatability; retention evidence is
 insufficient. These are limited empirical findings, not validated physical laws.
 
-## Phase 2 — Baseline models
+## Phase 2 — Baseline dose models
 
 Completed 2026-09-11: the small typed proportional-dose baseline and past-only
 same-block/exact-setting median-rate comparator, with explicit prospective recommendation
 records and scoring. See [`dose-control-baseline.md`](dose-control-baseline.md). The rolling
 rate evaluation has 22 predictions per strategy (21 in the earlier incompletely identified
 block and one in the newer block). Median-rate is numerically better but does not establish
-material superiority. The earlier adjacent-pair analysis remains a distinct 17-pair question.
+material superiority.
 
-Defer extraction regression until targeted repeats better resolve setting/session/yield
-confounding; do not automatically adopt linear T36 as ground truth. The following remains the
-broader baseline agenda, not authorization to skip that validation.
+The baselines define the minimum standard that richer grinder-output models must beat.
 
-Implement and test:
+## Phase 3 — Minimal prospective data-acquisition application
 
-1. human-style direction heuristic;
-2. proportional grind-duration correction (completed);
-3. simple static regression for extraction;
-4. raw-time vs. linear yield-normalized baseline.
+Build the smallest useful Streamlit + SQLite vertical slice early enough that future shots are prospective, timestamped, and linked to recommendations created before outcomes are known.
 
-Use rolling chronological validation.
-
-Deliverable: baseline metrics that later models must beat.
-
-## Phase 3 — Robust / richer models
-
-Add incrementally:
-
-1. robust residual handling;
-2. learned use of `(brew_duration, final_yield)`;
-3. grinder-output model including current grind setting;
-4. simple previous-setting/change features;
-5. retention latent state only if simpler previous-setting features improve validation.
-
-Use ablation tests for every major addition.
-
-## Phase 4 — Minimal local application
-
-Only after the core recommendation loop is plausible, build the Streamlit + SQLite workflow:
+Required flow:
 
 ```text
 Select/start session
-    -> show next recommendation
-    -> enter grinder output
-    -> mark corrected-to-target or actual puck dose
-    -> enter brew duration and final yield
-    -> save shot
-    -> generate/store next recommendation
+    -> choose current/manual grind setting
+    -> create and persist next dose recommendation (or manual fallback)
+    -> grind and record actual duration + grinder output
+    -> record dose correction / puck dose
+    -> brew and record duration + final yield
+    -> save outcome linked to the frozen recommendation
 ```
 
-The UI must not contain model logic.
+Persist at minimum:
 
-## Phase 5 — Prospective test
+- sessions / bean identity and targets;
+- timezone-aware timestamps;
+- recommendations and model/version/source observations;
+- recommended versus actual grinder setting/duration separately;
+- raw grinder output;
+- dose-correction mode and actual/approximate puck dose;
+- brew duration and final yield;
+- optional bad-shot / purge / notes metadata.
 
-Use new beans to test actual convergence:
+The UI must not contain model logic. Data collection must never be blocked because a model has insufficient history.
+
+Deliverable: an application that can already be used during normal espresso preparation even while grind-setting optimisation remains manual.
+
+## Phase 4 — Learning / Experiment mode and first designed experiments
+
+Add an explicit experiment intent distinct from normal assisted use. The first version should use transparent Design-of-Experiments principles rather than autonomous Bayesian optimisation.
+
+Initial experiment families should be selected for concrete identification questions, for example:
+
+1. **Repeatability / noise**
+   - repeat identical setting + duration several times;
+   - estimate within-condition grinder-output and extraction variability.
+
+2. **Grind-duration response**
+   - hold exact setting and bean/session fixed;
+   - deliberately vary duration around the normal operating point;
+   - test proportionality and whether an intercept/nonlinearity is measurable.
+
+3. **Setting effect on grinder output**
+   - repeat nearby settings at controlled durations;
+   - determine whether output rate materially depends on setting.
+
+4. **Extraction response to setting**
+   - keep puck dose approximately fixed via manual correction;
+   - test selected neighbouring settings with replication;
+   - use `(brew_duration, final_yield)` jointly rather than treating linear `T36` as truth.
+
+5. **Transition / retention signal**
+   - deliberately compare first shot after a setting change with an immediate repeat;
+   - repeat enough transitions to determine whether a previous-setting/state term has prospective value.
+
+6. **Drift**
+   - revisit a reference condition later in the same bean/session;
+   - test whether time/ageing/state changes are large enough to justify recency weighting or a forgetting factor.
+
+Predefine the question, experimental points, replication, and stopping criterion before examining results where practical.
+
+Deliverable: a small prospective dataset with known experimental intent that can separate process effects from ordinary shot noise better than the historical notes can.
+
+See [`research-methods.md`](research-methods.md).
+
+## Phase 5 — Structured system identification / richer models
+
+Add complexity incrementally based on the prospective evidence.
+
+Candidate progression:
+
+1. structured regression for grinder output, including setting effects if demonstrated;
+2. recursive least squares / adaptive estimation if online updating is useful;
+3. forgetting/recency weighting only if measurable drift exists;
+4. robust residual handling where anomalous observations materially affect prediction;
+5. learned joint use of `(brew_duration, final_yield)` for extraction;
+6. simple previous-setting/change features;
+7. latent state-space retention model only if the simple temporal features add validated value;
+8. Gaussian-process surrogate only when the grinder/action representation and data density make its uncertainty useful.
+
+Use ablation tests for every major addition and compare every richer model with the existing baselines.
+
+## Phase 6 — Active experiment selection / Bayesian optimisation
+
+Only after the surrogate model and uncertainty estimates are credible, evaluate whether Learning Mode should choose experiments using an acquisition function rather than a fixed DoE schedule.
+
+Possible objectives include:
+
+- expected improvement in dial-in quality;
+- expected information gain / entropy reduction;
+- knowledge gradient;
+- explicitly constrained trade-offs between information gained and coffee consumed.
+
+Do not treat Bayesian optimisation as a prerequisite. It must beat transparent experiment schedules or provide useful capabilities they cannot.
+
+## Phase 7 — Prospective closed-loop evaluation
+
+Use new beans/sessions to test actual convergence:
 
 - store every recommendation before the shot;
 - follow it as closely as practical;
-- record actual settings/measurements;
+- record actual settings/measurements and deviations;
 - track shots-to-target and grams-to-target;
-- compare with baseline recommendation strategies where practical.
+- compare baseline and richer strategies using a schedule fixed before outcomes;
+- evaluate prediction error, calibration, convergence, oscillation, and waste.
 
-## Phase 6 — Decide whether to continue
+Designed Learning-Mode shots and normal-use shots must remain distinguishable in analysis.
 
-Continue toward a real web/mobile product only if the PoC shows practical value.
+## Phase 8 — Decide whether to continue toward a product
+
+Continue toward a real web/mobile product only if the modelling/control approach shows practical value.
 
 Possible later extensions, in approximate order of likely usefulness:
 
