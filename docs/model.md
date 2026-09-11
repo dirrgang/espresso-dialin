@@ -44,6 +44,14 @@ t_new = t_old * target_dose / measured_output
 
 A slightly richer model can include grinder setting because mass flow may vary with adjustment.
 
+The preferred longer-term family is a structured / gray-box model rather than an unconstrained black box, e.g. conceptually:
+
+```text
+D_out,n = t_grind,n * r(G_n, bean/session_n, ...) + h(previous_state_n, G_n) + error_n
+```
+
+where `r(...)` is a learned output-rate function and `h(...)` is an optional transition/retention term only if prospective data justify it.
+
 ### 2.2 Extraction / flow model
 
 The user normally corrects the puck to approximately 18 g while dialing in. This intentionally reduces confounding and lets the extraction model focus primarily on grinder setting:
@@ -86,11 +94,11 @@ A deliberately crude baseline can estimate:
 T_36_approx = t_brew * 36 / Y
 ```
 
-This assumes approximately constant average flow and is not physically exact. It is useful only as a baseline to test against richer models.
+This assumes approximately constant average flow and is not physically exact. Historical analysis did not show consistent improvement from this normalization, so it must not be promoted to ground truth.
 
 ### Preferred direction
 
-Use `(t_brew, Y)` jointly and learn the relationship empirically. Do not hard-code linear yield/time scaling unless tests show it is adequate.
+Use `(t_brew, Y)` jointly and learn the relationship empirically. Do not hard-code linear yield/time scaling unless new evidence shows it is adequate.
 
 ## 4. Dose correction
 
@@ -129,7 +137,7 @@ Puck preparation introduces unobserved disturbance variables: tamping, distribut
 
 A single abnormal result such as `15 s -> 36 g` should not cause an aggressive grinder correction.
 
-The model should therefore use robust estimation rather than ordinary least squares alone. Candidate approaches:
+The model should therefore use robust estimation rather than ordinary least squares alone where richer regression is introduced. Candidate approaches:
 
 - Huber loss;
 - Student-t residual model;
@@ -170,6 +178,8 @@ Important caveats:
 - exchange retention, static effects and delayed release may depend on beans and grind setting;
 - do not build a detailed physical grinder simulation unless data justify it.
 
+If a hidden temporal state eventually proves useful, the natural mathematical framework is a state-space model rather than ad-hoc history features indefinitely.
+
 ## 7. Grinder abstraction
 
 The statistical model should not be coupled to one manufacturer's labels.
@@ -208,30 +218,78 @@ Fallback when no absolute position can be read. The user reports reproducible re
 
 ## 8. Model progression
 
-Do not start with maximum complexity.
+Do not start with maximum complexity. Add model capacity only when the data and validation question justify it.
 
 Suggested progression:
 
-1. **Heuristic baseline**
+1. **Heuristic / deterministic baselines**
    - too fast -> finer;
    - too slow -> coarser;
    - dose too low -> longer grind;
-   - dose too high -> shorter grind.
+   - dose too high -> shorter grind;
+   - proportional and median-rate dose controllers.
 
-2. **Simple regression**
-   - dose from grind duration/setting;
-   - target-time estimate from grind setting plus observed yield/time.
+2. **Structured regression / system identification**
+   - dose from grind duration and setting;
+   - estimate parameters with ordinary or recursive least squares where the model is linear in parameters;
+   - use forgetting/recency weighting only when drift is demonstrated or intentionally modelled.
 
-3. **Robust regression**
-   - reduce sensitivity to channeling and other outliers.
+3. **Robust regression / probabilistic residuals**
+   - reduce sensitivity to channeling and other outliers;
+   - quantify predictive uncertainty where it can be calibrated.
 
-4. **Retention-aware model**
-   - only if chronological data show useful previous-state signal.
+4. **State-space / retention-aware model**
+   - only if prospective chronological data show useful previous-state signal.
 
-5. **Bayesian / Gaussian-process / preference model**
-   - only if uncertainty handling or later taste optimization demonstrably benefits.
+5. **Gaussian-process or other probabilistic surrogate**
+   - when the action-space representation is defensible and small-data uncertainty has clear value.
 
-## 9. Taste optimization (later)
+6. **Bayesian optimisation / active experimental design**
+   - only when the surrogate is trustworthy enough for the algorithm to choose informative or promising next experiments.
+
+Every richer model must be compared against the simpler model immediately below it using chronology-safe/prospective validation.
+
+## 9. Design of Experiments and Learning Mode
+
+Normal dial-in data are observational and operator-adapted: settings are changed because previous results were bad. This confounds process effects with the user's intervention policy.
+
+A planned **Learning / Experiment mode** should deliberately prescribe informative shots. Examples:
+
+- replicate the same setting/duration to estimate process noise;
+- vary duration while holding grind setting constant;
+- compare neighboring grind settings while keeping corrected puck dose approximately fixed;
+- test the first shot after a setting change versus an immediate repeat;
+- revisit a reference setting later to identify drift.
+
+A simple second-order response-surface model illustrates what a structured DoE may estimate:
+
+```text
+y = beta_0
+  + sum_i beta_i x_i
+  + sum_i beta_ii x_i^2
+  + sum_(i<j) beta_ij x_i x_j
+  + error
+```
+
+The first Learning Mode should use transparent replicated/DoE-style experiments before using Bayesian acquisition functions. The app must record the experiment intent before the shot so that designed experiments can be distinguished from normal-use observations.
+
+See [`research-methods.md`](research-methods.md) for the mathematical background and literature.
+
+## 10. Normal mode versus information-seeking control
+
+Two different objectives should remain explicit.
+
+### Normal / assisted mode
+
+Primary objective: maximize the probability of a good next drink while minimizing wasted coffee.
+
+### Learning / experiment mode
+
+Primary objective: maximize useful information about the process under practical constraints such as coffee budget, safe/realistic settings, and acceptable shot quality.
+
+This is the classical exploration/exploitation distinction. A later Bayesian-optimisation policy can formalize it, but the distinction should exist in the data model before such a policy is implemented.
+
+## 11. Taste optimization (later)
 
 The initial target is objective dial-in, not sensory optimization.
 
@@ -249,10 +307,12 @@ shot A better than shot B
 
 This can support classification / preference learning without forcing detailed tasting scores. It is a stretch goal, not an MVP requirement.
 
-## 10. Guiding principle
+## 12. Guiding principle
 
 The project should optimize **information and coffee efficiency**, not mathematical sophistication.
 
 The useful question is not “can we fit a complicated model?” but:
 
-> Can the next recommendation reach the target with fewer shots / fewer grams of coffee than a competent simple dial-in heuristic?
+> Can the next recommendation reach the target with fewer shots / fewer grams of coffee than a competent simple dial-in heuristic, or can a deliberate experiment buy enough information to improve future recommendations?
+
+Prefer **gray-box modelling** where useful process structure is known, and let data learn the parts we do not know. A flexible model should not be rewarded for rediscovering obvious structure at the cost of sample efficiency.
