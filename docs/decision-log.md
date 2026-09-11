@@ -153,6 +153,16 @@ Reason: normal dial-in observations are operator-adapted and confounded. Deliber
 
 Reason: the project is intentionally being approached as a serious modelling/control problem, and interpretability is valuable both scientifically and for deciding whether extra model complexity is justified.
 
+## 2026-09-11 — Split research/explanation from coding-agent execution
+
+**Decision:** Use a two-track working style by default.
+
+Repository-aware interactive ChatGPT sessions are the preferred venue for conceptual exploration, mathematical explanations, literature synthesis, interpretation of results, and review/preparation of implementation tasks. Codex/coding agents are primarily used for bounded implementation, testing, refactoring, and reproducible execution against explicit acceptance criteria.
+
+This is not a hard restriction on which tool may perform which task. It is a separation of objectives: educational explanation should not force production code or coding-agent prompts to become tutorial-oriented, while durable modelling rationale discovered during either workflow must still be committed to repository documentation.
+
+Reason: this preserves implementation focus and code quality while allowing the project to remain mathematically transparent and useful as a learning exercise.
+
 ## Open decisions
 
 The following are intentionally unresolved:
