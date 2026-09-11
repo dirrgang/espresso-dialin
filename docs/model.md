@@ -296,17 +296,7 @@ A planned **Learning / Experiment mode** should deliberately prescribe informati
 A simple second-order response-surface model illustrates what a structured DoE may estimate:
 
 ```math
-y
-=
-\beta_0
-+
-\sum_{i=1}^{p}\beta_i x_i
-+
-\sum_{i=1}^{p}\beta_{ii}x_i^2
-+
-\sum_{i<j}\beta_{ij}x_i x_j
-+
-\varepsilon.
+y = \beta_0 + \sum_{i=1}^{p}\beta_i x_i + \sum_{i=1}^{p}\beta_{ii}x_i^2 + \sum_{i=1}^{p-1}\sum_{j=i+1}^{p}\beta_{ij}x_i x_j + \varepsilon.
 ```
 
 The first Learning Mode should use transparent replicated/DoE-style experiments before using Bayesian acquisition functions. The app must record the experiment intent before the shot so that designed experiments can be distinguished from normal-use observations.
