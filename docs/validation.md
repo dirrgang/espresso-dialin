@@ -2,7 +2,7 @@
 
 The proof of concept succeeds only if it improves real dial-in decisions out of sample. This document defines how to test that claim without fooling ourselves.
 
-Project-wide espresso symbols are defined in [`notation.md`](notation.md). Validation-specific indices and metrics are defined below when introduced.
+Project-wide espresso symbols are defined in [`notation.md`](notation.md). Validation-specific notation is introduced below where needed.
 
 ## Research question
 
@@ -40,7 +40,7 @@ t_{\mathrm{grind,old}}
 \frac{D_{\mathrm{out}}^*}{D_{\mathrm{out,old}}}.
 ```
 
-$D_{\mathrm{out}}^*$ is the target raw grinder output; `old` and `new` denote successive controller actions, not necessarily adjacent absolute shot numbers in every analysis.
+`old` and `new` denote successive controller actions, not necessarily adjacent absolute shot numbers in every analysis.
 
 ### C. EspressoPost-like static model
 
@@ -105,7 +105,7 @@ Possible metrics:
 - sign accuracy (did the model correctly predict that a change would be faster/slower?);
 - interval coverage / calibration if uncertainty intervals are emitted.
 
-When using MAE or RMSE, define the error sign convention in the analysis producing them. For example, [`dose-control-baseline.md`](dose-control-baseline.md) defines $e=$ prediction minus observation.
+Analyses that report signed residuals must define their sign convention. [`dose-control-baseline.md`](dose-control-baseline.md), for example, uses prediction minus observation.
 
 ### Dial-in outcome metrics
 
@@ -133,7 +133,7 @@ A useful aggregate objective is:
 dial_in_cost = total grams of coffee consumed before first acceptable recipe
 ```
 
-This is a named evaluation metric rather than a new physical variable. It matches the low-waste motivation better than prediction error alone.
+This matches the low-waste motivation better than prediction error alone.
 
 ## Robustness tests
 
