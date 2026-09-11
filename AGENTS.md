@@ -17,6 +17,40 @@ Read at least:
 
 Treat the decision log as authoritative for current project decisions. Treat modelling ideas explicitly labelled as hypotheses as unproven until validated.
 
+## Working model: research/explanation versus implementation
+
+The project deliberately uses two complementary workflows.
+
+### Interactive research / explanation
+
+Repository-aware interactive ChatGPT sessions are the preferred place for:
+
+- learning and explaining the mathematics behind candidate methods;
+- literature review and comparison with established methods;
+- exploring modelling assumptions and alternative formulations;
+- reviewing empirical results and deciding what evidence would distinguish hypotheses;
+- preparing or reviewing implementation prompts;
+- explaining already-implemented code or statistical results in depth.
+
+Educational depth is valuable here. Derivations, terminology, assumptions, failure modes, and alternatives should be made explicit when useful.
+
+### Coding-agent implementation
+
+Codex/coding-agent tasks should normally be bounded implementation tasks with explicit acceptance criteria. Optimize them for:
+
+- correctness;
+- minimal justified scope;
+- tests and reproducibility;
+- clean domain boundaries;
+- empirical validation;
+- maintainable code.
+
+Do **not** distort production code into a tutorial. Comments and docstrings should explain non-obvious behavior, invariants, units, assumptions, and public interfaces, not reproduce a statistics lesson. A coding task need not spend context producing a long educational explanation unless that explanation is itself a requested durable artifact.
+
+When an implementation introduces or falsifies a material modelling assumption, update the durable repository documentation (`docs/model.md`, `docs/research-methods.md`, `docs/decision-log.md`, validation notes, etc.) rather than relying on the coding agent's final chat response.
+
+This split is a default workflow, not a hard tool restriction: use the tool best suited to the task. The important distinction is that **educational explanation and production implementation are separate objectives**, connected through durable repository documentation.
+
 ## Engineering principles
 
 - Keep the proof of concept small.
