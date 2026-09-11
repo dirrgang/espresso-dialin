@@ -51,6 +51,40 @@ ruff format .
 
 Pre-commit runs the lightweight file and Ruff checks automatically. GitHub Actions runs linting, formatting, type checking, and tests on pull requests and pushes to `main`.
 
+## Research and coding-agent workflow
+
+The project deliberately separates interactive research/explanation from coding-agent execution.
+
+Use repository-aware interactive ChatGPT work primarily for:
+
+- understanding statistical/control methods and their mathematics;
+- literature review and comparison of candidate approaches;
+- inspecting repository state and reviewing empirical results;
+- discussing assumptions, identifiability, confounding, and experiment design;
+- designing bounded implementation tasks and reviewing their results afterward.
+
+Use Codex/coding agents primarily for:
+
+- implementing a clearly scoped change;
+- adding/refactoring tests and typed domain code;
+- executing reproducible analyses already specified by the research question;
+- updating durable repository documentation when implementation changes a modelling assumption.
+
+A useful default loop is:
+
+```text
+interactive analysis / explanation
+    -> bounded Codex implementation
+    -> interactive review / explanation
+    -> next evidence-driven task
+```
+
+This separation is intended to improve both learning and implementation quality. Production code should not be made artificially verbose or tutorial-like merely to explain the statistics; educational derivations belong in interactive discussion or durable research documentation where they are genuinely useful. Conversely, material modelling assumptions, validation results, or decisions must not live only in an agent chat response: record them under `docs/`.
+
+For mathematical Markdown in the repository, use GitHub's LaTeX/MathJax-compatible syntax (`$...$` inline, `$$...$$` for display equations) instead of code fences.
+
+See `AGENTS.md` for the detailed instructions that coding agents should follow.
+
 ## Project boundaries
 
 The current phase is a research PoC. Prefer notebooks and small Python modules that answer the modelling questions documented under `docs/` before adding product infrastructure.
