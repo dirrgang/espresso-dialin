@@ -13,8 +13,43 @@ Read at least:
 - `docs/data-model.md`
 - `docs/validation.md`
 - `docs/decision-log.md`
+- `docs/research-methods.md` for statistical/mathematical work
 
 Treat the decision log as authoritative for current project decisions. Treat modelling ideas explicitly labelled as hypotheses as unproven until validated.
+
+## Working model: research/explanation versus implementation
+
+The project deliberately uses two complementary workflows.
+
+### Interactive research / explanation
+
+Repository-aware interactive ChatGPT sessions are the preferred place for:
+
+- learning and explaining the mathematics behind candidate methods;
+- literature review and comparison with established methods;
+- exploring modelling assumptions and alternative formulations;
+- reviewing empirical results and deciding what evidence would distinguish hypotheses;
+- preparing or reviewing implementation prompts;
+- explaining already-implemented code or statistical results in depth.
+
+Educational depth is valuable here. Derivations, terminology, assumptions, failure modes, and alternatives should be made explicit when useful.
+
+### Coding-agent implementation
+
+Codex/coding-agent tasks should normally be bounded implementation tasks with explicit acceptance criteria. Optimize them for:
+
+- correctness;
+- minimal justified scope;
+- tests and reproducibility;
+- clean domain boundaries;
+- empirical validation;
+- maintainable code.
+
+Do **not** distort production code into a tutorial. Comments and docstrings should explain non-obvious behavior, invariants, units, assumptions, and public interfaces, not reproduce a statistics lesson. A coding task need not spend context producing a long educational explanation unless that explanation is itself a requested durable artifact.
+
+When an implementation introduces or falsifies a material modelling assumption, update the durable repository documentation (`docs/model.md`, `docs/research-methods.md`, `docs/decision-log.md`, validation notes, etc.) rather than relying on the coding agent's final chat response.
+
+This split is a default workflow, not a hard tool restriction: use the tool best suited to the task. The important distinction is that **educational explanation and production implementation are separate objectives**, connected through durable repository documentation.
 
 ## Engineering principles
 
@@ -23,7 +58,7 @@ Treat the decision log as authoritative for current project decisions. Treat mod
 - Prefer simple models until extra complexity demonstrates out-of-sample value.
 - Keep optimizer/domain logic independent from Streamlit and SQLite.
 - Preserve raw measurements; derive transformed values separately.
-- Store recommendations before their outcomes are known.
+- Store recommendations and experiment intent before their outcomes are known.
 - Preserve chronology and bean/session boundaries.
 - Never silently fill missing/uncertain historical data.
 - Do not force purging; retention handling is an experiment, not an assumption.
@@ -31,6 +66,8 @@ Treat the decision log as authoritative for current project decisions. Treat mod
 - Robustness to bad/channeling-like shots is a core requirement.
 - Actual final yield must be retained and used; do not pretend every shot ended at exactly 36 g.
 - Manual correction of puck dose to the target is a supported controlled intervention and must not overwrite grinder output.
+- Distinguish normal-use recommendations from deliberately designed Learning/Experiment-mode observations.
+- Do not infer causal effects from operator-adapted observational data when a designed experiment is required to separate effects from noise/confounding.
 
 ## Initial implementation direction
 
@@ -54,6 +91,7 @@ A future production frontend/backend architecture is explicitly premature until 
 - Dependencies and tool configuration belong in `pyproject.toml`.
 - Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
+- In GitHub Markdown, use `$...$` for inline mathematics and fenced `math` blocks (triple backticks followed by `math`) for display equations. Do not put `$`/`$$` delimiters inside a `math` fence. GitHub's display-math pipeline can misparse a literal `<` or `>` inside TeX (for example `\sum_{i<j}`), so prefer TeX relation commands such as `\lt`, `\gt`, `\le`, `\ge`, or equivalent explicit index bounds. Use ordinary code fences only for code, commands, schemas, or literal text.
 - Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history.
 - Do not add a license until the repository owner has explicitly chosen one.
 
@@ -93,7 +131,9 @@ When adding or comparing models:
 3. avoid data leakage;
 4. report prediction error and, where possible, uncertainty calibration;
 5. evaluate coffee/shots-to-target, not fit quality alone;
-6. use ablation tests to establish whether added features actually help.
+6. use ablation tests to establish whether added features actually help;
+7. use deliberately designed/replicated experiments when observational logging cannot identify an effect;
+8. keep Normal/Assisted mode and Learning/Experiment mode objectives distinct.
 
 If a complex model does not materially beat a simpler model, keep the simpler model.
 

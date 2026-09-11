@@ -6,9 +6,10 @@ This is the initial persistence/domain model for the local Python proof of conce
 
 1. **Raw observations are authoritative.** Do not overwrite measured values with corrected/derived values.
 2. **Recommendations are stored before outcomes are known** so prediction quality can be evaluated honestly.
-3. **Historical data may be uncertain.** Missing or approximate values should be represented explicitly rather than guessed.
-4. **Chronological order matters**, especially for testing retention / previous-grinder-state effects.
-5. Model parameters may be cached later, but should be reconstructable from observations whenever practical.
+3. **Experiment intent is stored before outcomes are known.** A deliberately designed Learning-Mode shot must remain distinguishable from normal assisted use.
+4. **Historical data may be uncertain.** Missing or approximate values should be represented explicitly rather than guessed.
+5. **Chronological order matters**, especially for testing retention / previous-grinder-state effects.
+6. Model parameters may be cached later, but should be reconstructable from observations whenever practical.
 
 ## Entities
 
@@ -83,6 +84,49 @@ target_time_max_s = 35.0
 
 Do not assume every future session uses these defaults.
 
+### Experiment / Learning plan
+
+A planned experiment records **why** one or more shots are being requested before their results are known.
+
+Conceptual fields:
+
+```text
+id
+session_id
+created_at
+mode
+question
+plan_type
+planned_conditions_json
+replication_target?
+stopping_rule_json?
+coffee_budget_g?
+status
+notes?
+```
+
+`mode` should distinguish at least:
+
+```text
+NORMAL
+LEARNING
+```
+
+Possible `plan_type` values may eventually include:
+
+```text
+REPEATABILITY
+DURATION_RESPONSE
+SETTING_COMPARISON
+TRANSITION_RETENTION
+DRIFT_REFERENCE
+CUSTOM
+```
+
+Do not hard-code a large taxonomy prematurely; the essential semantic requirement is that designed experiments are identifiable and that their intended question/conditions were recorded before outcomes.
+
+A later Bayesian/active-learning system may generate an experiment plan automatically. The persistence semantics should remain the same: the selected experimental action and its rationale/acquisition metadata are frozen before the shot.
+
 ### Shot
 
 Core raw observation:
@@ -92,6 +136,8 @@ id
 session_id
 sequence
 timestamp?
+experiment_id?
+shot_mode
 
 grind_setting
 grind_duration_s
@@ -104,10 +150,13 @@ puck_dose_uncertainty_g?
 brew_duration_s
 final_yield_g
 
+purged_before_shot?
 user_quality_flag?
 notes?
 source
 ```
+
+`shot_mode` should distinguish ordinary use from designed experiments even if no separate `Experiment` entity is implemented in the earliest schema.
 
 #### Dose correction
 
@@ -177,10 +226,12 @@ Store every actionable prediction before the associated shot is brewed.
 ```text
 id
 session_id
+experiment_id?
 created_at
 based_on_through_shot_sequence
 model_id
 model_version
+purpose
 
 recommended_grind_setting
 recommended_grind_duration_s
@@ -193,7 +244,16 @@ expected_t36_uncertainty_s?
 metadata_json?
 ```
 
-This prevents retrospective leakage when evaluating prediction accuracy.
+`purpose` should distinguish at least whether the recommendation is trying to optimize the immediate drink or execute an information-seeking Learning-Mode experiment, e.g.:
+
+```text
+ASSISTED_DIAL_IN
+LEARNING_EXPERIMENT
+```
+
+For a Learning-Mode recommendation, `metadata_json` may later contain the candidate set, acquisition score, or experimental contrast that motivated the action. These are explanatory records, not post-hoc annotations.
+
+This prevents retrospective leakage when evaluating prediction accuracy or experiment-selection quality.
 
 ## Historical handwritten data
 
@@ -218,7 +278,8 @@ Important import semantics:
 - preserve row order exactly;
 - preserve uncertain handwriting as `null`/uncertain with a transcription note;
 - never infer a missing value merely to make a row complete;
-- preserve known bean/session boundaries.
+- preserve known bean/session boundaries;
+- historical rows have no reliable predeclared Learning-Mode intent and must not be retrospectively labelled as designed experiments.
 
 A CSV staging format is useful before database import, for example:
 
@@ -249,8 +310,11 @@ Likely tables:
 grinders
 beans
 dial_in_sessions
+experiments
 shots
 recommendations
 ```
 
-Schema migrations can remain simple initially, but a schema version should exist before importing a meaningful historical dataset.
+The initial live app may omit a separate `experiments` table if Learning Mode is not yet implemented, provided shot/recommendation schemas can later add experiment identity without losing semantic distinctions.
+
+Schema migrations can remain simple initially, but a schema version should exist before importing a meaningful historical or prospective dataset.
