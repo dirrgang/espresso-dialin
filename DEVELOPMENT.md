@@ -81,7 +81,7 @@ interactive analysis / explanation
 
 This separation is intended to improve both learning and implementation quality. Production code should not be made artificially verbose or tutorial-like merely to explain the statistics; educational derivations belong in interactive discussion or durable research documentation where they are genuinely useful. Conversely, material modelling assumptions, validation results, or decisions must not live only in an agent chat response: record them under `docs/`.
 
-For mathematical Markdown in the repository, use GitHub's LaTeX/MathJax-compatible syntax (`$...$` inline, `$$...$$` for display equations) instead of code fences.
+For mathematical Markdown in the repository, use GitHub's LaTeX/MathJax-compatible syntax: `$...$` inline and fenced `math` blocks for display equations. Prefer fenced `math` blocks over multiline `$$...$$` because GitHub Markdown can parse the latter incorrectly.
 
 See `AGENTS.md` for the detailed instructions that coding agents should follow.
 
