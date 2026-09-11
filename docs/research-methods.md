@@ -228,17 +228,7 @@ then replication gives empirical information about the variance of $\varepsilon_
 For quantitative factors $x_1,x_2,\ldots,x_p$, a second-order response surface can be written as
 
 ```math
-y
-=
-\beta_0
-+
-\sum_{i=1}^{p}\beta_i x_i
-+
-\sum_{i=1}^{p}\beta_{ii}x_i^2
-+
-\sum_{i<j}\beta_{ij}x_i x_j
-+
-\varepsilon.
+y = \beta_0 + \sum_{i=1}^{p}\beta_i x_i + \sum_{i=1}^{p}\beta_{ii}x_i^2 + \sum_{i=1}^{p-1}\sum_{j=i+1}^{p}\beta_{ij}x_i x_j + \varepsilon.
 ```
 
 The linear terms estimate main effects, the squared terms capture curvature, and the interaction terms capture effects that depend on combinations of factors.
