@@ -27,7 +27,20 @@ Before building a UI, inspect the historical data:
 
 Deliverable: notebook with plots/statistics and explicit conclusions about which modelling assumptions are worth pursuing.
 
+Completed 2026-09-11: [`01_historical_exploration.ipynb`](../notebooks/01_historical_exploration.ipynb)
+and [`historical-analysis.md`](historical-analysis.md). The 51-row audit uses separate
+eligibility rules, retains raw yield/output and compares simple chronological baselines.
+Linear normalization does not consistently improve repeatability; retention evidence is
+insufficient. These are limited empirical findings, not validated physical laws.
+
 ## Phase 2 — Baseline models
+
+Immediate next step after the historical analysis: a small typed proportional-dose
+baseline, compared with a past-only same-block median output rate, with explicit
+recommendation records for prospective evaluation. Only 17 compatible historical
+dose pairs exist. Defer extraction regression until targeted repeats better resolve
+setting/session/yield confounding; do not automatically adopt linear T36 as ground truth.
+The following remains the broader baseline agenda, not authorization to skip that validation.
 
 Implement and test:
 
