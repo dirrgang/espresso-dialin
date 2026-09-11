@@ -35,17 +35,21 @@ insufficient. These are limited empirical findings, not validated physical laws.
 
 ## Phase 2 — Baseline models
 
-Immediate next step after the historical analysis: a small typed proportional-dose
-baseline, compared with a past-only same-block median output rate, with explicit
-recommendation records for prospective evaluation. Only 17 compatible historical
-dose pairs exist. Defer extraction regression until targeted repeats better resolve
-setting/session/yield confounding; do not automatically adopt linear T36 as ground truth.
-The following remains the broader baseline agenda, not authorization to skip that validation.
+Completed 2026-09-11: the small typed proportional-dose baseline and past-only
+same-block/exact-setting median-rate comparator, with explicit prospective recommendation
+records and scoring. See [`dose-control-baseline.md`](dose-control-baseline.md). The rolling
+rate evaluation has 22 predictions per strategy (21 in the earlier incompletely identified
+block and one in the newer block). Median-rate is numerically better but does not establish
+material superiority. The earlier adjacent-pair analysis remains a distinct 17-pair question.
+
+Defer extraction regression until targeted repeats better resolve setting/session/yield
+confounding; do not automatically adopt linear T36 as ground truth. The following remains the
+broader baseline agenda, not authorization to skip that validation.
 
 Implement and test:
 
 1. human-style direction heuristic;
-2. proportional grind-duration correction;
+2. proportional grind-duration correction (completed);
 3. simple static regression for extraction;
 4. raw-time vs. linear yield-normalized baseline.
 
