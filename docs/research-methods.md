@@ -73,7 +73,7 @@ The median-rate controller instead uses compatible earlier observations:
 ```math
 \hat r_n
 =
-\operatorname{median}_{i<n}
+\text{median}_{i\lt n}
 \left(
 \frac{D_{\mathrm{out},i}}{t_{\mathrm{grind},i}}
 \right),
@@ -157,9 +157,9 @@ Here:
 - $\hat{\boldsymbol\theta}_n$ is the updated parameter estimate;
 - $\mathbf P_n$ represents parameter uncertainty/information in the RLS recursion;
 - $\mathbf K_n$ is the update gain;
-- $0<\lambda\leq1$ is a forgetting factor.
+- $0\lt \lambda\leq1$ is a forgetting factor.
 
-$\lambda=1$ weights the full history equally. $\lambda<1$ gradually discounts old observations. Equivalently, the estimator approximately gives observation $i$ at time $n$ a weight proportional to
+$\lambda=1$ weights the full history equally. $\lambda\lt 1$ gradually discounts old observations. Equivalently, the estimator approximately gives observation $i$ at time $n$ a weight proportional to
 
 ```math
 \lambda^{\,n-i}.
