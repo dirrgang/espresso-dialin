@@ -2,18 +2,20 @@
 
 This document records the current mathematical framing. It intentionally distinguishes **established requirements** from **hypotheses to test**.
 
-Mathematical notation uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and fenced `math` blocks for display equations.
+Project-wide symbols are defined in [`notation.md`](notation.md). Method-specific symbols introduced only in this document are defined where they first appear. Mathematical notation uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and fenced `math` blocks for display equations.
 
-## 1. Variables
+## 1. Core variables and conventions
 
-For shot $n$, observable inputs and outputs are initially:
+For shot $n$, the primary observed variables are:
 
-- $G_n$: grinder setting;
-- $t_{\mathrm{grind},n}$: grind duration;
-- $D_{\mathrm{out},n}$: grinder output mass;
-- $D_{\mathrm{puck},n}$: mass actually brewed;
+- $G_n$: grinder setting actually used;
+- $t_{\mathrm{grind},n}$: actual grind duration;
+- $D_{\mathrm{out},n}$: raw grinder output mass;
+- $D_{\mathrm{puck},n}$: mass actually brewed after any manual correction;
 - $t_{\mathrm{brew},n}$: recorded brew duration;
 - $Y_n$: final beverage yield.
+
+The full definitions, units and target notation are centralized in [`notation.md`](notation.md). In particular, $G_n$ is **not** assumed to be a linearly spaced numeric fineness coordinate.
 
 Default target:
 
@@ -28,28 +30,40 @@ The control outputs are initially:
 
 An exact pump-stop mass is **not** available in the MVP.
 
+Two conceptual context/state placeholders appear below:
+
+- $B_n$: known bean/session context for shot $n$;
+- $\mathbf z_n^{(g)}$: additional grinder-related state/context;
+- $\mathbf z_n^{(e)}$: additional extraction/brew state/context.
+
+These placeholders do **not** imply that all possible state variables are observed or useful. Concrete models must replace them with explicit measured features and/or a defined latent state. See [`notation.md`](notation.md) for examples.
+
 ## 2. Two coupled but separable problems
 
 ### 2.1 Grinder-output model
 
-Learn the grinder output produced by grind duration and setting:
+Conceptually, learn the raw grinder output produced by grind duration, grinder setting and any justified context/state:
 
 ```math
-D_{\mathrm{out}}
+D_{\mathrm{out},n}
 =
-f\!\left(t_{\mathrm{grind}},G,x_{\mathrm{grinder}},B,\ldots\right)
+f_D\!\left(t_{\mathrm{grind},n},G_n,B_n,\mathbf z_n^{(g)}\right)
 +
-\varepsilon_D.
+\varepsilon_n^{(D)}.
 ```
 
-A trivial first baseline is proportional correction:
+Here $f_D(\cdot)$ is the unknown grinder-output mapping and $\varepsilon_n^{(D)}$ is residual grinder-output disturbance/noise not explained by the current model.
+
+A trivial first baseline is proportional correction. In generic, index-free notation:
 
 ```math
 t_{\mathrm{new}}
 =
 t_{\mathrm{old}}
-\frac{D_{\mathrm{target}}}{D_{\mathrm{measured}}}.
+\frac{D_{\mathrm{out}}^*}{D_{\mathrm{old}}}.
 ```
+
+Here $D_{\mathrm{out}}^*$ is the target raw grinder output and $D_{\mathrm{old}}$ is the previously measured raw output. The currently implemented baseline is documented more precisely in [`dose-control-baseline.md`](dose-control-baseline.md).
 
 A slightly richer model can include grinder setting because mass flow may vary with adjustment.
 
@@ -60,45 +74,52 @@ D_{\mathrm{out},n}
 =
 t_{\mathrm{grind},n}\,r(G_n,B_n,\ldots)
 +
-h(x_{n-1},G_n)
+h\!\left(\mathbf z_{n-1}^{(g)},G_n\right)
 +
-\varepsilon_n,
+\varepsilon_n^{(D)}.
 ```
 
-where $r(\cdot)$ is a learned output-rate function and $h(\cdot)$ is an optional transition/retention term only if prospective data justify it.
+Here:
+
+- $r(\cdot)$ is a learned grinder-output-rate function, typically in g/s;
+- $h(\cdot)$ is an optional history/transition correction, for example a retention-related effect;
+- the ellipsis means additional variables only if a concrete model names and justifies them.
+
+Neither $h$ nor any particular component of $\mathbf z_n^{(g)}$ should be introduced without prospective evidence.
 
 ### 2.2 Extraction / flow model
 
-The user normally corrects the puck to approximately $18\,\mathrm g$ while dialing in. This intentionally reduces confounding and lets the extraction model focus primarily on grinder setting:
+The user normally corrects the puck to approximately $18\,\mathrm g$ while dialing in. This intentionally reduces confounding and lets the extraction model focus primarily on grinder setting while still retaining actual puck dose and final yield.
+
+A high-level vector-valued model is:
 
 ```math
-\text{flow / time-to-target}
+\begin{pmatrix}
+t_{\mathrm{brew},n}\\
+Y_n
+\end{pmatrix}
 =
-g\!\left(G_{\mathrm{effective}},D_{\mathrm{puck}},B,x_{\mathrm{brew}},\ldots\right)
+f_E\!\left(G_n,D_{\mathrm{puck},n},B_n,\mathbf z_n^{(e)}\right)
 +
-\varepsilon_E.
+\boldsymbol\varepsilon_n^{(E)}.
 ```
 
-Because the final yield is not exactly $36\,\mathrm g$, $t_{\mathrm{brew}}$ must not be treated as if every shot ended at the same yield.
+Here $f_E(\cdot)$ is the unknown extraction/flow mapping and $\boldsymbol\varepsilon_n^{(E)}$ is the residual disturbance for the jointly modelled brew-duration/yield outcome.
+
+Because final yield is not exactly $36\,\mathrm g$, $t_{\mathrm{brew},n}$ must not be treated as if every shot ended at the same yield.
 
 ## 3. Using final yield rather than discarding it
 
 A recorded pair such as $31\,\mathrm s / 34\,\mathrm g$ contains different information from $31\,\mathrm s / 38\,\mathrm g$, although the brew duration is identical.
 
-The quantity of interest is approximately
-
-```math
-T_{36}=\text{time required for a }36\,\mathrm g\text{ final yield},
-```
-
-but $T_{36}$ is not directly observed whenever the actual final yield differs from $36\,\mathrm g$.
+The quantity of interest is approximately $T_{36}$: the time required to reach a $36\,\mathrm g$ beverage yield under a defined measurement convention. In the historical data, $T_{36}$ is not directly observed whenever actual final yield differs from $36\,\mathrm g$.
 
 ### Baseline normalization
 
-A deliberately crude baseline can estimate
+A deliberately crude baseline can estimate:
 
 ```math
-T_{36}^{\mathrm{approx}}
+T_{36}^{\mathrm{linear}}
 =
 t_{\mathrm{brew}}\frac{36}{Y}.
 ```
@@ -144,12 +165,12 @@ The correction should therefore never overwrite the original grinder-output mass
 For an approximate `TO_TARGET` correction, the brewed dose should carry uncertainty rather than false precision, e.g. conceptually:
 
 ```math
-D_{\mathrm{puck}}
+D_{\mathrm{puck},n}
 \sim
-\mathcal N\!\left(18.0\,\mathrm g,\sigma_{\mathrm{dose}}^2\right).
+\mathcal N\!\left(D_{\mathrm{puck}}^*,\sigma_{\mathrm{dose}}^2\right).
 ```
 
-The exact uncertainty is to be chosen empirically/configurably; it should not be invented as measurement precision.
+Here $\sigma_{\mathrm{dose}}$ would be the standard deviation representing uncertainty in the approximately corrected puck dose. Its value is not currently known and must be estimated or configured explicitly rather than invented as measurement precision.
 
 ## 5. Robustness to bad shots
 
@@ -176,33 +197,50 @@ A useful UI message may be: “Unusual shot; this observation has reduced influe
 
 Purging simplifies the mathematics but wastes coffee. A research goal is to determine whether previous grinder state can be modelled well enough that purging is optional.
 
-A simple latent-state model could be
+### Possible latent effective-fineness model
+
+A simple latent-state idea could be expressed only **after** a defensible numerical fineness representation $z(G)$ has been established:
 
 ```math
-G^{\mathrm{effective}}_n
+z_n^{\mathrm{effective}}
 =
-\lambda G^{\mathrm{effective}}_{n-1}
+\lambda z_{n-1}^{\mathrm{effective}}
 +
-(1-\lambda)G_n,
+(1-\lambda)z(G_n),
 ```
 
-or an equivalent parameterization based on the previous setting/change.
+where:
 
-A simpler regression test before introducing a latent model is
+- $z(G_n)$ maps the user-facing grinder setting to a validated numerical/latent fineness coordinate;
+- $z_n^{\mathrm{effective}}$ is a hypothetical effective fineness after transition/retention effects;
+- $0\leq\lambda\leq1$ controls persistence of the previous state.
+
+This is a **hypothesis**, not a currently valid Sette representation. In particular, arithmetic such as $G_n-G_{n-1}$ is not meaningful while grinder settings remain opaque/categorical labels.
+
+### Simpler transition-feature test first
+
+Before introducing a latent state, test whether explicit current-setting and transition features add predictive value:
 
 ```math
-T_n
+t_{\mathrm{brew},n}
 =
 \beta_0
 +
-\beta_1G_n
+\boldsymbol\beta_G^{\mathsf T}\boldsymbol\phi(G_n)
 +
-\beta_2\left(G_n-G_{n-1}\right)
+\boldsymbol\beta_{\Delta}^{\mathsf T}\boldsymbol\psi(G_{n-1},G_n)
 +
 \varepsilon_n.
 ```
 
-If the previous-setting term has little predictive value out of sample, drop the retention model.
+Here:
+
+- $\boldsymbol\phi(G_n)$ encodes the current setting without assuming equal physical step spacing;
+- $\boldsymbol\psi(G_{n-1},G_n)$ encodes the setting transition, for example changed/not-changed or structured macro/micro features;
+- $\boldsymbol\beta_G$ and $\boldsymbol\beta_{\Delta}$ are learned coefficient vectors;
+- $\varepsilon_n$ is residual brew-time disturbance for this illustrative regression.
+
+If transition features have little prospective/out-of-sample value, do not add a retention model merely because one is physically plausible.
 
 Important caveats:
 
@@ -293,11 +331,23 @@ A planned **Learning / Experiment mode** should deliberately prescribe informati
 - test the first shot after a setting change versus an immediate repeat;
 - revisit a reference setting later to identify drift.
 
-A simple second-order response-surface model illustrates what a structured DoE may estimate:
+A simple second-order response-surface model illustrates what a structured DoE may estimate. Let $q_1,\ldots,q_p$ be $p$ quantitative experimental factors and let $y$ be the measured response:
 
 ```math
-y = \beta_0 + \sum_{i=1}^{p}\beta_i x_i + \sum_{i=1}^{p}\beta_{ii}x_i^2 + \sum_{i=1}^{p-1}\sum_{j=i+1}^{p}\beta_{ij}x_i x_j + \varepsilon.
+y
+=
+\beta_0
++
+\sum_{i=1}^{p}\beta_i q_i
++
+\sum_{i=1}^{p}\beta_{ii}q_i^2
++
+\sum_{i=1}^{p-1}\sum_{j=i+1}^{p}\beta_{ij}q_i q_j
++
+\varepsilon.
 ```
+
+Here $\beta_0$ is the intercept, $\beta_i$ are main-effect coefficients, $\beta_{ii}$ are quadratic coefficients, $\beta_{ij}$ are pairwise interaction coefficients, and $\varepsilon$ is residual experimental variation.
 
 The first Learning Mode should use transparent replicated/DoE-style experiments before using Bayesian acquisition functions. The app must record the experiment intent before the shot so that designed experiments can be distinguished from normal-use observations.
 
