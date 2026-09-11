@@ -20,8 +20,6 @@ Let $j$ be the most recent observation in $\mathcal H_n$. Estimate the current g
 \frac{D_{\mathrm{out},j}}{t_{\mathrm{grind},j}}.
 ```
 
-Here $\hat r_n$ is the rate estimate used for the recommendation to shot $n$.
-
 Recommend:
 
 ```math
@@ -32,8 +30,6 @@ t_{\mathrm{grind},n}^{\mathrm{rec}}
 t_{\mathrm{grind},j}
 \frac{D_{\mathrm{out}}^*}{D_{\mathrm{out},j}}.
 ```
-
-The superscript `rec` denotes the recommended duration; it is deliberately distinct from the duration actually used.
 
 ### Past-only median rate
 
@@ -72,7 +68,7 @@ The initial `ExactDoseCompatibility` policy requires equality of every one of:
 - contiguous block identity;
 - exact, opaque grinder-setting label.
 
-The chronology requirement is simply:
+The chronology requirement is:
 
 ```math
 i \lt n
@@ -119,7 +115,7 @@ For each eligible historical shot, each controller receives the dataset but inte
 
 This produces 22 predictions per strategy: 21 in `unknown_pre_bio` / historical block 0 and one in `new_bio_espresso` / block 1. This exceeds the earlier analysis's 17 adjacent pairs because the controller may use the latest earlier exact-setting observation across intervening settings or incomplete rows, while never crossing a bean/block boundary.
 
-Let $M$ be the number of evaluated predictions and let $e_m$ be the signed error for evaluation case $m$. The reported metrics are:
+Let $M$ be the number of evaluated predictions and $e_m$ the signed error for evaluation case $m$. The reported metrics are:
 
 ```math
 \mathrm{MAE}
@@ -141,7 +137,7 @@ and:
 \operatorname{median}(|e_1|,\ldots,|e_M|).
 ```
 
-| Block | Strategy | n | MAE (g) | RMSE (g) | Median absolute error (g) |
+| Block | Strategy | Predictions | MAE (g) | RMSE (g) | Median absolute error (g) |
 | --- | --- | ---: | ---: | ---: | ---: |
 | All | Last-shot proportional | 22 | 0.835 | 1.017 | 0.757 |
 | All | Past-only median rate | 22 | 0.732 | 0.975 | 0.487 |
@@ -149,8 +145,6 @@ and:
 | Earlier label / block 0 | Past-only median rate | 21 | 0.743 | 0.992 | 0.476 |
 | New bio / block 1 | Last-shot proportional | 1 | 0.497 | 0.497 | 0.497 |
 | New bio / block 1 | Past-only median rate | 1 | 0.497 | 0.497 | 0.497 |
-
-The table column `n` is conventional sample-count notation local to the table; it is not the chronological shot index used in the controller equations above.
 
 Median-rate is numerically better overall, particularly on median absolute error, but it does not materially establish superiority. There are only 22 non-independent rolling predictions, 21 come from one incompletely identified block, both strategies are identical when only one prior observation exists, and the second block contributes one comparison. No controller action outcome is observed unless the historical action happened to match it.
 
