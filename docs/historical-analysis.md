@@ -84,7 +84,7 @@ To evaluate only the underlying rate assumption on an **observed** outcome, pred
 \,t_{\mathrm{grind,next}}^{\mathrm{actual}}.
 ```
 
-The hat marks a prediction; it is not the counterfactual output that would necessarily have occurred at the baseline's recommended duration. No missing neighbour is skipped. Recommendations and actual durations are displayed separately.
+This predicts output at the observed historical duration; it does not assign that outcome to the counterfactual recommended duration. No missing neighbour is skipped. Recommendations and actual durations are displayed separately.
 
 | Bean label | Pairs | Proportional MAE / RMSE (g) | Carry last output MAE / RMSE (g) |
 | --- | ---: | ---: | ---: |
@@ -123,7 +123,7 @@ Comparison groups match exact setting, contiguous bean block, dose interpretatio
 | Earlier | 28 / 7 | 6.140 → 6.557 |
 | New bio | 4 / 2 | 12.500 → 11.544 |
 
-Pooling here weights within-group sample variances by $n-1$, where table/group-local $n$ is the number of observations in that repeated-setting group. It never combines raw bean-group outcomes. Earlier normalization lowers SD in two of seven repeated groups and raises it in five. Examples: 3E improves slightly (4.274 → 4.199 s); 3I worsens (2.000 → 3.578 s). Both newer repeated groups improve, but each contains only two observations. Thus normalization is **not consistently variance-reducing**. Even a reduction would not prove target-time accuracy because the derived scale changes with yield.
+Pooling weights each within-group sample variance by its degrees of freedom (group size minus one) and never combines raw bean-group outcomes. Earlier normalization lowers SD in two of seven repeated groups and raises it in five. Examples: 3E improves slightly (4.274 → 4.199 s); 3I worsens (2.000 → 3.578 s). Both newer repeated groups improve, but each contains only two observations. Thus normalization is **not consistently variance-reducing**. Even a reduction would not prove target-time accuracy because the derived scale changes with yield.
 
 The chronological comparison uses an expanding median of earlier eligible shots at the same setting/block/puck target (minimum one prior shot). Let `past` denote that eligible earlier set and `current` the held-out shot. For a common observed target, the normalized prediction maps the past median back to the current observed yield:
 
@@ -170,7 +170,7 @@ z_i^*
 \frac{|x_i-\tilde x|}{\operatorname{MAD}(x)},
 ```
 
-and flags $z_i^*>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size, $\tilde x$ the group median, and MAD the **unscaled median absolute deviation from that median**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
+and flags $z_i^*>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size and MAD is the **unscaled median absolute deviation**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
 
 Earlier 3F has a 24 s repeat difference (shots 6 and 15), and newer 4E differs by 24 s (43 and 51). Their separation in time and two-shot sample sizes preclude identifying an outlier. The newer 17 s shot at 5H is a singleton: it is not evidence of known channeling. The need to avoid overreaction remains sensible, but superiority of a particular robust predictive method is untested.
 
