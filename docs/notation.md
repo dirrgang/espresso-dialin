@@ -1,6 +1,6 @@
 # Mathematical notation
 
-This page defines the **project-specific mathematical notation** used across `docs/`. Method-specific textbook notation is still defined locally where it is introduced.
+This page defines the **project-specific mathematical notation** used across `docs/`. Method-specific textbook notation is handled locally where needed.
 
 The intended reader may be assumed to have mathematical background roughly equivalent to an Informatik/Computer-Science bachelor's degree. Standard algebra, calculus, linear-algebra notation, basic probability/statistics notation, and commonplace operators are therefore not re-explained merely for completeness. The documentation focuses instead on project-specific meanings, non-obvious modelling assumptions, and specialist methods where additional context is useful.
 
@@ -14,11 +14,8 @@ GitHub Markdown conventions in this repository are `$...$` for inline mathematic
 ## Indexing and general conventions
 
 - $n$ denotes the chronological index of a shot or grinder event within the relevant sequence.
-- $i$, $j$, $m$, and similar letters are generic indices. Their exact range is defined where they are used.
 - A missing shot index denotes a generic value rather than a specific chronological observation. For example, $G$ means a generic grinder setting, while $G_n$ means the setting used for shot $n$.
 - A superscript star, as in $Y^*$, denotes a target value.
-- A hat, as in $\hat r$, denotes an estimate or prediction rather than a directly observed value.
-- Bold symbols denote vectors or matrices when the distinction matters.
 - $\varepsilon$ denotes a residual disturbance/error term. Unless a section says otherwise, it can contain measurement error, shot-to-shot process variation, and effects omitted from the current model; it must not automatically be interpreted as pure measurement noise.
 
 ## Core observed espresso variables
@@ -126,7 +123,7 @@ T_{36}^{\mathrm{linear}}
 t_{\mathrm{brew}}\frac{36}{Y}.
 ```
 
-It assumes constant average flow and must not be treated as ground truth. A hat, $\hat T_{36}$, denotes a model estimate of time-to-36-g rather than a measured value.
+It assumes constant average flow and must not be treated as ground truth. Model estimates are written $\hat T_{36}$ to distinguish them from the historical linear approximation.
 
 ## Recommendation/action superscripts
 
@@ -140,6 +137,6 @@ This distinction matters because historical or live operators may deviate from a
 
 ## Method-local notation
 
-Generic statistical sections may introduce conventional symbols such as $y$, $X$, $\boldsymbol\theta$, $\boldsymbol\phi$, $\mathbf K$, $\mathbf P$, $\lambda$, $\mu$, $\sigma$, or $\mathcal D$. Those symbols are not project-wide espresso variables. They do not need tutorial-level explanations when their conventional meaning is standard for the intended audience, but their concrete role in a local model should be stated when it is not obvious from context.
+Method-local textbook notation follows conventional usage and need not be redefined merely for completeness. Documents should define only non-standard meanings, specialist-method notation that is not reasonably obvious to the intended audience, or local roles that would otherwise be ambiguous.
 
-Likewise, response-surface factors, state-space matrices, Gaussian-process kernels, and acquisition functions are method-local notation. Do not assume that a symbol used in one methodological example has the same semantics elsewhere unless the document says so.
+Do not assume that a symbol used in one methodological example has the same semantics elsewhere unless the document says so.
