@@ -2,7 +2,7 @@
 
 This document records the current mathematical framing. It intentionally distinguishes **established requirements** from **hypotheses to test**.
 
-Mathematical notation uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and `$$...$$` for display equations.
+Mathematical notation uses GitHub's LaTeX/MathJax-compatible Markdown syntax: `$...$` inline and fenced `math` blocks for display equations.
 
 ## 1. Variables
 
@@ -34,28 +34,28 @@ An exact pump-stop mass is **not** available in the MVP.
 
 Learn the grinder output produced by grind duration and setting:
 
-$$
+```math
 D_{\mathrm{out}}
 =
 f\!\left(t_{\mathrm{grind}},G,x_{\mathrm{grinder}},B,\ldots\right)
 +
 \varepsilon_D.
-$$
+```
 
 A trivial first baseline is proportional correction:
 
-$$
+```math
 t_{\mathrm{new}}
 =
 t_{\mathrm{old}}
 \frac{D_{\mathrm{target}}}{D_{\mathrm{measured}}}.
-$$
+```
 
 A slightly richer model can include grinder setting because mass flow may vary with adjustment.
 
 The preferred longer-term family is a structured/gray-box model rather than an unconstrained black box, e.g. conceptually:
 
-$$
+```math
 D_{\mathrm{out},n}
 =
 t_{\mathrm{grind},n}\,r(G_n,B_n,\ldots)
@@ -63,7 +63,7 @@ t_{\mathrm{grind},n}\,r(G_n,B_n,\ldots)
 h(x_{n-1},G_n)
 +
 \varepsilon_n,
-$$
+```
 
 where $r(\cdot)$ is a learned output-rate function and $h(\cdot)$ is an optional transition/retention term only if prospective data justify it.
 
@@ -71,13 +71,13 @@ where $r(\cdot)$ is a learned output-rate function and $h(\cdot)$ is an optional
 
 The user normally corrects the puck to approximately $18\,\mathrm g$ while dialing in. This intentionally reduces confounding and lets the extraction model focus primarily on grinder setting:
 
-$$
+```math
 \text{flow / time-to-target}
 =
 g\!\left(G_{\mathrm{effective}},D_{\mathrm{puck}},B,x_{\mathrm{brew}},\ldots\right)
 +
 \varepsilon_E.
-$$
+```
 
 Because the final yield is not exactly $36\,\mathrm g$, $t_{\mathrm{brew}}$ must not be treated as if every shot ended at the same yield.
 
@@ -87,9 +87,9 @@ A recorded pair such as $31\,\mathrm s / 34\,\mathrm g$ contains different infor
 
 The quantity of interest is approximately
 
-$$
+```math
 T_{36}=\text{time required for a }36\,\mathrm g\text{ final yield},
-$$
+```
 
 but $T_{36}$ is not directly observed whenever the actual final yield differs from $36\,\mathrm g$.
 
@@ -97,11 +97,11 @@ but $T_{36}$ is not directly observed whenever the actual final yield differs fr
 
 A deliberately crude baseline can estimate
 
-$$
+```math
 T_{36}^{\mathrm{approx}}
 =
 t_{\mathrm{brew}}\frac{36}{Y}.
-$$
+```
 
 This assumes approximately constant average flow and is not physically exact. Historical analysis did not show consistent improvement from this normalization, so it must not be promoted to ground truth.
 
@@ -125,29 +125,29 @@ puck dose: approximately 18.0 g
 
 This one observation provides useful information to two different models:
 
-$$
+```math
 (G=5E,\;t_{\mathrm{grind}}=9.65\,\mathrm s)
 \longrightarrow
 D_{\mathrm{out}}=17.4\,\mathrm g,
-$$
+```
 
 and, after correction,
 
-$$
+```math
 (G=5E,\;D_{\mathrm{puck}}\approx18.0\,\mathrm g)
 \longrightarrow
 \text{brew behaviour}.
-$$
+```
 
 The correction should therefore never overwrite the original grinder-output mass.
 
 For an approximate `TO_TARGET` correction, the brewed dose should carry uncertainty rather than false precision, e.g. conceptually:
 
-$$
+```math
 D_{\mathrm{puck}}
 \sim
 \mathcal N\!\left(18.0\,\mathrm g,\sigma_{\mathrm{dose}}^2\right).
-$$
+```
 
 The exact uncertainty is to be chosen empirically/configurably; it should not be invented as measurement precision.
 
@@ -178,19 +178,19 @@ Purging simplifies the mathematics but wastes coffee. A research goal is to dete
 
 A simple latent-state model could be
 
-$$
+```math
 G^{\mathrm{effective}}_n
 =
 \lambda G^{\mathrm{effective}}_{n-1}
 +
 (1-\lambda)G_n,
-$$
+```
 
 or an equivalent parameterization based on the previous setting/change.
 
 A simpler regression test before introducing a latent model is
 
-$$
+```math
 T_n
 =
 \beta_0
@@ -200,7 +200,7 @@ T_n
 \beta_2\left(G_n-G_{n-1}\right)
 +
 \varepsilon_n.
-$$
+```
 
 If the previous-setting term has little predictive value out of sample, drop the retention model.
 
@@ -295,7 +295,7 @@ A planned **Learning / Experiment mode** should deliberately prescribe informati
 
 A simple second-order response-surface model illustrates what a structured DoE may estimate:
 
-$$
+```math
 y
 =
 \beta_0
@@ -307,7 +307,7 @@ y
 \sum_{i<j}\beta_{ij}x_i x_j
 +
 \varepsilon.
-$$
+```
 
 The first Learning Mode should use transparent replicated/DoE-style experiments before using Bayesian acquisition functions. The app must record the experiment intent before the shot so that designed experiments can be distinguished from normal-use observations.
 
