@@ -13,6 +13,15 @@ from statistics import mean, median, stdev
 from types import MappingProxyType
 from typing import Literal, cast
 
+from espresso_dialin.dose_control import (
+    DoseController,
+    DoseObservation,
+    DoseTarget,
+    InsufficientDoseHistoryError,
+    LastShotProportionalController,
+    MedianRateController,
+)
+
 Analysis = Literal["output", "setting_output", "extraction", "yield_pair"]
 NUMERIC_FIELDS = (
     "grind_macro",
@@ -336,6 +345,95 @@ def dose_backtest(shots: Sequence[Shot]) -> list[dict[str, object]]:
             }
         )
     return rows
+
+
+def rolling_dose_backtest(
+    shots: Sequence[Shot], controllers: Sequence[DoseController] | None = None
+) -> list[dict[str, object]]:
+    """Evaluate past-only rate predictions at each observed historical duration.
+
+    Recommended durations are counterfactual actions and are not scored as if the
+    historical operator had followed them.
+    """
+    selected: Sequence[DoseController] = (
+        (LastShotProportionalController(), MedianRateController())
+        if controllers is None
+        else controllers
+    )
+    observations = tuple(
+        DoseObservation(
+            observation_id=f"historical-{shot.sequence}",
+            sequence=shot.sequence,
+            bean_id=shot.bean,
+            session_id=None,
+            block_id=f"historical-block-{shot.block}",
+            grinder_setting=shot.setting,
+            grind_duration_s=shot.positive("grind_duration_s"),
+            grinder_output_g=shot.positive("grinder_output_g"),
+        )
+        for shot in shots
+        if shot.bean and shot.setting
+    )
+    rows: list[dict[str, object]] = []
+    for current in observations:
+        if current.output_rate_g_s is None:
+            continue
+        target = DoseTarget(
+            next_sequence=current.sequence,
+            bean_id=current.bean_id,
+            session_id=current.session_id,
+            block_id=current.block_id,
+            grinder_setting=current.grinder_setting,
+        )
+        for controller in selected:
+            try:
+                recommendation = controller.recommend(target, observations)
+            except InsufficientDoseHistoryError:
+                continue
+            assert current.grind_duration_s is not None
+            assert current.grinder_output_g is not None
+            prediction = recommendation.estimated_rate_g_s * current.grind_duration_s
+            rows.append(
+                {
+                    "strategy_id": recommendation.strategy_id,
+                    "sequence": current.sequence,
+                    "bean": current.bean_id,
+                    "block": current.block_id,
+                    "setting": current.grinder_setting,
+                    "n_train": recommendation.observation_count,
+                    "train_through": recommendation.history_through_sequence,
+                    "source_observation_ids": recommendation.observation_ids,
+                    "estimated_rate_g_s": recommendation.estimated_rate_g_s,
+                    "recommended_duration_s": recommendation.recommended_duration_s,
+                    "actual_duration_s": current.grind_duration_s,
+                    "prediction_g": prediction,
+                    "actual_g": current.grinder_output_g,
+                    "error_g": prediction - current.grinder_output_g,
+                }
+            )
+    return rows
+
+
+def rolling_dose_report(shots: Sequence[Shot]) -> dict[str, object]:
+    """Return rows plus overall and conservative block-specific error metrics."""
+    rows = rolling_dose_backtest(shots)
+    strategy_ids = tuple(dict.fromkeys(str(row["strategy_id"]) for row in rows))
+    blocks = tuple(dict.fromkeys(str(row["block"]) for row in rows))
+    overall = {
+        strategy: error_summary([row for row in rows if row["strategy_id"] == strategy], "error_g")
+        for strategy in strategy_ids
+    }
+    by_block = {
+        block: {
+            strategy: error_summary(
+                [row for row in rows if row["block"] == block and row["strategy_id"] == strategy],
+                "error_g",
+            )
+            for strategy in strategy_ids
+        }
+        for block in blocks
+    }
+    return {"rows": rows, "overall": overall, "by_block": by_block}
 
 
 def extraction_backtest(shots: Sequence[Shot]) -> list[dict[str, object]]:
