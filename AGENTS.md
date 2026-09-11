@@ -10,31 +10,30 @@ Read at least:
 
 - `README.md`
 - `docs/model.md`
-- `docs/research-methods.md`
 - `docs/data-model.md`
 - `docs/validation.md`
 - `docs/decision-log.md`
+- `docs/research-methods.md` for statistical/mathematical work
 
 Treat the decision log as authoritative for current project decisions. Treat modelling ideas explicitly labelled as hypotheses as unproven until validated.
 
-## Engineering and modelling principles
+## Engineering principles
 
 - Keep the proof of concept small.
 - Optimize for learning whether the model works, not for product polish.
-- Prefer simple models until extra complexity demonstrates out-of-sample/prospective value.
-- Prefer gray-box / structured statistical models when useful process structure is already known; do not make a flexible black box relearn obvious physics without a reason.
+- Prefer simple models until extra complexity demonstrates out-of-sample value.
 - Keep optimizer/domain logic independent from Streamlit and SQLite.
 - Preserve raw measurements; derive transformed values separately.
 - Store recommendations and experiment intent before their outcomes are known.
 - Preserve chronology and bean/session boundaries.
 - Never silently fill missing/uncertain historical data.
-- Distinguish normal assisted shots from deliberately designed Learning/Experiment-mode shots.
-- Designed experiments should have an explicit identification question, controlled variables, and replication/stopping logic where practical.
 - Do not force purging; retention handling is an experiment, not an assumption.
 - Do not require real-time hardware integration for the MVP.
 - Robustness to bad/channeling-like shots is a core requirement.
 - Actual final yield must be retained and used; do not pretend every shot ended at exactly 36 g.
 - Manual correction of puck dose to the target is a supported controlled intervention and must not overwrite grinder output.
+- Distinguish normal-use recommendations from deliberately designed Learning/Experiment-mode observations.
+- Do not infer causal effects from operator-adapted observational data when a designed experiment is required to separate effects from noise/confounding.
 
 ## Initial implementation direction
 
@@ -58,6 +57,7 @@ A future production frontend/backend architecture is explicitly premature until 
 - Dependencies and tool configuration belong in `pyproject.toml`.
 - Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
+- In Markdown documentation, render mathematical notation using GitHub's LaTeX/MathJax-compatible syntax (`$...$` inline and `$$...$$` for display equations). Use code fences only for code, commands, schemas, or literal text—not as a substitute for mathematical typesetting.
 - Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history.
 - Do not add a license until the repository owner has explicitly chosen one.
 
@@ -93,29 +93,15 @@ Do not hard-code grinder semantics beyond what has been verified. In particular,
 When adding or comparing models:
 
 1. establish a simple baseline;
-2. use chronological/rolling validation and prospective evaluation where possible;
+2. use chronological/rolling validation;
 3. avoid data leakage;
 4. report prediction error and, where possible, uncertainty calibration;
-5. evaluate coffee/shots-to-target and information gained, not fit quality alone;
+5. evaluate coffee/shots-to-target, not fit quality alone;
 6. use ablation tests to establish whether added features actually help;
-7. do not claim causal process effects from operator-adapted observational data when a designed experiment is required;
-8. record the experiment/recommendation before the result so the evaluation target cannot be chosen retrospectively.
+7. use deliberately designed/replicated experiments when observational logging cannot identify an effect;
+8. keep Normal/Assisted mode and Learning/Experiment mode objectives distinct.
 
 If a complex model does not materially beat a simpler model, keep the simpler model.
-
-## Research-method progression
-
-Candidate methods should be introduced only when the current data can test their assumptions/value:
-
-- proportional / median / human-style baselines;
-- structured regression and recursive least squares;
-- robust residual models;
-- recency/forgetting only if drift is demonstrated;
-- state-space/retention terms only if temporal-state signal is demonstrated;
-- Gaussian-process surrogates only with a defensible action-space representation and calibratable uncertainty;
-- Bayesian optimisation / active experiment selection only after simpler DoE-style Learning Mode is established.
-
-Do not select methods because they are sophisticated. Select them because they answer a concrete identification/control question better than the simpler alternative.
 
 ## Scope control
 
