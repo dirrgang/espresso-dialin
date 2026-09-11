@@ -2,6 +2,8 @@
 
 This is the initial persistence/domain model for the local Python proof of concept. The database schema may differ in naming, but the semantic distinctions below should be preserved.
 
+Project-wide mathematical symbols are defined in [`notation.md`](notation.md). Where database fields correspond directly to those symbols, the mapping is stated explicitly below.
+
 ## Principles
 
 1. **Raw observations are authoritative.** Do not overwrite measured values with corrected/derived values.
@@ -10,6 +12,27 @@ This is the initial persistence/domain model for the local Python proof of conce
 4. **Historical data may be uncertain.** Missing or approximate values should be represented explicitly rather than guessed.
 5. **Chronological order matters**, especially for testing retention / previous-grinder-state effects.
 6. Model parameters may be cached later, but should be reconstructable from observations whenever practical.
+
+## Mathematical field mapping
+
+For shot $n$, the central persisted measurements map to the notation in [`notation.md`](notation.md) as follows:
+
+| Persistence field | Mathematical symbol | Meaning |
+| --- | --- | --- |
+| `grind_setting` | $G_n$ | Grinder setting actually used |
+| `grind_duration_s` | $t_{\mathrm{grind},n}$ | Actual grinder run time |
+| `grinder_output_g` | $D_{\mathrm{out},n}$ | Raw grinder output before manual correction |
+| `puck_dose_g` | $D_{\mathrm{puck},n}$ | Coffee mass actually brewed after correction |
+| `brew_duration_s` | $t_{\mathrm{brew},n}$ | Recorded brew duration |
+| `final_yield_g` | $Y_n$ | Final beverage yield |
+
+Session target fields map similarly:
+
+- `target_puck_dose_g` -> $D_{\mathrm{puck}}^*$;
+- `target_yield_g` -> $Y^*$;
+- `target_time_min_s` / `target_time_max_s` -> the acceptable brew-duration interval.
+
+A future raw-grinder-output target can be represented mathematically as $D_{\mathrm{out}}^*$ even if it is initially numerically equal to the puck-dose target. Keeping those concepts distinct matters because the puck may be corrected after grinding.
 
 ## Entities
 
@@ -54,7 +77,7 @@ opened_at?
 notes?
 ```
 
-Bean identity matters because a grinder setting is not expected to yield identical extraction behavior across coffees.
+Bean identity matters because a grinder setting is not expected to yield identical extraction behavior across coffees. In mathematical discussion, bean/session context may be abbreviated as $B_n$; that symbol is contextual shorthand rather than a scalar physical measurement.
 
 ### DialInSession
 
@@ -156,7 +179,7 @@ notes?
 source
 ```
 
-`shot_mode` should distinguish ordinary use from designed experiments even if no separate `Experiment` entity is implemented in the earliest schema.
+`sequence` provides the chronological shot index $n$ within the relevant session/order semantics. `shot_mode` should distinguish ordinary use from designed experiments even if no separate `Experiment` entity is implemented in the earliest schema.
 
 #### Dose correction
 
@@ -177,6 +200,8 @@ grinder_output_g = 17.6
 puck_dose_g = 17.6
 ```
 
+In notation, this means $D_{\mathrm{puck},n}=D_{\mathrm{out},n}$ for that shot.
+
 **TO_TARGET**
 
 The user adjusted the dose to the session target without recording a second precise mass:
@@ -186,6 +211,8 @@ grinder_output_g = 17.6
 puck_dose_g ~= session.target_puck_dose_g
 puck_dose_uncertainty_g = explicit/configured estimate
 ```
+
+Mathematically, $D_{\mathrm{out},n}$ remains the measured raw output while $D_{\mathrm{puck},n}$ is approximately $D_{\mathrm{puck}}^*$ with explicitly represented uncertainty.
 
 **MEASURED**
 
@@ -244,6 +271,13 @@ expected_t36_uncertainty_s?
 metadata_json?
 ```
 
+Where useful in mathematical analysis:
+
+- `recommended_grind_duration_s` corresponds to $t_{\mathrm{grind},n}^{\mathrm{rec}}$;
+- the actual `Shot.grind_duration_s` corresponds to $t_{\mathrm{grind},n}^{\mathrm{actual}}$;
+- `expected_grinder_output_g` corresponds to a prediction such as $\hat D_{\mathrm{out},n}$;
+- `expected_t36_s` corresponds to a model estimate $\hat T_{36}$, **not** to the historical linear approximation unless that model explicitly says so.
+
 `purpose` should distinguish at least whether the recommendation is trying to optimize the immediate drink or execute an information-seeking Learning-Mode experiment, e.g.:
 
 ```text
@@ -298,7 +332,11 @@ outlier_weight
 effective_grind_state
 ```
 
-They can be calculated at analysis time or cached with a model/version identifier.
+`t36_linear_approx_s` corresponds specifically to the crude derived quantity $T_{36}^{\mathrm{linear}}$ defined in [`notation.md`](notation.md). It is not a measured target-time value.
+
+`prediction_residual`, `outlier_weight`, and `effective_grind_state` are intentionally generic names: their precise mathematical definitions depend on the model/version that produced them and must be stored or documented with that model. They should not acquire an implicit cross-model meaning merely because the field names look familiar.
+
+Derived values can be calculated at analysis time or cached with a model/version identifier.
 
 ## SQLite notes
 
