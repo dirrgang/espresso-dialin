@@ -2,6 +2,8 @@
 
 This page defines the **project-specific mathematical notation** used across `docs/`. Method-specific textbook notation is still defined locally where it is introduced.
 
+The intended reader may be assumed to have mathematical background roughly equivalent to an Informatik/Computer-Science bachelor's degree. Standard algebra, calculus, linear-algebra notation, basic probability/statistics notation, and commonplace operators are therefore not re-explained merely for completeness. The documentation focuses instead on project-specific meanings, non-obvious modelling assumptions, and specialist methods where additional context is useful.
+
 The aim is to avoid two failure modes:
 
 - forcing readers to infer what a project-specific symbol means;
@@ -138,6 +140,6 @@ This distinction matters because historical or live operators may deviate from a
 
 ## Method-local notation
 
-Generic statistical sections may introduce conventional symbols such as $y$, $X$, $\boldsymbol\theta$, $\boldsymbol\phi$, $\mathbf K$, $\mathbf P$, $\lambda$, $\mu$, $\sigma$, or $\mathcal D$. Those symbols are not project-wide espresso variables and must be defined locally when first used.
+Generic statistical sections may introduce conventional symbols such as $y$, $X$, $\boldsymbol\theta$, $\boldsymbol\phi$, $\mathbf K$, $\mathbf P$, $\lambda$, $\mu$, $\sigma$, or $\mathcal D$. Those symbols are not project-wide espresso variables. They do not need tutorial-level explanations when their conventional meaning is standard for the intended audience, but their concrete role in a local model should be stated when it is not obvious from context.
 
 Likewise, response-surface factors, state-space matrices, Gaussian-process kernels, and acquisition functions are method-local notation. Do not assume that a symbol used in one methodological example has the same semantics elsewhere unless the document says so.
