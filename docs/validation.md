@@ -37,7 +37,7 @@ Using the notation from [`notation.md`](notation.md), the generic proportional u
 t_{\mathrm{grind,new}}
 =
 t_{\mathrm{grind,old}}
-\frac{D_{\mathrm{out}}^*}{D_{\mathrm{out,old}}}.
+\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{out,old}}}.
 ```
 
 `old` and `new` denote successive controller actions, not necessarily adjacent absolute shot numbers in every analysis.

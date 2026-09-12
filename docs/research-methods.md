@@ -71,10 +71,10 @@ then recommends:
 ```math
 t_{\mathrm{grind,next}}^{\mathrm{rec}}
 =
-\frac{D_{\mathrm{out}}^*}{\hat r}.
+\frac{D_{\mathrm{out}}^{\ast}}{\hat r}.
 ```
 
-[`notation.md`](notation.md) defines $D_{\mathrm{out}}^*$ and the `rec`/`actual` convention; [`dose-control-baseline.md`](dose-control-baseline.md) gives the exact chronological implementation notation.
+[`notation.md`](notation.md) defines $D_{\mathrm{out}}^{\ast}$ and the `rec`/`actual` convention; [`dose-control-baseline.md`](dose-control-baseline.md) gives the exact chronological implementation notation.
 
 The median-rate controller instead uses a set $\mathcal H$ of compatible earlier observations. For each $i\in\mathcal H$:
 
