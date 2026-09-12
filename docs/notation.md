@@ -9,13 +9,13 @@ The aim is to avoid two failure modes:
 - forcing readers to infer what a project-specific symbol means;
 - reusing the same symbol for different concepts without saying so.
 
-GitHub Markdown conventions in this repository are `$...$` for inline mathematics and fenced `math` blocks for display equations. Use literal dollar signs as the inline delimiters; characters such as `§` are not math delimiters. Prefer MathJax constructs already known to render reliably on GitHub; in particular, use `\mathrm{median}`, `\mathrm{MAD}`, and similar roman-text function names instead of `\operatorname{...}`.
+GitHub Markdown conventions in this repository are `$...$` for inline mathematics and fenced `math` blocks for display equations. Use literal dollar signs as the inline delimiters; characters such as `§` are not math delimiters. Prefer MathJax constructs already known to render reliably on GitHub; in particular, use `\mathrm{median}`, `\mathrm{MAD}`, and similar roman-text function names instead of `\operatorname{...}`. A literal `*` inside inline math can be consumed by GitHub's Markdown emphasis parsing before MathJax sees it; write superscript stars as `^{\ast}` rather than bare `^*` (an escaped literal such as `^\*` was an earlier workaround).
 
 ## Indexing and general conventions
 
 - $n$ denotes the chronological index of a shot or grinder event within the relevant sequence.
 - A missing shot index denotes a generic value rather than a specific chronological observation. For example, $G$ means a generic grinder setting, while $G_n$ means the setting used for shot $n$.
-- A superscript star, as in $Y^*$, denotes a target value.
+- A superscript star, as in $Y^{\ast}$, denotes a target value.
 - $\varepsilon$ denotes a residual disturbance/error term. Unless a section says otherwise, it can contain measurement error, shot-to-shot process variation, and effects omitted from the current model; it must not automatically be interpreted as pure measurement noise.
 
 ## Core observed espresso variables
@@ -38,16 +38,16 @@ The distinction between $D_{\mathrm{out},n}$ and $D_{\mathrm{puck},n}$ is fundam
 The default recipe targets are:
 
 ```math
-D_{\mathrm{puck}}^* = 18.0\,\mathrm g,
+D_{\mathrm{puck}}^{\ast} = 18.0\,\mathrm g,
 \qquad
-Y^* = 36.0\,\mathrm g,
+Y^{\ast} = 36.0\,\mathrm g,
 ```
 
 with an acceptable brew-duration interval of $30$ – $35\,\mathrm s$ and nominal centre $32.5\,\mathrm s$.
 
-For grinder-dose control, $D_{\mathrm{out}}^*$ denotes the target **raw grinder output**. It is initially also $18.0\,\mathrm g$, but it is conceptually distinct from $D_{\mathrm{puck}}^*$ because the puck may be manually corrected after grinding.
+For grinder-dose control, $D_{\mathrm{out}}^{\ast}$ denotes the target **raw grinder output**. It is initially also $18.0\,\mathrm g$, but it is conceptually distinct from $D_{\mathrm{puck}}^{\ast}$ because the puck may be manually corrected after grinding.
 
-Some older formulas or implementation-facing documents use $D_{\mathrm{target}}$ as shorthand for $D_{\mathrm{out}}^*$ in the dose-controller context.
+Some older formulas or implementation-facing documents use $D_{\mathrm{target}}$ as shorthand for $D_{\mathrm{out}}^{\ast}$ in the dose-controller context.
 
 ## Bean/session context and process state
 
