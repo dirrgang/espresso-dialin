@@ -46,7 +46,7 @@ Estimate the current rate as:
 ```math
 \hat r_n
 =
-\operatorname{median}_{i\in\mathcal H_n}(r_i),
+\mathrm{median}_{i\in\mathcal H_n}(r_i),
 ```
 
 then recommend:
@@ -132,9 +132,9 @@ Let $M$ be the number of evaluated predictions and $e_m$ the signed error for ev
 and:
 
 ```math
-\operatorname{MedAE}
+\mathrm{MedAE}
 =
-\operatorname{median}(|e_1|,\ldots,|e_M|).
+\mathrm{median}(|e_1|,\ldots,|e_M|).
 ```
 
 | Block | Strategy | Predictions | MAE (g) | RMSE (g) | Median absolute error (g) |
