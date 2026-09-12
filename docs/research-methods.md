@@ -44,7 +44,7 @@ The second task is **control / optimisation**: given the current model and uncer
 This distinction matters. A model may predict the process well without providing a good control policy, and historical observations can validate prediction more easily than counterfactual control actions.
 
 A standard reference is Lennart Ljung, *System Identification — Theory for the User* (2nd ed., 1999):
-https://www.control.isy.liu.se/books/sysid/
+<https://www.control.isy.liu.se/books/sysid/>
 
 ## 2. Current grinder baseline as a one-parameter process model
 
@@ -177,8 +177,8 @@ This is a classical route from system identification to **adaptive control**: es
 
 References:
 
-- K. J. Åström and B. Wittenmark, *On Self Tuning Regulators* (1972): https://lup.lub.lu.se/record/8601060
-- B. Bernhardsson and K. J. Åström, *Adaptive Control* lecture notes, including RLS and self-tuning regulators: https://www.control.lth.se/fileadmin/control/Education/DoctorateProgram/ControlSystemsSynthesis/2016/AdaptiveControl.pdf
+- K. J. Åström and B. Wittenmark, *On Self Tuning Regulators* (1972): <https://lup.lub.lu.se/record/8601060>
+- B. Bernhardsson and K. J. Åström, *Adaptive Control* lecture notes, including RLS and self-tuning regulators: <https://www.control.lth.se/fileadmin/control/Education/DoctorateProgram/ControlSystemsSynthesis/2016/AdaptiveControl.pdf>
 
 Important practical warning: adaptive control can perform well in ideal simulations yet fail when nonlinearities, unmodelled dynamics, disturbances, or poor excitation are ignored. Those are directly relevant to coffee grinding and extraction.
 
@@ -259,7 +259,7 @@ The coefficients represent the intercept, main effects, curvature, and pairwise 
 A **Central Composite Design (CCD)** combines factorial points, axial points, and repeated centre points so that such a quadratic surface can be estimated efficiently.
 
 Direct espresso precedent exists: Pannusch et al. used a central composite design to study grind size, water flow and temperature in espresso extraction kinetics:
-https://doi.org/10.3390/foods12152871
+<https://doi.org/10.3390/foods12152871>
 
 This does not imply that a CCD is automatically the best design for our exact workflow, but it strongly supports deliberate experimental shots rather than relying only on opportunistic logging.
 
@@ -314,7 +314,7 @@ where $\mu(\mathbf a)$ and $\sigma^2(\mathbf a)$ are the posterior predictive me
 This is attractive for espresso because shots are expensive, datasets are likely to remain small, and uncertainty is operationally useful.
 
 Reference: Rasmussen & Williams, *Gaussian Processes for Machine Learning* (MIT Press, open-access edition):
-https://gaussianprocess.org/gpml/
+<https://gaussianprocess.org/gpml/>
 
 ### Bayesian optimisation (BO)
 
@@ -331,7 +331,7 @@ Let $\alpha(\mathbf a;\mathcal D)$ denote the acquisition score. Conceptually:
 The exact definition of $\alpha$ depends on the chosen acquisition rule and objective/constraints. Common acquisition functions include Expected Improvement, Knowledge Gradient, and entropy/information-based methods.
 
 Reference: Peter Frazier, *A Tutorial on Bayesian Optimization*:
-https://arxiv.org/abs/1807.02811
+<https://arxiv.org/abs/1807.02811>
 
 BO is a strong long-term candidate for Learning Mode because each espresso shot has real cost. It is **not** an immediate default: useful BO requires a meaningful representation of the action space, a defensible surrogate model, and enough data to calibrate uncertainty.
 
@@ -356,7 +356,7 @@ Here proportionality to grind duration is the structural assumption; $r(\cdot)$ 
 This is a **gray-box** approach: neither a fixed physical model nor an unconstrained black box.
 
 A related industrial analogy is gravimetric powder feeding. Shier et al. modelled feed-factor profiles using a semi-empirical process model with parameters predicted from material/process properties, and explicitly note that real-time feedback can refine approximate feed-factor values as more material is dispensed:
-https://doi.org/10.1016/j.ijpharm.2022.122071
+<https://doi.org/10.1016/j.ijpharm.2022.122071>
 
 The analogy is not physical equivalence, but it demonstrates that mass-flow control of granular material is a mature system-identification/process-control problem.
 
@@ -365,14 +365,14 @@ The analogy is not physical equivalence, but it demonstrates that mass-flow cont
 ### Fine grinding can introduce non-monotonic behaviour
 
 Cameron et al. combined mathematical modelling and experiment and found that extraction yield does not remain monotonically better as grinding becomes finer. Very fine grinding can create inhomogeneous flow and poor reproducibility:
-https://doi.org/10.1016/j.matt.2019.12.019
+<https://doi.org/10.1016/j.matt.2019.12.019>
 
 Implication: do not assume a globally monotonic “finer is always more extraction” model across the full action space.
 
 ### Grinder setting is only a proxy for physical particle distribution
 
 Smrke et al. showed that espresso particle-size distribution is bimodal and that the fraction of fines strongly affects puck permeability and extraction time. They modelled extraction time from the full particle-size distribution using partial least squares regression:
-https://www.nature.com/articles/s41598-024-55831-x
+<https://www.nature.com/articles/s41598-024-55831-x>
 
 Implication: a user-visible grinder setting is not a complete physical state variable. Even at a fixed nominal setting, unobserved PSD variation can appear as process noise or drift.
 

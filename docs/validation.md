@@ -53,11 +53,11 @@ This is a conceptual baseline; do not claim exact equivalence to EspressoPost un
 Increment complexity only when justified:
 
 1. simple regression;
-2. + actual yield handling;
-3. + dose/output model;
-4. + robust residual handling;
-5. + previous-setting / retention feature;
-6. + latent retention state;
+2. - actual yield handling;
+3. - dose/output model;
+4. - robust residual handling;
+5. - previous-setting / retention feature;
+6. - latent retention state;
 7. Bayesian uncertainty model if useful.
 
 Ablation tests are important: compare a rich model with the same model minus one feature to measure the feature's actual contribution.
@@ -178,7 +178,7 @@ T_{36}^{\mathrm{linear}}
 t_{\mathrm{brew}}\frac{36}{Y};
 ```
 
-3. learn a relationship using both $t_{\mathrm{brew}}$ and final yield $Y$.
+1. learn a relationship using both $t_{\mathrm{brew}}$ and final yield $Y$.
 
 $T_{36}^{\mathrm{linear}}$ is defined in [`notation.md`](notation.md) as a derived approximation, not ground truth.
 
