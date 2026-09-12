@@ -43,9 +43,9 @@ D_{\mathrm{puck}}^* = 18.0\,\mathrm g,
 Y^* = 36.0\,\mathrm g,
 ```
 
-with an acceptable brew-duration interval of $30$–$35\,\mathrm s$ and nominal centre $32.5\,\mathrm s$.
+with an acceptable brew-duration interval of $30$ – $35\,\mathrm s$ and nominal centre $32.5\,\mathrm s$.
 
-For grinder-dose control, $D_{\mathrm{out}}^*$ denotes the target **raw grinder output**. It is initially also $18.0\,\mathrm g$, but it is conceptually distinct from $D_{\mathrm{puck}}^*$ because the puck may be manually corrected after grinding.
+For grinder-dose control, $D_{\mathrm{out}}^\*$ denotes the target **raw grinder output**. It is initially also $18.0\,\mathrm g$, but it is conceptually distinct from $D_{\mathrm{puck}}^*$ because the puck may be manually corrected after grinding.
 
 Some older formulas or implementation-facing documents use $D_{\mathrm{target}}$ as shorthand for $D_{\mathrm{out}}^*$ in the dose-controller context.
 
