@@ -130,7 +130,7 @@ The chronological comparison uses an expanding median of earlier eligible shots 
 ```math
 \hat t_{\mathrm{brew,current}}
 =
-\operatorname{median}\!\left(T_{36,\mathrm{past}}^{\mathrm{linear}}\right)
+\mathrm{median}\!\left(T_{36,\mathrm{past}}^{\mathrm{linear}}\right)
 \frac{Y_{\mathrm{current}}}{36}.
 ```
 
@@ -152,13 +152,13 @@ For one extraction comparison group, let $x_i$ be observation $i$ of the metric 
 ```math
 \tilde x
 =
-\operatorname{median}(x_1,\ldots,x_N),
+\mathrm{median}(x_1,\ldots,x_N),
 ```
 
 ```math
-\operatorname{MAD}(x)
+\mathrm{MAD}(x)
 =
-\operatorname{median}_{1\leq i\leq N}|x_i-\tilde x|.
+\mathrm{median}_{1\leq i\leq N}|x_i-\tilde x|.
 ```
 
 The transparent robust screen then uses the absolute modified z-score:
@@ -167,7 +167,7 @@ The transparent robust screen then uses the absolute modified z-score:
 z_i^*
 =
 0.67448975
-\frac{|x_i-\tilde x|}{\operatorname{MAD}(x)},
+\frac{|x_i-\tilde x|}{\mathrm{MAD}(x)},
 ```
 
 and flags $z_i^*>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size and MAD is the **unscaled median absolute deviation**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
