@@ -289,38 +289,6 @@ For a Learning-Mode recommendation, `metadata_json` may later contain the candid
 
 This prevents retrospective leakage when evaluating prediction accuracy or experiment-selection quality.
 
-## Historical handwritten data
-
-An existing handwritten sheet contains approximately the following columns:
-
-```text
-grinder setting
-grind duration
-recorded grinder output
-brew duration
-final beverage yield
-```
-
-At least one bean change is visibly marked (“neue Bio Espresso”), and other session/bean boundaries may need manual confirmation.
-
-Important import semantics:
-
-- the recorded coffee mass is **grinder output**, not necessarily puck dose;
-- the user generally corrected non-18-g output to approximately 18 g before brewing;
-- therefore set `dose_correction_mode = TO_TARGET` when this behavior is known;
-- do not pretend the handwritten output mass was the brewed dose;
-- preserve row order exactly;
-- preserve uncertain handwriting as `null`/uncertain with a transcription note;
-- never infer a missing value merely to make a row complete;
-- preserve known bean/session boundaries;
-- historical rows have no reliable predeclared Learning-Mode intent and must not be retrospectively labelled as designed experiments.
-
-A CSV staging format is useful before database import, for example:
-
-```text
-sequence,bean_label,grind_macro,grind_micro,grind_duration_s,grinder_output_g,dose_correction_mode,puck_dose_g,brew_duration_s,final_yield_g,transcription_status,notes
-```
-
 ## Derived values
 
 Derived values should generally not replace raw measurements. Examples:
