@@ -28,11 +28,11 @@ For shot $n$, the central persisted measurements map to the notation in [`notati
 
 Session target fields map similarly:
 
-- `target_puck_dose_g` -> $D_{\mathrm{puck}}^*$;
-- `target_yield_g` -> $Y^*$;
+- `target_puck_dose_g` -> $D_{\mathrm{puck}}^{\ast}$;
+- `target_yield_g` -> $Y^{\ast}$;
 - `target_time_min_s` / `target_time_max_s` -> the acceptable brew-duration interval.
 
-A future raw-grinder-output target can be represented mathematically as $D_{\mathrm{out}}^*$ even if it is initially numerically equal to the puck-dose target. Keeping those concepts distinct matters because the puck may be corrected after grinding.
+A future raw-grinder-output target can be represented mathematically as $D_{\mathrm{out}}^{\ast}$ even if it is initially numerically equal to the puck-dose target. Keeping those concepts distinct matters because the puck may be corrected after grinding.
 
 ## Entities
 
@@ -212,7 +212,7 @@ puck_dose_g ~= session.target_puck_dose_g
 puck_dose_uncertainty_g = explicit/configured estimate
 ```
 
-Mathematically, $D_{\mathrm{out},n}$ remains the measured raw output while $D_{\mathrm{puck},n}$ is approximately $D_{\mathrm{puck}}^*$ with explicitly represented uncertainty.
+Mathematically, $D_{\mathrm{out},n}$ remains the measured raw output while $D_{\mathrm{puck},n}$ is approximately $D_{\mathrm{puck}}^{\ast}$ with explicitly represented uncertainty.
 
 **MEASURED**
 
