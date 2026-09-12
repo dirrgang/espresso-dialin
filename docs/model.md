@@ -19,8 +19,8 @@ The full definitions, units and target notation are centralized in [`notation.md
 
 Default target:
 
-- $D_{\mathrm{puck}}^*=18.0\,\mathrm g$;
-- $Y^*=36.0\,\mathrm g$;
+- $D_{\mathrm{puck}}^{\ast}=18.0\,\mathrm g$;
+- $Y^{\ast}=36.0\,\mathrm g$;
 - acceptable target brew time $30$–$35\,\mathrm s$, nominal center $32.5\,\mathrm s$.
 
 The control outputs are initially:
@@ -60,10 +60,10 @@ A trivial first baseline is proportional correction. In generic, index-free nota
 t_{\mathrm{new}}
 =
 t_{\mathrm{old}}
-\frac{D_{\mathrm{out}}^*}{D_{\mathrm{old}}}.
+\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{old}}}.
 ```
 
-Here $D_{\mathrm{out}}^*$ is the target raw grinder output and $D_{\mathrm{old}}$ is the previously measured raw output. The currently implemented baseline is documented more precisely in [`dose-control-baseline.md`](dose-control-baseline.md).
+Here $D_{\mathrm{out}}^{\ast}$ is the target raw grinder output and $D_{\mathrm{old}}$ is the previously measured raw output. The currently implemented baseline is documented more precisely in [`dose-control-baseline.md`](dose-control-baseline.md).
 
 A slightly richer model can include grinder setting because mass flow may vary with adjustment.
 
@@ -167,7 +167,7 @@ For an approximate `TO_TARGET` correction, the brewed dose should carry uncertai
 ```math
 D_{\mathrm{puck},n}
 \sim
-\mathcal N\!\left(D_{\mathrm{puck}}^*,\sigma_{\mathrm{dose}}^2\right).
+\mathcal N\!\left(D_{\mathrm{puck}}^{\ast},\sigma_{\mathrm{dose}}^2\right).
 ```
 
 Here $\sigma_{\mathrm{dose}}$ would be the standard deviation representing uncertainty in the approximately corrected puck dose. Its value is not currently known and must be estimated or configured explicitly rather than invented as measurement precision.
