@@ -70,10 +70,10 @@ For an adjacent historical pair, let `old` denote the earlier compatible grind a
 t_{\mathrm{grind,new}}
 =
 t_{\mathrm{grind,old}}
-\frac{D_{\mathrm{out}}^*}{D_{\mathrm{out,old}}},
+\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{out,old}}},
 ```
 
-with $D_{\mathrm{out}}^*=18\,\mathrm g$ for this historical analysis.
+with $D_{\mathrm{out}}^{\ast}=18\,\mathrm g$ for this historical analysis.
 
 To evaluate only the underlying rate assumption on an **observed** outcome, predict the next raw grinder output at the duration that was actually used:
 
@@ -164,13 +164,13 @@ For one extraction comparison group, let $x_i$ be observation $i$ of the metric 
 The transparent robust screen then uses the absolute modified z-score:
 
 ```math
-z_i^*
+z_i^{\ast}
 =
 0.67448975
 \frac{|x_i-\tilde x|}{\mathrm{MAD}(x)},
 ```
 
-and flags $z_i^*>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size and MAD is the **unscaled median absolute deviation**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
+and flags $z_i^{\ast}>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size and MAD is the **unscaled median absolute deviation**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
 
 Earlier 3F has a 24 s repeat difference (shots 6 and 15), and newer 4E differs by 24 s (43 and 51). Their separation in time and two-shot sample sizes preclude identifying an outlier. The newer 17 s shot at 5H is a singleton: it is not evidence of known channeling. The need to avoid overreaction remains sensible, but superiority of a particular robust predictive method is untested.
 
