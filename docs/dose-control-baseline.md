@@ -1,6 +1,6 @@
 # Prospective dose-control baseline
 
-This is the first deployable grinder-output baseline. It recommends grind duration for a target raw grinder output, initially $D_{\mathrm{out}}^*=18.0\,\mathrm g$. It does not recommend grind settings or model extraction.
+This is the first deployable grinder-output baseline. It recommends grind duration for a target raw grinder output, initially $D_{\mathrm{out}}^{\ast}=18.0\,\mathrm g$. It does not recommend grind settings or model extraction.
 
 Project-wide espresso symbols are defined in [`notation.md`](notation.md). This document defines the additional controller-specific symbols it uses.
 
@@ -25,10 +25,10 @@ Recommend:
 ```math
 t_{\mathrm{grind},n}^{\mathrm{rec}}
 =
-\frac{D_{\mathrm{out}}^*}{\hat r_n}
+\frac{D_{\mathrm{out}}^{\ast}}{\hat r_n}
 =
 t_{\mathrm{grind},j}
-\frac{D_{\mathrm{out}}^*}{D_{\mathrm{out},j}}.
+\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{out},j}}.
 ```
 
 ### Past-only median rate
@@ -54,7 +54,7 @@ then recommend:
 ```math
 t_{\mathrm{grind},n}^{\mathrm{rec}}
 =
-\frac{D_{\mathrm{out}}^*}{\hat r_n}.
+\frac{D_{\mathrm{out}}^{\ast}}{\hat r_n}.
 ```
 
 Neither result is silently clamped. Targets and observed measurements must be finite and positive. Missing duration or output remains explicit and makes that observation unusable for dose control. With no usable compatible history, the controller raises `InsufficientDoseHistoryError` rather than borrowing unrelated data.
@@ -83,7 +83,7 @@ Compatibility is a protocol supplied to a controller, so a later validated polic
 
 `DoseRecommendation` records the model identifier/version, context, target and recommended duration, estimated rate, expected output, exact source observation IDs, observation count, and latest included sequence. Its local ID is a deterministic hash of the model, target context, and history. `created_at` accepts a timezone-aware timestamp; it is `None` for the historical reconstruction because no real pre-shot creation time exists. Stable dict/JSON serialization is provided for later SQLite persistence.
 
-Both models expect $D_{\mathrm{out}}^*$ at their recommended duration by construction. That is not an uncertainty claim. No uncertainty interval is emitted.
+Both models expect $D_{\mathrm{out}}^{\ast}$ at their recommended duration by construction. That is not an uncertainty claim. No uncertainty interval is emitted.
 
 `score_recommendation` does not refit. Suppose the stored pre-shot rate estimate is $\hat r_n$ and the operator actually uses duration $t_{\mathrm{grind},n}^{\mathrm{actual}}$. The frozen model predicts:
 
