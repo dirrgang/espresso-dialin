@@ -89,7 +89,7 @@ and then:
 ```math
 \hat r
 =
-\operatorname{median}_{i\in\mathcal H}(r_i).
+\mathrm{median}_{i\in\mathcal H}(r_i).
 ```
 
 These are deliberately small models. They are valuable because every richer model must demonstrate practical improvement over them; they are not assumed to be the final description of the grinder.
