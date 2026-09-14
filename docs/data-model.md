@@ -324,3 +324,33 @@ recommendations
 The initial live app may omit a separate `experiments` table if Learning Mode is not yet implemented, provided shot/recommendation schemas can later add experiment identity without losing semantic distinctions.
 
 Schema migrations can remain simple initially, but a schema version should exist before importing a meaningful historical or prospective dataset.
+
+## Implemented live schema (version 1)
+
+The Phase 3 schema is defined in `src/espresso_dialin/repository.py`. `PRAGMA user_version`
+is initialized transactionally to 1; reopening is idempotent and unknown versions are rejected.
+There are three tables; separate bean/grinder/experiment tables are unnecessary for this phase.
+
+| Table | Persisted fields |
+| --- | --- |
+| `sessions` | ID, bean ID/name, optional roaster/roast date, UTC started/ended timestamps, grinder/machine identities, puck/yield/time targets |
+| `recommendations` | ID, session ID, target sequence, UTC creation timestamp, applicable setting, planned duration, target output, strategy/model version, nullable rate/expected output, model JSON, selected flag |
+| `shots` | ID, session ID, sequence, UTC creation/completion timestamps, selected recommendation ID, actual setting/duration/output, correction mode, nullable measured puck dose, brew duration/yield, purge/bad flags, notes |
+
+All records in this schema are prospective normal-use records; no historical import or
+Learning/Experiment-mode records are created. Recommendation `model_json` is the unchanged
+controller serialization, including exact source observation IDs, block identity, observation
+count and history-through sequence. It is null for a `manual` plan, as are the rate and expected
+output fields. A manual plan records intent without masquerading as a statistical prediction.
+
+The selected flag is immutable pre-shot intent, with exactly one selected plan linked to each
+shot. Execution is represented separately by actual measurements. Multiple unselected model
+predictions are preserved for prospective comparison. Session/sequence foreign keys and unique
+indexes enforce linkage and one pending shot per session. Frozen recommendation and completed
+source observation updates/deletes are rejected; see [live-workflow.md](live-workflow.md).
+
+For live `NONE` and `TO_TARGET`, `puck_dose_g` is null: this column records only a separately
+measured puck mass. `NONE` declares brewed mass equal to output; `TO_TARGET` declares approximate
+control at the session target with unquantified uncertainty. Neither declaration creates a
+second precise measurement. `MEASURED` requires a positive finite puck mass. Incomplete shots
+have null grinding/brewing fields until each corresponding phase is saved.

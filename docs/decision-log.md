@@ -188,6 +188,32 @@ Reason: corrected observations and known bean identities materially change eligi
 
 **Decision:** Retain the simple dose baselines for prospective evaluation; do not promote linear normalization or add retention state from these observations. Use the refreshed experiment-gap table to select designed observations. The staging analysis remains archived separately.
 
+## 2026-09-14 — Prospective acquisition and frozen shadow predictions
+
+**Decision:** Phase 3 uses a small local Streamlit application, typed acquisition/domain
+records, and standard-library SQLite persistence. An atomic pre-grind freeze stores all
+available existing dose-model candidates and exactly one selected plan, then opens a pending
+shot. Explicit manual plans have no invented rate or output prediction. Actual action and
+outcome entry never overwrite the planned action or frozen model.
+
+Live compatibility remains conservative: same bean/session and the current contiguous run
+of the exact actual setting; a setting change or new session resets eligible history. No
+historical observations are automatically pooled into live sessions. Both baselines remain
+comparators, with no winner declared. Bad-brew flags retain the raw grinder-output observation.
+
+`NONE` and `TO_TARGET` leave the separate measured-puck field null; their declarations retain
+unchanged-output versus approximate-target semantics. `MEASURED` requires a separately weighed
+mass. Approximate target correction still has no invented numerical precision or uncertainty.
+
+**Rationale:** prospective provenance requires reproducible sources as well as fixed model
+records. Session context and completed outcomes therefore have no edit/delete flow in this
+phase. Saved grinding results are final through the application; a future correction or
+abandonment flow needs an explicit audit trail. Shadow rates can later be scored at the actual
+duration only when the actual setting matches; they do not reveal unexecuted action outcomes.
+
+See [live-workflow.md](live-workflow.md). Phase 4, extraction optimisation and automatic
+grinder-setting selection remain unimplemented.
+
 ## Open decisions
 
 The following are intentionally unresolved:
