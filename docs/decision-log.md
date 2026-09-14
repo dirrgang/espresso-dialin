@@ -180,6 +180,14 @@ Existing historical-analysis metrics produced from the staging CSV remain a repr
 
 Reason: corrected observations and known bean identities materially change eligibility/grouping and reduce avoidable uncertainty. Keeping the staging file unchanged preserves the audit trail without forcing current modelling to ignore known information.
 
+## 2026-09-14 — Corrected historical exploration refreshed
+
+**Source correction:** Shots 37–39 are 3D, not 3E, as confirmed by the user; macro/micro fields and provenance agree. The staging source is unchanged.
+
+**Evidence:** [Historical analysis](historical-analysis.md) now uses the corrected source. Adjacent proportional dose MAE no longer improves on carrying output forward overall; the existing rolling median-rate comparator improves historical errors, primarily on Café Intención. Linear yield normalization remains inconsistent, and the same seven immediate transition/repeat pairs leave retention unresolved.
+
+**Decision:** Retain the simple dose baselines for prospective evaluation; do not promote linear normalization or add retention state from these observations. Use the refreshed experiment-gap table to select designed observations. The staging analysis remains archived separately.
+
 ## Open decisions
 
 The following are intentionally unresolved:

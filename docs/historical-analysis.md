@@ -1,198 +1,112 @@
-# First historical exploration — 2026-09-11
+# Historical exploration — corrected source, 2026-09-14
 
-> **Status: archived staging-data snapshot.** The analysis below was produced from `data/historical_shots_staging.csv` before later user-supplied corrections/recovered entries and bean identities were incorporated. The current authoritative historical dataset is `data/historical_shots_corrected.csv`: sequences 1–39 are Café Intención Espresso Intensivo and sequences 40–51 are REWE Bio Espresso ganze Bohnen, 1000 g. Preserve the results below for provenance, but do not treat their sample counts or numeric benchmarks as current until the analysis has been regenerated against the corrected dataset.
-
-The historical data justify a small dose-control baseline and careful grouped descriptions. They do **not** justify adopting linear yield normalization as the extraction target, fitting a physical grind scale, or adding retention state.
-
-Project-wide espresso symbols are defined in [`notation.md`](notation.md). Analysis-specific symbols are defined in the relevant sections below.
+The corrected data support retaining the simple dose baselines, but do not demonstrate controller savings, reliable linear yield normalization, or retention predictive value. More observations change the numerical comparisons without resolving the observational confounding.
 
 ## Reproduction and provenance
 
-Source for this archived run: the handwritten transcription in `data/historical_shots_staging.csv`, unchanged by this analysis. SHA256: `882392feecf6e23e2747f6de70d656e15e73caf208d14327a11a4ec3d361ce49`.
+Current source: `data/historical_shots_corrected.csv`, with user-supplied corrections and recovered values. Shots 37–39 use 3D (macro 3, micro D), as confirmed by the user on 2026-09-14 and recorded in their provenance notes. The staging CSV remains unchanged. The [2026-09-11 staging analysis](historical-analysis-staging-2026-09-11.md) is preserved as an archived snapshot, not a current benchmark.
 
-For a new/current run, use `data/historical_shots_corrected.csv` instead and record its hash separately.
+CSV SHA256: `36bf1f7e09520e61d0beb776217bf05ab51d6ae2e5ba0d697485df91eb2b69cd`.
 
-Install `.[dev,analysis]`, then run all cells in `notebooks/01_historical_exploration.ipynb`, or:
+Install `.[dev,analysis]` and execute:
 
 ```sh
 python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
 ```
 
-The committed notebook currently represents the archived staging-data run; update its data path before using it for a new current analysis.
+The notebook records Python and the source hash, displays exclusions, grouped statistics, sensitivity tables and chronological comparisons, and produces three figures. Reusable calculations remain in `src/espresso_dialin/historical.py`. Outputs are cleared for version control; numerical findings are retained here. Project symbols are defined in [notation.md](notation.md).
 
-The notebook records the input hash and interpreter, displays all analysis tables and exclusions, and plots every eligible observation. Reusable calculations are in `src/espresso_dialin/historical.py`. Notebook outputs are cleared for version control, consistent with the notebook conventions; the numerical findings are recorded here. No new dependency was needed.
+Validation on Python 3.14.3: all eight notebook code cells executed successfully and all three figures were visually checked. Ruff lint/format, strict mypy, and all 71 tests passed (99% coverage). A pre-existing formatting issue in the historical-data test was corrected without changing test behavior.
 
-Validation on Python 3.14.2: `ruff check .`, `ruff format --check .`, `mypy src`, and `pytest --cov=espresso_dialin --cov-report=term-missing` all passed (43 tests, 100% statement/branch coverage). All eight notebook code cells executed successfully, producing three figures; the local pre-commit hook was installed. In a restricted Windows environment, Jupyter/IPython/Matplotlib cache paths were directed under the ignored `.venv/` directory. This run does not establish results on other interpreters.
+## Audit and eligibility
 
-## Audit and usable samples
+All 51 rows remain in chronological order: 39 Café Intención Espresso Intensivo and 12 REWE Bio Espresso ganze Bohnen, 1000 g. There are 44 `ok`, six `partial`, and one `approximate` rows. Bean blocks are not verified sessions.
 
-There are **51 rows**: 39 `unknown_pre_bio` and 12 `new_bio_espresso`; transcription statuses are 36 `ok`, 14 `partial`, and one `approximate` (shot 40's grinder output). These labels and counts describe the archived staging file, not the corrected current dataset. Earlier unidentified beans may conceal additional boundaries in this archived interpretation.
-
-| Analysis | Earlier bean label | New bio label | Total |
+| Eligible observations | Café Intención | REWE | Total |
 | --- | ---: | ---: | ---: |
-| Positive grind duration + output (rate) | 30 | 11 | 41 |
-| Rate with exact setting | 29 | 10 | 39 |
-| Positive brew time + yield (derived $T_{36}$ available) | 35 | 11 | 46 |
-| Primary extraction with usable puck interpretation and setting | 29 | 11 | 40 |
-| Repeated extraction settings, at least two shots | 28 / 7 groups | 4 / 2 groups | 32 / 9 groups |
-| Extraction with known immediate previous setting | 28 | 9 | 37 |
-| First-after-change / immediate repeat pairs | 6 | 1 | 7 |
-| Compatible adjacent dose prediction pairs | 16 | 1 | 17 |
-| Past-only exact-setting extraction comparisons | 21 | 2 | 23 |
-| MAD-screenable extraction observations per metric | 10 | 0 | 10 |
+| Positive grind duration + output, also with known setting | 38 | 12 | 50 |
+| Positive brew time + yield | 35 | 11 | 46 |
+| Primary extraction, usable puck interpretation | 34 | 11 | 45 |
+| Repeated extraction shots / groups | 33 / 7 | 4 / 2 | 37 / 9 |
+| Adjacent compatible dose pairs | 27 | 2 | 29 |
+| Past-only exact-setting extraction comparisons | 26 | 2 | 28 |
+| Immediate change/repeat pairs | 6 | 1 | 7 |
 
-There are 40 known-setting adjacent transitions before extraction eligibility: 31 earlier and nine newer. Of the 37 extraction-eligible current shots, 17 follow changes (9/8 by bean label) and 20 follow unchanged settings (19/1). Rate groups with at least two observations contain 28 earlier shots across seven settings and two newer shots at one setting. The notebook also shows identical-setting, identical-duration output repeats.
+Relative to staging, output eligibility increases 41 → 50, primary extraction 40 → 45, adjacent dose pairs 17 → 29, and rolling extraction comparisons 23 → 28. These are changes in sample composition, not model improvements.
 
-| Field | Blank cells |
-| --- | ---: |
-| sequence | 0 |
-| bean_label | 0 |
-| grind_setting | 7 |
-| grind_macro | 7 |
-| grind_micro | 7 |
-| grind_duration_s | 9 |
-| grinder_output_g | 2 |
-| dose_correction_mode | 0 |
-| puck_dose_g | 0 |
-| brew_duration_s | 3 |
-| final_yield_g | 5 |
-| transcription_status | 0 |
-| source_region | 0 |
-| notes | 36 |
+All settings and grind durations are now populated. Remaining measurement blanks: grinder output 1 (14); brew duration 3 (26, 33, 37); final yield 5 (26, 33, 36, 37, 50). Blank notes (36) are not missing measurements. Shot 14 also has UNKNOWN correction and is excluded from primary extraction despite its entered 18 g. Row 28 now has TO_TARGET correction. All primary extraction observations retain approximate 18 g corrected puck interpretation; raw output is never substituted for puck dose. Accepting shot 14's dose only in sensitivity raises extraction eligibility to 46. No imputation is applied.
 
-Blank notes are not missing measurements. Numeric blanks remain missing; invalid/nonfinite numbers fail loading, and nonpositive measurements are ineligible for the relevant ratios. File order is preserved and sequence reversals/duplicates are rejected rather than sorted away.
+Shot 40's approximate grinder output remains included; excluding it changes the rate summary but no adjacent dose pair. This sensitivity does not quantify general measurement uncertainty.
 
-Eligibility is question-specific. For example shot 2 is usable for extraction despite its missing grind duration; shot 26 is usable for output despite missing extraction measurements. Rows 14 and 28 have `UNKNOWN` correction and an 18 g puck entry; the primary analysis does not assume that default-looking entry establishes dose control. All 40 primary extraction shots have approximate `TO_TARGET` puck doses of 18 g. Raw grinder output is never used as their brewed dose. The notebook separately shows a sensitivity accepting those two uncertain doses (42 extraction candidates), without changing primary eligibility or source data. Dose uncertainty remains unquantified.
+## Grinder output and dose baselines
 
-## Grinder output and proportional control
+| Output rate (g/s) | n | Mean | Median | Sample SD | Range |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Café Intención | 38 | 1.879 | 1.885 | 0.092 | 1.636–2.016 |
+| REWE | 12 | 1.913 | 1.856 | 0.181 | 1.691–2.203 |
 
-Rate mean / median / sample SD is **1.874 / 1.885 / 0.096 g/s** for the earlier group (30 shots), and **1.923 / 1.907 / 0.187 g/s** for the newer group (11). These SDs mix settings and chronology; they are not pure measurement-noise estimates. The respective ranges are 1.636–2.016 and 1.691–2.203 g/s.
+These spreads mix settings and chronology. Café Intención 3H has four identical 9.7 s grinds spanning 17.9–18.6 g (SD 0.289 g). At 3E, seven 9.65 s grinds span 16.74–19.45 g (SD 0.910 g), two 9.5 s grinds span 17.89–18.37 g (SD 0.339 g), and five 9.4 s grinds span 17.66–18.76 g (SD 0.415 g). At 3D, shots 38–39 repeat 9.5 s with 17.7–17.9 g output (SD 0.141 g). REWE has no replicated identical-setting/duration output condition. These establish descriptive variability, not isolated causal effects or pure measurement noise.
 
-At earlier 3H, four identical 9.7 s grinds yield 17.9–18.6 g (rate SD 0.030 g/s). Earlier 3E has ten output-rate observations, median 1.892 g/s and SD 0.075 g/s; earlier 3I has three, median 1.970 g/s and SD 0.023 g/s. This is evidence of variability and setting-associated differences, but operator adaptation, elapsed time and unidentified bean changes prevent attributing them to setting alone. The newer group mostly has one output-rate observation per setting. A global duration/output regression would obscure these confounders.
+For adjacent same-setting, same-block observations, the proportional model predicts current output using previous output rate multiplied by current **actual** duration. The comparator carries forward previous output. Recommendations target 18 g but their unobserved outcomes are never scored as historical facts. Errors are prediction minus observation.
 
-For an adjacent historical pair, let `old` denote the earlier compatible grind and `next` the immediately following same-setting grind. The proportional baseline recommends:
-
-```math
-t_{\mathrm{grind,new}}
-=
-t_{\mathrm{grind,old}}
-\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{out,old}}},
-```
-
-with $D_{\mathrm{out}}^{\ast}=18\,\mathrm g$ for this historical analysis.
-
-To evaluate only the underlying rate assumption on an **observed** outcome, predict the next raw grinder output at the duration that was actually used:
-
-```math
-\hat D_{\mathrm{out,next}}
-=
-\frac{D_{\mathrm{out,old}}}{t_{\mathrm{grind,old}}}
-\,t_{\mathrm{grind,next}}^{\mathrm{actual}}.
-```
-
-This predicts output at the observed historical duration; it does not assign that outcome to the counterfactual recommended duration. No missing neighbour is skipped. Recommendations and actual durations are displayed separately.
-
-| Bean label | Pairs | Proportional MAE / RMSE (g) | Carry last output MAE / RMSE (g) |
+| Adjacent dose sample | n | Proportional MAE / RMSE (g) | Carry-output MAE / RMSE (g) |
 | --- | ---: | ---: | ---: |
-| Earlier | 16 | 0.689 / 0.870 | 0.704 / 0.931 |
-| New bio | 1 | 0.497 / 0.497 | 0.590 / 0.590 |
+| Café Intención | 27 | 0.698 / 0.865 | 0.658 / 0.856 |
+| REWE | 2 | 0.881 / 0.961 | 1.185 / 1.326 |
+| Overall | 29 | 0.711 / 0.872 | 0.694 / 0.896 |
 
-Across 17 pairs, proportional MAE is **0.678 g**, RMSE **0.853 g**, median absolute error **0.497 g**. Only seven pairs change grind duration; in the other ten, both baselines make the same prediction. This supports proportional control as a plausible simple baseline, not as a proven improvement or exact physical law. Small, selected duration changes cannot estimate a reliable intercept or nonlinear response. Excluding approximate shot 40 affects descriptive rate summaries but no compatible dose pair.
+Only 12 pairs change duration; the other 17 give identical predictions for both methods. Proportional median absolute error is 0.600 g. Unlike the staging comparison, proportional MAE is now slightly worse overall than carrying output forward, while RMSE is slightly better. Neither method dominates; proportionality is not established as a physical law or controller benefit.
+
+The existing rolling controllers use earlier exact-setting history within a bean block, including nonadjacent visits. They produce 33 matched predictions, a different sample from the adjacent analysis:
+
+| Rolling controller | n | MAE (g) | RMSE (g) | Median absolute error (g) |
+| --- | ---: | ---: | ---: | ---: |
+| Last-shot proportional | 33 | 0.761 | 0.922 | 0.629 |
+| Past-only median rate | 33 | 0.675 | 0.866 | 0.495 |
+
+Café Intención supplies 30 predictions (MAE 0.763 vs 0.668 g); the three REWE predictions are identical for both methods (MAE 0.746 g). The median-rate improvement is descriptive historical evidence for retaining this simple comparator, not proof of generalization, significance, closed-loop convergence or coffee savings. No intervals are emitted or calibration evaluated.
 
 ## Extraction and yield normalization
 
-Actual yield ranges from **33–43 g** among 35 earlier time/yield pairs and **33.7–36.5 g** among 11 newer pairs. The linear normalization used in the analysis is:
+The derived approximation is:
 
 ```math
-T_{36}^{\mathrm{linear}}
-=
-t_{\mathrm{brew}}\frac{36}{Y}.
+T_{36}^{\mathrm{linear}}=t_{\mathrm{brew}}\frac{36}{Y}.
 ```
 
-$T_{36}^{\mathrm{linear}}$ is the crude constant-average-flow estimate defined in [`notation.md`](notation.md), not an observed time-to-36-g measurement.
+It assumes constant average flow, not measured time-to-target. Shot 9 remains 28 s at 43 g, giving 23.44 s on this derived scale. Actual yields span 33–43 g for Café Intención and 33.7–36.5 g for REWE among positive time/yield pairs.
 
-For shot 9, $t_{\mathrm{brew}}=28\,\mathrm s$ and $Y=43\,\mathrm g$, giving:
+Repeated groups match exact categorical setting, contiguous bean block, and puck interpretation/target. Pooled within-group sample variance is weighted by group size minus one.
 
-```math
-T_{36}^{\mathrm{linear}}
-=
-28\frac{36}{43}
-\approx23.44\,\mathrm s.
-```
+| Bean | Repeated shots / groups | Pooled SD raw → normalized (s) | Conditional MAE raw → normalized (s) | Conditional RMSE raw → normalized (s) |
+| --- | ---: | ---: | ---: | ---: |
+| Café Intención | 33 / 7 | 5.891 → 6.138 | 5.692 → 5.915 | 7.917 → 8.511 |
+| REWE | 4 / 2 | 12.500 → 11.544 | 15.500 → 14.201 | 17.678 → 15.922 |
 
-That is a material change of interpretation, but it does not establish that $23.44\,\mathrm s$ was the actual time to $36\,\mathrm g$.
+The chronological comparison uses expanding medians from earlier eligible same-setting/block/puck observations (minimum one prior), with 26 Café Intención and two REWE held-out shots. Raw prediction is past median brew time. Normalized prediction is past median linear T36 multiplied by **held-out observed final yield / 36**, scored against current raw time. Thus it is conditional reconstruction using an outcome-side measurement, not a deployable next-shot normalized forecast. No future outlier screen enters prediction.
 
-Comparison groups match exact setting, contiguous bean block, dose interpretation and dose target. No numerical spacing/order between macro/micro settings is assumed.
+Normalization still worsens the larger bean block's pooled spread and conditional error while improving the tiny REWE sample. Reduced spread would not establish accuracy of true T36 even where observed. Preserve yield jointly with brew time, but do not promote linear normalization to ground truth. Matching settings across beans remain incomparable as replicates: Café Intención 3G has 24–25 s versus REWE's 80 s; 3I has 26–30 s versus 67 s. This cautions against pooling without establishing a causal bean effect.
 
-| Bean label | Repeated shots / groups | Pooled within-group SD, raw → $T_{36}$ (s) |
-| --- | ---: | ---: |
-| Earlier | 28 / 7 | 6.140 → 6.557 |
-| New bio | 4 / 2 | 12.500 → 11.544 |
+## Robustness and chronology
 
-Pooling weights each within-group sample variance by its degrees of freedom (group size minus one) and never combines raw bean-group outcomes. Earlier normalization lowers SD in two of seven repeated groups and raises it in five. Examples: 3E improves slightly (4.274 → 4.199 s); 3I worsens (2.000 → 3.578 s). Both newer repeated groups improve, but each contains only two observations. Thus normalization is **not consistently variance-reducing**. Even a reduction would not prove target-time accuracy because the derived scale changes with yield.
+The retrospective screen uses absolute modified z-score `0.67448975 * abs(value - median) / MAD`, with unscaled MAD, threshold 3.5, and at least five observations per extraction group. Zero MAD is unscorable. Café Intención 3E (13 observations) and 3D (five) qualify, giving 18 screened observations per time metric; no flags occur. All observations remain included. Absence of flags does not demonstrate absence of preparation problems. The 24 s repeat differences at Café Intención 3F and REWE 4E remain too sparsely replicated to diagnose an outlier; REWE 5H's 17 s singleton is not known channeling.
 
-The chronological comparison uses an expanding median of earlier eligible shots at the same setting/block/puck target (minimum one prior shot). Let `past` denote that eligible earlier set and `current` the held-out shot. For a common observed target, the normalized prediction maps the past median back to the current observed yield:
+There are 49 known adjacent transitions and 43 extraction-eligible current shots with known previous setting (18 changed, 25 unchanged). Setting 50 is recovered, so 50 → 51 is now known; missing yield on 50 still blocks an extraction repeat comparison. The correction creates a 3E → 3D transition at 36 → 37, removing that pair from adjacent same-setting dose scoring. Missing extraction on 37 prevents a new first/repeat extraction pair. Bean boundaries reset history, and missing outcomes are not bridged.
 
-```math
-\hat t_{\mathrm{brew,current}}
-=
-\mathrm{median}\!\left(T_{36,\mathrm{past}}^{\mathrm{linear}}\right)
-\frac{Y_{\mathrm{current}}}{36}.
-```
+The seven first-after-change/immediate-repeat pairs remain 7→8, 10→11, 16→17, 18→19, 20→21, 23→24, and 47→48. Repeat-minus-first linear T36 differences are −4.63, +0.26, −1.65, −5.36, +15.16, +2.61, and −6.90 s. Mixed direction and adapted setting/preparation choices prevent attribution to retention. More known transitions have not supplied additional informative immediate pairs. Retention is unresolved, not disproven; no credible held-out previous-setting ablation is established here.
 
-Here $Y_{\mathrm{current}}$ is the **observed held-out final yield**, which is not known before brewing. Both this conditional reconstruction and the raw-time median are scored against observed current brew time.
+## Conclusions and experiment gaps
 
-| Bean label | Held-out shots | Raw MAE / RMSE (s) | Normalized MAE / RMSE (s) |
-| --- | ---: | ---: | ---: |
-| Earlier | 21 | 5.810 / 8.190 | 6.221 / 9.081 |
-| New bio | 2 | 15.500 / 17.678 | 14.201 / 15.922 |
+| Question | Corrected-data conclusion | Remaining evidence needed |
+| --- | --- | --- |
+| Repeatability | Several replicated Café Intención output conditions already show variability; REWE lacks identical-duration/setting repeats | Replication in the current bean/session where uncertainty matters |
+| Duration response | Multiple durations and 12 changing-duration adjacent pairs inform a baseline, but are operator-adapted | Controlled, replicated duration variation at fixed setting; enough separation to test intercept/nonlinearity |
+| Setting affects output rate | Descriptive differences remain confounded with time and duration | Controlled comparable-duration setting contrasts with replication |
+| Linear yield normalization | No consistent benefit; larger block worsens | Prospective joint brew-time/yield validation with an explicit target convention |
+| Robust prediction | Substantial variation motivates caution; a MAD screen diagnoses no bad shots | Chronological/prospective comparison of robust predictors against simple baselines |
+| Retention | Still only seven immediate pairs, no identified predictive benefit | Repeated planned transitions and immediate repeats, with session/purge context recorded |
+| Dose controller savings | Median-rate historical prediction improves, mainly on Café Intención | Recommendations frozen before outcomes and prospective shots/coffee-to-target trials |
 
-Training is past-only and no retrospective outlier filter is applied. However, because the normalized method uses held-out observed yield, these are conditional reconstruction errors, not deployable next-shot forecast errors or measured $T_{36}$ errors. There is no true $T_{36}$ ground truth, interval calibration, or proof of causal superiority. The mixed evidence weakens adopting linear normalization automatically, while leaving the requirement to retain yield intact.
+Known bean identity removes one earlier uncertainty. Sessions, timestamps, ageing, purge/hopper state and preparation remain unrecorded; corrected puck doses remain approximate. Overlapping rolling training histories are not independent experimental trials. No causal setting effects, physical grinder calibration, uncertainty coverage or coffee savings can be inferred.
 
-Matching settings also vary sharply across bean labels: earlier 3G has times 25 and 24 s, versus one newer shot at 80 s; earlier 3I has 26–30 s, versus one newer shot at 67 s. These are warnings against cross-bean pooling, not estimates of a clean bean effect.
-
-## Outliers and possible retention
-
-For one extraction comparison group, let $x_i$ be observation $i$ of the metric being screened, and define:
-
-```math
-\tilde x
-=
-\mathrm{median}(x_1,\ldots,x_N),
-```
-
-```math
-\mathrm{MAD}(x)
-=
-\mathrm{median}_{1\leq i\leq N}|x_i-\tilde x|.
-```
-
-The transparent robust screen then uses the absolute modified z-score:
-
-```math
-z_i^{\ast}
-=
-0.67448975
-\frac{|x_i-\tilde x|}{\mathrm{MAD}(x)},
-```
-
-and flags $z_i^{\ast}>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size and MAD is the **unscaled median absolute deviation**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
-
-Earlier 3F has a 24 s repeat difference (shots 6 and 15), and newer 4E differs by 24 s (43 and 51). Their separation in time and two-shot sample sizes preclude identifying an outlier. The newer 17 s shot at 5H is a singleton: it is not evidence of known channeling. The need to avoid overreaction remains sensible, but superiority of a particular robust predictive method is untested.
-
-For the six earlier first-after-change/immediate-repeat pairs, repeat-minus-first $T_{36}^{\mathrm{linear}}$ differences are **−4.63, +0.26, −1.65, −5.36, +15.16, +2.61 s**. The sole newer pair is **−6.90 s**. Directions are mixed, and comparisons confound the previous setting, chosen new setting, operator decisions and shot preparation. Unknown setting 50 breaks adjacency to 51; a known bean boundary also resets history. There are too few repeated transitions to train and hold out a credible previous-setting ablation. **Retention predictive value remains untestable here**, rather than disproven.
-
-## Conclusions and next step
-
-| Hypothesis | Status from this archived staging dataset |
-| --- | --- |
-| Linear normalization consistently improves repeatability | Not supported; worsens the larger group's pooled spread and conditional errors |
-| Proportional grind-duration control is a useful baseline | Plausible, noisy; no demonstrated controller benefit |
-| Grind setting changes output rate | Descriptive association; causal/material predictive effect unresolved |
-| Robust/outlier handling improves recommendations | Large variability motivates caution; predictive benefit untested |
-| Previous-setting/retention features add value | Insufficient compatible transitions for credible validation |
-| One extraction relationship transfers across beans | Strongly cautioned against by same-label differences; no pooling justified |
-
-Limits include observational adaptation, small/uneven groups, unidentified sessions and earlier beans, missing/approximate transcription, unknown elapsed time/ageing/purge history, approximate corrected puck dose, unknown preparation quality, and absent true time-to-36-g measurements. Held-out comparisons overlap in their training histories and are not independent experimental trials. Coffee-to-target, shot savings, controller convergence and uncertainty calibration cannot be estimated honestly here.
-
-**Current follow-up:** use `data/historical_shots_corrected.csv` for a refreshed historical analysis and experiment-gap analysis before prescribing new Learning-Mode shots. Current project sequencing is tracked in [`next-steps.md`](next-steps.md).
+**Next step:** use the already-implemented dose baselines in prospective acquisition, and choose Learning-Mode shots for these specific gaps. The refresh does not justify additional model complexity or a generic repetition campaign. See [next-steps.md](next-steps.md).

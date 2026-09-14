@@ -22,25 +22,15 @@ The REWE Bio Espresso is also the current bean for the beginning of prospective/
 
 ## Phase 1 — Historical exploration and gap analysis
 
-The first broad exploration was completed 2026-09-11 in [`01_historical_exploration.ipynb`](../notebooks/01_historical_exploration.ipynb) and [`historical-analysis.md`](historical-analysis.md), but that run used the staging transcription. It remains a useful research snapshot, not the current numeric source of truth.
+Refreshed 2026-09-14 against the corrected source in [`01_historical_exploration.ipynb`](../notebooks/01_historical_exploration.ipynb) and [`historical-analysis.md`](historical-analysis.md), including descriptive/rolling results and focused experiment gaps. The original staging report is archived separately.
 
-Before designing new Learning-Mode shots, rerun/adapt the historical analysis against `data/historical_shots_corrected.csv` and perform a focused experiment-gap analysis:
-
-- exact setting + duration repeats -> empirical repeatability/noise;
-- multiple durations at the same setting -> evidence for proportionality/intercept/nonlinearity;
-- setting changes at comparable durations -> evidence that output rate depends on setting;
-- first-after-change / repeat sequences -> available transition/retention information;
-- which candidate experiments would add information not already present historically.
-
-Do not spend coffee repeating historical conditions merely because they appear in a generic DoE template.
-
-Deliverable: refreshed descriptive/rolling results plus a short statement of which identification questions are already materially informed and which remain unresolved.
+Historical repeats already inform variability, but duration/setting effects remain confounded; REWE lacks identical-setting/duration output repeats, and the seven immediate transition/repeat pairs do not identify retention. Use the report’s gap table before selecting Learning-Mode shots. Do not spend coffee repeating conditions without a specific unresolved question.
 
 ## Phase 2 — Baseline dose models
 
 Completed 2026-09-11: the small typed proportional-dose baseline and past-only same-block/exact-setting median-rate comparator, with explicit prospective recommendation records and scoring. See [`dose-control-baseline.md`](dose-control-baseline.md).
 
-Historical metric values currently documented there were derived from the older staging-based analysis and should be regenerated against the corrected dataset before being treated as the current benchmark.
+Historical metric values documented there are an older staging snapshot; current corrected-source rolling benchmarks are in [historical-analysis.md](historical-analysis.md).
 
 The baselines define the minimum standard that richer grinder-output models must beat.
 

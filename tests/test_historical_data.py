@@ -58,6 +58,4 @@ def test_historical_dataset_controlled_vocabularies() -> None:
 def test_historical_dataset_uses_known_bean_identities() -> None:
     rows = _read_rows()
     assert {row["bean_label"] for row in rows[:39]} == {"cafe_intencion_espresso_intensivo"}
-    assert {row["bean_label"] for row in rows[39:]} == {
-        "rewe_bio_espresso_ganze_bohnen_1000g"
-    }
+    assert {row["bean_label"] for row in rows[39:]} == {"rewe_bio_espresso_ganze_bohnen_1000g"}

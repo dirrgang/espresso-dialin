@@ -35,9 +35,9 @@ sequence,bean_label,grind_setting,grind_macro,grind_micro,grind_duration_s,grind
 34,cafe_intencion_espresso_intensivo,3E,3,E,9.4,17.66,TO_TARGET,18.0,36,35.77,ok,right_upper,Grind setting and duration supplied by user after the initial transcription.
 35,cafe_intencion_espresso_intensivo,3E,3,E,9.4,18.19,TO_TARGET,18.0,39,37.0,ok,right_upper,Grind setting and duration supplied by user after the initial transcription.
 36,cafe_intencion_espresso_intensivo,3E,3,E,9.4,18.36,TO_TARGET,18.0,42,,partial,right_upper,Grind setting and duration supplied by user after the initial transcription; final yield is not recorded.
-37,cafe_intencion_espresso_intensivo,3E,3,E,9.4,16.9,TO_TARGET,18.0,,,partial,right_upper,Grind setting corrected by user after the initial transcription; brew duration and final yield are not recorded.
-38,cafe_intencion_espresso_intensivo,3E,3,E,9.5,17.9,TO_TARGET,18.0,34,33.0,ok,right_upper,Grind setting supplied by user after the initial transcription.
-39,cafe_intencion_espresso_intensivo,3E,3,E,9.5,17.7,TO_TARGET,18.0,40,35.0,ok,right_upper,Grind setting and duration supplied by user after the initial transcription.
+37,cafe_intencion_espresso_intensivo,3D,3,D,9.4,16.9,TO_TARGET,18.0,,,partial,right_upper,Grind setting corrected by user after the initial transcription; brew duration and final yield are not recorded. User confirmed on 2026-09-14: setting is 3D rather than 3E.
+38,cafe_intencion_espresso_intensivo,3D,3,D,9.5,17.9,TO_TARGET,18.0,34,33.0,ok,right_upper,Grind setting supplied by user after the initial transcription. User confirmed on 2026-09-14: setting is 3D rather than 3E.
+39,cafe_intencion_espresso_intensivo,3D,3,D,9.5,17.7,TO_TARGET,18.0,40,35.0,ok,right_upper,Grind setting and duration supplied by user after the initial transcription. User confirmed on 2026-09-14: setting is 3D rather than 3E.
 40,rewe_bio_espresso_ganze_bohnen_1000g,3E,3,E,9.45,16.5,TO_TARGET,18.0,58,33.87,approximate,right_lower,Source explicitly marks grinder output as approximately 16.5 g.
 41,rewe_bio_espresso_ganze_bohnen_1000g,3G,3,G,9.45,18.2,TO_TARGET,18.0,80,33.7,ok,right_lower,
 42,rewe_bio_espresso_ganze_bohnen_1000g,3I,3,I,9.45,18.02,TO_TARGET,18.0,67,34.0,ok,right_lower,
