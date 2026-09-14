@@ -2,11 +2,14 @@
 
 Use notebooks for exploratory analysis, visualization, and model comparison over historical or synthetic data.
 
-`01_historical_exploration.ipynb` audits the current staging CSV and compares output,
-extraction, robust descriptions and chronological baselines by bean block. Install
-`.[dev,analysis]`, then run all cells from the repository root or `notebooks/`.
-The research record and exact input hash are in [`historical-analysis.md`](../docs/historical-analysis.md).
-Execute with `python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb`.
+`01_historical_exploration.ipynb` uses the authoritative `data/historical_shots_corrected.csv`. Its analysis and conclusions were refreshed on 2026-09-14; see [historical-analysis.md](../docs/historical-analysis.md). The [original staging analysis](../docs/historical-analysis-staging-2026-09-11.md) is retained separately for provenance.
+
+Install `.[dev,analysis]`, then run notebooks from the repository root or `notebooks/`. A typical execution command is:
+
+```sh
+python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
+```
+
 Clear generated outputs before committing; retain empirical conclusions in the research note.
 
 Guidelines:
@@ -16,4 +19,5 @@ Guidelines:
 - preserve chronological train/test boundaries for backtests;
 - avoid committing large generated outputs or embedded binary data;
 - treat notebooks as experiments, not as the authoritative implementation;
+- use `data/historical_shots_corrected.csv` for current historical modelling unless explicitly studying transcription uncertainty;
 - when an experiment materially changes a project decision, update the relevant document under `docs/` and the decision log.

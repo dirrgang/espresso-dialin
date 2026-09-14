@@ -163,6 +163,31 @@ This is not a hard restriction on which tool may perform which task. It is a sep
 
 Reason: this preserves implementation focus and code quality while allowing the project to remain mathematically transparent and useful as a learning exercise.
 
+## 2026-09-14 — Corrected historical dataset is authoritative
+
+**Decision:** Keep `data/historical_shots_staging.csv` as the auditable initial transcription, but use `data/historical_shots_corrected.csv` as the authoritative historical source for current analysis and model development.
+
+The corrected dataset includes later user-supplied recovered/corrected entries that were not reliably inferable from the original handwritten image. Provenance notes should identify those corrections rather than retaining stale notes that claim now-populated values are missing.
+
+Known historical bean identities are:
+
+- sequences 1–39: Café Intención Espresso Intensivo (`cafe_intencion_espresso_intensivo`);
+- sequences 40–51: REWE Bio Espresso ganze Bohnen, 1000 g (`rewe_bio_espresso_ganze_bohnen_1000g`).
+
+The REWE Bio Espresso is also the current bean at the start of prospective/live data collection.
+
+Existing historical-analysis metrics produced from the staging CSV remain a reproducible snapshot, not the current benchmark. They must be regenerated against the corrected dataset before being used for new model/experiment decisions.
+
+Reason: corrected observations and known bean identities materially change eligibility/grouping and reduce avoidable uncertainty. Keeping the staging file unchanged preserves the audit trail without forcing current modelling to ignore known information.
+
+## 2026-09-14 — Corrected historical exploration refreshed
+
+**Source correction:** Shots 37–39 are 3D, not 3E, as confirmed by the user; macro/micro fields and provenance agree. The staging source is unchanged.
+
+**Evidence:** [Historical analysis](historical-analysis.md) now uses the corrected source. Adjacent proportional dose MAE no longer improves on carrying output forward overall; the existing rolling median-rate comparator improves historical errors, primarily on Café Intención. Linear yield normalization remains inconsistent, and the same seven immediate transition/repeat pairs leave retention unresolved.
+
+**Decision:** Retain the simple dose baselines for prospective evaluation; do not promote linear normalization or add retention state from these observations. Use the refreshed experiment-gap table to select designed observations. The staging analysis remains archived separately.
+
 ## Open decisions
 
 The following are intentionally unresolved:

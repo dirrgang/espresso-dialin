@@ -6,49 +6,37 @@ Project-wide mathematical symbols used below are defined in [`notation.md`](nota
 
 ## Phase 0 — Historical dataset
 
-1. Transcribe the existing handwritten shot sheet into a staging CSV.
-2. Preserve exact row order.
-3. Mark bean/session boundaries that are known.
-4. Mark uncertain/illegible cells explicitly rather than guessing.
-5. Record historical dose correction as `TO_TARGET` where the puck was manually corrected to approximately 18 g.
-6. Keep the original grinder-output mass separately from the approximate brewed dose.
+Completed.
 
-Deliverable: a versioned raw/staging dataset plus a short transcription note describing uncertainty.
+The repository now keeps two distinct historical artifacts:
 
-## Phase 1 — Exploratory notebook
+- `data/historical_shots_staging.csv` — immutable/auditable initial transcription;
+- `data/historical_shots_corrected.csv` — authoritative dataset for current analysis, including later user-supplied corrections/recovered entries.
 
-Before building a UI, inspect the historical data:
+Known bean identities are now:
 
-- grind duration vs. grinder output;
-- grinder setting vs. brew duration/final yield;
-- variation at repeated settings;
-- effect of actual final-yield deviation;
-- residual/outlier distribution;
-- first shot after a setting change vs. repeated shots at the same setting;
-- differences across known bean/session boundaries.
+- sequences 1–39: Café Intención Espresso Intensivo;
+- sequences 40–51: REWE Bio Espresso ganze Bohnen, 1000 g.
 
-Deliverable: notebook with plots/statistics and explicit conclusions about which modelling assumptions are worth pursuing.
+The REWE Bio Espresso is also the current bean for the beginning of prospective/live data collection.
 
-Completed 2026-09-11: [`01_historical_exploration.ipynb`](../notebooks/01_historical_exploration.ipynb)
-and [`historical-analysis.md`](historical-analysis.md). The 51-row audit uses separate
-eligibility rules, retains raw yield/output and compares simple chronological baselines.
-Linear normalization does not consistently improve repeatability; retention evidence is
-insufficient. These are limited empirical findings, not validated physical laws.
+## Phase 1 — Historical exploration and gap analysis
+
+Refreshed 2026-09-14 against the corrected source in [`01_historical_exploration.ipynb`](../notebooks/01_historical_exploration.ipynb) and [`historical-analysis.md`](historical-analysis.md), including descriptive/rolling results and focused experiment gaps. The original staging report is archived separately.
+
+Historical repeats already inform variability, but duration/setting effects remain confounded; REWE lacks identical-setting/duration output repeats, and the seven immediate transition/repeat pairs do not identify retention. Use the report’s gap table before selecting Learning-Mode shots. Do not spend coffee repeating conditions without a specific unresolved question.
 
 ## Phase 2 — Baseline dose models
 
-Completed 2026-09-11: the small typed proportional-dose baseline and past-only
-same-block/exact-setting median-rate comparator, with explicit prospective recommendation
-records and scoring. See [`dose-control-baseline.md`](dose-control-baseline.md). The rolling
-rate evaluation has 22 predictions per strategy (21 in the earlier incompletely identified
-block and one in the newer block). Median-rate is numerically better but does not establish
-material superiority.
+Completed 2026-09-11: the small typed proportional-dose baseline and past-only same-block/exact-setting median-rate comparator, with explicit prospective recommendation records and scoring. See [`dose-control-baseline.md`](dose-control-baseline.md).
+
+Historical metric values documented there are an older staging snapshot; current corrected-source rolling benchmarks are in [historical-analysis.md](historical-analysis.md).
 
 The baselines define the minimum standard that richer grinder-output models must beat.
 
 ## Phase 3 — Minimal prospective data-acquisition application
 
-Build the smallest useful Streamlit + SQLite vertical slice early enough that future shots are prospective, timestamped, and linked to recommendations created before outcomes are known.
+**Next implementation priority.** Build the smallest useful Streamlit + SQLite vertical slice early enough that future shots are prospective, timestamped, and linked to recommendations created before outcomes are known.
 
 Required flow:
 
@@ -75,16 +63,18 @@ Persist at minimum:
 
 The UI must not contain model logic. Data collection must never be blocked because a model has insufficient history.
 
+Initial live setup should make it easy to create/select the current bean **REWE Bio Espresso ganze Bohnen, 1000 g** without hard-coding that bean as a permanent application default.
+
 Deliverable: an application that can already be used during normal espresso preparation even while grind-setting optimisation remains manual.
 
 ## Phase 4 — Learning / Experiment mode and first designed experiments
 
 Add an explicit experiment intent distinct from normal assisted use. The first version should use transparent Design-of-Experiments principles rather than autonomous Bayesian optimisation.
 
-Initial experiment families should be selected for concrete identification questions, for example:
+Experiment families should be selected for concrete identification questions **after checking what the corrected historical dataset already tells us**. Candidate families include:
 
 1. **Repeatability / noise**
-   - repeat identical setting + duration several times;
+   - repeat identical setting + duration only where historical replication is insufficient for the question at hand;
    - estimate within-condition grinder-output and extraction variability.
 
 2. **Grind-duration response**
@@ -109,9 +99,9 @@ Initial experiment families should be selected for concrete identification quest
    - revisit a reference condition later in the same bean/session;
    - test whether time/ageing/state changes are large enough to justify recency weighting or a forgetting factor.
 
-Predefine the question, experimental points, replication, and stopping criterion before examining results where practical.
+Predefine the question, experimental points, replication, and stopping criterion before examining results where practical. Prefer experiments with high expected information gain relative to coffee consumed.
 
-Deliverable: a small prospective dataset with known experimental intent that can separate process effects from ordinary shot noise better than the historical notes can.
+Deliverable: a small prospective dataset with known experimental intent that fills specific gaps left by historical and normal-use data.
 
 See [`research-methods.md`](research-methods.md).
 

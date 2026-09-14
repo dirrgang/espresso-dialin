@@ -146,24 +146,29 @@ EspressoPost should be treated as a conceptual baseline rather than something to
 
 ## Historical data
 
-There is an existing handwritten dataset with chronological entries containing approximately:
+The repository retains both the original transcription and a corrected analysis dataset:
 
-- grinder setting;
-- grind duration;
-- grinder output mass;
-- brew duration;
-- final beverage yield;
-- boundaries between at least some bean changes.
+- `data/historical_shots_staging.csv` is the auditable initial transcription and should not be silently repaired or imputed;
+- `data/historical_shots_corrected.csv` is the authoritative source for current historical analysis and incorporates later user-supplied corrections/recovered entries.
 
-For these historical entries, grinder output was generally manually corrected to approximately 18 g before brewing when necessary. Import must therefore preserve:
+The known historical bean blocks are now identified as:
+
+- sequences 1–39: **Café Intención Espresso Intensivo**;
+- sequences 40–51: **REWE Bio Espresso ganze Bohnen, 1000 g**.
+
+The REWE Bio Espresso is also the current bean for the start of prospective/live data collection.
+
+For these historical entries, grinder output was generally manually corrected to approximately 18 g before brewing when necessary. Analysis must therefore preserve:
 
 - recorded grinder output as the dose-model observation;
 - puck dose as approximately 18 g with explicit uncertainty / correction status;
 - chronological order, because it is required to test retention / previous-setting effects;
 - bean/session boundaries where known;
-- unknown or illegible values as missing/uncertain rather than guessed.
+- genuinely unknown values as missing/uncertain rather than guessed.
 
-The historical dataset remains useful as an observational warm start, baseline/regression fixture and source of hypotheses. It should not be retrospectively treated as a designed experiment.
+The historical dataset remains useful as an observational warm start, baseline/regression fixture and source of hypotheses. It should not be retrospectively treated as a designed experiment. Existing analysis artifacts created against the staging transcription are historical snapshots and should be rerun against the corrected dataset before their numeric findings are treated as current.
+
+See [`data/README.md`](data/README.md) for provenance and dataset semantics.
 
 ## Current scope boundaries
 
@@ -186,5 +191,3 @@ See `docs/` for the current modelling assumptions, data model, experiment plan, 
 ## Development
 
 The repository is bootstrapped as a typed Python 3.12+ project using a `src/` layout, Ruff, mypy, pytest, pre-commit, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
-
-The historical staging dataset is versioned under `data/`; its provenance and editing rules are documented in [`data/README.md`](data/README.md).

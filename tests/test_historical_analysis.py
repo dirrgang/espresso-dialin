@@ -25,7 +25,7 @@ from espresso_dialin.historical import (
     variability_comparison,
 )
 
-DATASET = Path(__file__).parents[1] / "data/historical_shots_staging.csv"
+DATASET = Path(__file__).parents[1] / "data/historical_shots_corrected.csv"
 
 
 def fixture_csv(tmp_path, overrides):
@@ -65,12 +65,12 @@ def test_current_data_and_analysis_specific_partial_rows():
         assert [dict(s.raw) for s in shots] == list(csv.DictReader(handle))
     assert [s.sequence for s in shots] == list(range(1, 52))
     assert shots[38].block != shots[39].block
-    assert exclusion_reasons(shots[1], "output") == ("grind_duration_s",)
+    assert not exclusion_reasons(shots[1], "output")
     assert not exclusion_reasons(shots[1], "extraction")
     assert not exclusion_reasons(shots[25], "output")
     assert exclusion_reasons(shots[25], "extraction")
     assert exclusion_reasons(shots[13], "extraction") == ("usable_puck_dose",)
-    assert len(eligible(shots, "output")) > len(eligible(shots, "setting_output"))
+    assert len(eligible(shots, "output")) == len(eligible(shots, "setting_output"))
     assert audit(shots)["rows"] == 51
 
 
