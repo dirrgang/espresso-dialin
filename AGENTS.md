@@ -89,6 +89,9 @@ A future production frontend/backend architecture is explicitly premature until 
 - Tests live under `tests/` and should mirror behavior rather than implementation details.
 - Exploratory notebooks live under `notebooks/`; reusable logic must move into `src/`.
 - Small research datasets with explicit provenance may live under `data/`; runtime databases and generated state must not be committed.
+- `data/historical_shots_staging.csv` is the auditable initial transcription and should remain unchanged except for an explicit decision to correct the transcription record itself.
+- `data/historical_shots_corrected.csv` is the authoritative historical source for current modelling, backtests, and gap analysis; it may contain documented user-supplied corrections that are not inferable from the source image alone.
+- Do not use staging-based numeric findings as current benchmarks after the corrected dataset became authoritative; rerun/regenerate them first.
 - Dependencies and tool configuration belong in `pyproject.toml`.
 - Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
@@ -97,7 +100,7 @@ A future production frontend/backend architecture is explicitly premature until 
 - Every **project-specific mathematical symbol** must either be defined in `docs/notation.md` or defined explicitly at first use in the document that introduces it. Conventional method-local notation is acceptable without tutorial-level explanation, but any symbol whose concrete role in the local model is not obvious should be identified briefly. Do not make readers infer state vectors, context variables, targets, residuals, feature encodings, or index meanings from convention alone.
 - Do not reuse a mathematical symbol for materially different concepts across project documentation without explicitly declaring the scope/local meaning.
 - Do not perform arithmetic on opaque grinder-setting labels. Expressions such as `G_n - G_(n-1)` require a separately defined and validated numerical mapping such as `z(G)`; otherwise use categorical or structured current-setting/transition features.
-- Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history.
+- Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history and normally belong in `data/historical_shots_corrected.csv`.
 - Do not add a license until the repository owner has explicitly chosen one.
 
 ## Quality gates
@@ -124,6 +127,7 @@ CI runs the same core checks on supported Python versions. Do not weaken a quali
 - Grinder: Baratza Sette 270
 - Espresso machine: Sage/Breville Dual Boiler (BES920/SES920)
 - Default target: 18.0 g puck dose -> 36.0 g final yield in 30–35 s
+- Current bean at the start of prospective/live collection: REWE Bio Espresso ganze Bohnen, 1000 g
 
 Do not hard-code grinder semantics beyond what has been verified. In particular, macro/micro overlap and exact ordering/calibration should be treated as a grinder-adapter concern and tested/verified rather than assumed.
 
