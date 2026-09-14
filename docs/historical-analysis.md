@@ -1,12 +1,16 @@
 # First historical exploration — 2026-09-11
 
+> **Status: archived staging-data snapshot.** The analysis below was produced from `data/historical_shots_staging.csv` before later user-supplied corrections/recovered entries and bean identities were incorporated. The current authoritative historical dataset is `data/historical_shots_corrected.csv`: sequences 1–39 are Café Intención Espresso Intensivo and sequences 40–51 are REWE Bio Espresso ganze Bohnen, 1000 g. Preserve the results below for provenance, but do not treat their sample counts or numeric benchmarks as current until the analysis has been regenerated against the corrected dataset.
+
 The historical data justify a small dose-control baseline and careful grouped descriptions. They do **not** justify adopting linear yield normalization as the extraction target, fitting a physical grind scale, or adding retention state.
 
 Project-wide espresso symbols are defined in [`notation.md`](notation.md). Analysis-specific symbols are defined in the relevant sections below.
 
 ## Reproduction and provenance
 
-Source: the current handwritten transcription in `data/historical_shots_staging.csv`, unchanged by this analysis. SHA256: `882392feecf6e23e2747f6de70d656e15e73caf208d14327a11a4ec3d361ce49`.
+Source for this archived run: the handwritten transcription in `data/historical_shots_staging.csv`, unchanged by this analysis. SHA256: `882392feecf6e23e2747f6de70d656e15e73caf208d14327a11a4ec3d361ce49`.
+
+For a new/current run, use `data/historical_shots_corrected.csv` instead and record its hash separately.
 
 Install `.[dev,analysis]`, then run all cells in `notebooks/01_historical_exploration.ipynb`, or:
 
@@ -14,13 +18,15 @@ Install `.[dev,analysis]`, then run all cells in `notebooks/01_historical_explor
 python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
 ```
 
+The committed notebook currently represents the archived staging-data run; update its data path before using it for a new current analysis.
+
 The notebook records the input hash and interpreter, displays all analysis tables and exclusions, and plots every eligible observation. Reusable calculations are in `src/espresso_dialin/historical.py`. Notebook outputs are cleared for version control, consistent with the notebook conventions; the numerical findings are recorded here. No new dependency was needed.
 
 Validation on Python 3.14.2: `ruff check .`, `ruff format --check .`, `mypy src`, and `pytest --cov=espresso_dialin --cov-report=term-missing` all passed (43 tests, 100% statement/branch coverage). All eight notebook code cells executed successfully, producing three figures; the local pre-commit hook was installed. In a restricted Windows environment, Jupyter/IPython/Matplotlib cache paths were directed under the ignored `.venv/` directory. This run does not establish results on other interpreters.
 
 ## Audit and usable samples
 
-There are **51 rows**: 39 `unknown_pre_bio` and 12 `new_bio_espresso`; transcription statuses are 36 `ok`, 14 `partial`, and one `approximate` (shot 40's grinder output). These are two contiguous bean-label blocks, not two verified brewing sessions. Earlier unidentified beans may conceal additional boundaries.
+There are **51 rows**: 39 `unknown_pre_bio` and 12 `new_bio_espresso`; transcription statuses are 36 `ok`, 14 `partial`, and one `approximate` (shot 40's grinder output). These labels and counts describe the archived staging file, not the corrected current dataset. Earlier unidentified beans may conceal additional boundaries in this archived interpretation.
 
 | Analysis | Earlier bean label | New bio label | Total |
 | --- | ---: | ---: | ---: |
@@ -178,7 +184,7 @@ For the six earlier first-after-change/immediate-repeat pairs, repeat-minus-firs
 
 ## Conclusions and next step
 
-| Hypothesis | Status from this dataset |
+| Hypothesis | Status from this archived staging dataset |
 | --- | --- |
 | Linear normalization consistently improves repeatability | Not supported; worsens the larger group's pooled spread and conditional errors |
 | Proportional grind-duration control is a useful baseline | Plausible, noisy; no demonstrated controller benefit |
@@ -189,4 +195,4 @@ For the six earlier first-after-change/immediate-repeat pairs, repeat-minus-firs
 
 Limits include observational adaptation, small/uneven groups, unidentified sessions and earlier beans, missing/approximate transcription, unknown elapsed time/ageing/purge history, approximate corrected puck dose, unknown preparation quality, and absent true time-to-36-g measurements. Held-out comparisons overlap in their training histories and are not independent experimental trials. Coffee-to-target, shot savings, controller convergence and uncertainty calibration cannot be estimated honestly here.
 
-**Single next implementation step at the time of this analysis:** implement a small typed proportional-dose baseline with a past-only same-block median-rate comparator and explicit recommendation records for prospective evaluation. That step has since been completed; current project sequencing is tracked in [`next-steps.md`](next-steps.md).
+**Current follow-up:** use `data/historical_shots_corrected.csv` for a refreshed historical analysis and experiment-gap analysis before prescribing new Learning-Mode shots. Current project sequencing is tracked in [`next-steps.md`](next-steps.md).
