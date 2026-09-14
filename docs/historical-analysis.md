@@ -2,6 +2,8 @@
 
 The historical data justify a small dose-control baseline and careful grouped descriptions. They do **not** justify adopting linear yield normalization as the extraction target, fitting a physical grind scale, or adding retention state.
 
+Project-wide espresso symbols are defined in [`notation.md`](notation.md). Analysis-specific symbols are defined in the relevant sections below.
+
 ## Reproduction and provenance
 
 Source: the current handwritten transcription in `data/historical_shots_staging.csv`, unchanged by this analysis. SHA256: `882392feecf6e23e2747f6de70d656e15e73caf208d14327a11a4ec3d361ce49`.
@@ -62,25 +64,27 @@ Rate mean / median / sample SD is **1.874 / 1.885 / 0.096 g/s** for the earlier 
 
 At earlier 3H, four identical 9.7 s grinds yield 17.9–18.6 g (rate SD 0.030 g/s). Earlier 3E has ten output-rate observations, median 1.892 g/s and SD 0.075 g/s; earlier 3I has three, median 1.970 g/s and SD 0.023 g/s. This is evidence of variability and setting-associated differences, but operator adaptation, elapsed time and unidentified bean changes prevent attributing them to setting alone. The newer group mostly has one output-rate observation per setting. A global duration/output regression would obscure these confounders.
 
-The dose baseline computes
+For an adjacent historical pair, let `old` denote the earlier compatible grind and `next` the immediately following same-setting grind. The proportional baseline recommends:
 
 ```math
-t_{\mathrm{new}}
+t_{\mathrm{grind,new}}
 =
-t_{\mathrm{old}}
-\frac{18}{D_{\mathrm{old}}}.
+t_{\mathrm{grind,old}}
+\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{out,old}}},
 ```
 
-To evaluate its rate assumption on observed outcomes, the next output is predicted as
+with $D_{\mathrm{out}}^{\ast}=18\,\mathrm g$ for this historical analysis.
+
+To evaluate only the underlying rate assumption on an **observed** outcome, predict the next raw grinder output at the duration that was actually used:
 
 ```math
-\hat D_{\mathrm{next}}
+\hat D_{\mathrm{out,next}}
 =
-\frac{D_{\mathrm{old}}}{t_{\mathrm{old}}}
-t_{\mathrm{actual,next}}
+\frac{D_{\mathrm{out,old}}}{t_{\mathrm{grind,old}}}
+\,t_{\mathrm{grind,next}}^{\mathrm{actual}}.
 ```
 
-for immediate same-setting neighbours within a block. No missing neighbour is skipped. Recommendations and actual durations are displayed separately.
+This predicts output at the observed historical duration; it does not assign that outcome to the counterfactual recommended duration. No missing neighbour is skipped. Recommendations and actual durations are displayed separately.
 
 | Bean label | Pairs | Proportional MAE / RMSE (g) | Carry last output MAE / RMSE (g) |
 | --- | ---: | ---: | ---: |
@@ -91,7 +95,7 @@ Across 17 pairs, proportional MAE is **0.678 g**, RMSE **0.853 g**, median absol
 
 ## Extraction and yield normalization
 
-Actual yield ranges from **33–43 g** among 35 earlier time/yield pairs and **33.7–36.5 g** among 11 newer pairs. The linear normalization used in the analysis is
+Actual yield ranges from **33–43 g** among 35 earlier time/yield pairs and **33.7–36.5 g** among 11 newer pairs. The linear normalization used in the analysis is:
 
 ```math
 T_{36}^{\mathrm{linear}}
@@ -99,7 +103,9 @@ T_{36}^{\mathrm{linear}}
 t_{\mathrm{brew}}\frac{36}{Y}.
 ```
 
-For shot 9, $t_{\mathrm{brew}}=28\,\mathrm s$ and $Y=43\,\mathrm g$, giving
+$T_{36}^{\mathrm{linear}}$ is the crude constant-average-flow estimate defined in [`notation.md`](notation.md), not an observed time-to-36-g measurement.
+
+For shot 9, $t_{\mathrm{brew}}=28\,\mathrm s$ and $Y=43\,\mathrm g$, giving:
 
 ```math
 T_{36}^{\mathrm{linear}}
@@ -117,44 +123,58 @@ Comparison groups match exact setting, contiguous bean block, dose interpretatio
 | Earlier | 28 / 7 | 6.140 → 6.557 |
 | New bio | 4 / 2 | 12.500 → 11.544 |
 
-Pooling here weights within-group sample variances by $n-1$, never combines raw bean-group outcomes. Earlier normalization lowers SD in two of seven repeated groups and raises it in five. Examples: 3E improves slightly (4.274 → 4.199 s); 3I worsens (2.000 → 3.578 s). Both newer repeated groups improve, but each contains only two observations. Thus normalization is **not consistently variance-reducing**. Even a reduction would not prove target-time accuracy because the derived scale changes with yield.
+Pooling weights each within-group sample variance by its degrees of freedom (group size minus one) and never combines raw bean-group outcomes. Earlier normalization lowers SD in two of seven repeated groups and raises it in five. Examples: 3E improves slightly (4.274 → 4.199 s); 3I worsens (2.000 → 3.578 s). Both newer repeated groups improve, but each contains only two observations. Thus normalization is **not consistently variance-reducing**. Even a reduction would not prove target-time accuracy because the derived scale changes with yield.
 
-The chronological comparison uses an expanding median of earlier eligible shots at the same setting/block/puck target (minimum one prior shot). For a common observed target, the normalized prediction maps the past median back to the current observed yield:
+The chronological comparison uses an expanding median of earlier eligible shots at the same setting/block/puck target (minimum one prior shot). Let `past` denote that eligible earlier set and `current` the held-out shot. For a common observed target, the normalized prediction maps the past median back to the current observed yield:
 
 ```math
 \hat t_{\mathrm{brew,current}}
 =
-\operatorname{median}\!\left(T_{36,\mathrm{past}}\right)
+\mathrm{median}\!\left(T_{36,\mathrm{past}}^{\mathrm{linear}}\right)
 \frac{Y_{\mathrm{current}}}{36}.
 ```
 
-Both this and the raw-time median are scored against observed current brew time.
+Here $Y_{\mathrm{current}}$ is the **observed held-out final yield**, which is not known before brewing. Both this conditional reconstruction and the raw-time median are scored against observed current brew time.
 
 | Bean label | Held-out shots | Raw MAE / RMSE (s) | Normalized MAE / RMSE (s) |
 | --- | ---: | ---: | ---: |
 | Earlier | 21 | 5.810 / 8.190 | 6.221 / 9.081 |
 | New bio | 2 | 15.500 / 17.678 | 14.201 / 15.922 |
 
-Training is past-only and no retrospective outlier filter is applied. However, the normalized method uses the held-out **observed yield**, an outcome unavailable before brewing. These are conditional reconstruction errors, not deployable next-shot forecast errors or measured $T_{36}$ errors. There is no true $T_{36}$ ground truth, interval calibration, or proof of causal superiority. The mixed evidence weakens adopting linear normalization automatically, while leaving the requirement to retain yield intact.
+Training is past-only and no retrospective outlier filter is applied. However, because the normalized method uses held-out observed yield, these are conditional reconstruction errors, not deployable next-shot forecast errors or measured $T_{36}$ errors. There is no true $T_{36}$ ground truth, interval calibration, or proof of causal superiority. The mixed evidence weakens adopting linear normalization automatically, while leaving the requirement to retain yield intact.
 
 Matching settings also vary sharply across bean labels: earlier 3G has times 25 and 24 s, versus one newer shot at 80 s; earlier 3I has 26–30 s, versus one newer shot at 67 s. These are warnings against cross-bean pooling, not estimates of a clean bean effect.
 
 ## Outliers and possible retention
 
-The transparent robust screen uses the absolute modified z-score
+For one extraction comparison group, let $x_i$ be observation $i$ of the metric being screened, and define:
 
 ```math
-z_i^*
+\tilde x
 =
-0.67448975
-\frac{|x_i-\operatorname{median}(x)|}{\operatorname{MAD}(x)},
+\mathrm{median}(x_1,\ldots,x_N),
 ```
 
-and flags $z_i^*>3.5$ within extraction comparison groups with at least five observations. MAD is unscaled in descriptive tables; zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
+```math
+\mathrm{MAD}(x)
+=
+\mathrm{median}_{1\leq i\leq N}|x_i-\tilde x|.
+```
+
+The transparent robust screen then uses the absolute modified z-score:
+
+```math
+z_i^{\ast}
+=
+0.67448975
+\frac{|x_i-\tilde x|}{\mathrm{MAD}(x)},
+```
+
+and flags $z_i^{\ast}>3.5$ within extraction comparison groups with at least five observations. Here $N$ is the local group size and MAD is the **unscaled median absolute deviation**. Zero MAD is reported as unscorable. Only earlier 3E qualifies (10 observations per time metric), and **no observations are flagged**. All shots remain included. Mean/SD alongside median/MAD document spread without pretending to know preparation quality.
 
 Earlier 3F has a 24 s repeat difference (shots 6 and 15), and newer 4E differs by 24 s (43 and 51). Their separation in time and two-shot sample sizes preclude identifying an outlier. The newer 17 s shot at 5H is a singleton: it is not evidence of known channeling. The need to avoid overreaction remains sensible, but superiority of a particular robust predictive method is untested.
 
-For the six earlier first-after-change/immediate-repeat pairs, repeat-minus-first $T_{36}$ differences are **−4.63, +0.26, −1.65, −5.36, +15.16, +2.61 s**. The sole newer pair is **−6.90 s**. Directions are mixed, and comparisons confound the previous setting, chosen new setting, operator decisions and shot preparation. Unknown setting 50 breaks adjacency to 51; a known bean boundary also resets history. There are too few repeated transitions to train and hold out a credible previous-setting ablation. **Retention predictive value remains untestable here**, rather than disproven.
+For the six earlier first-after-change/immediate-repeat pairs, repeat-minus-first $T_{36}^{\mathrm{linear}}$ differences are **−4.63, +0.26, −1.65, −5.36, +15.16, +2.61 s**. The sole newer pair is **−6.90 s**. Directions are mixed, and comparisons confound the previous setting, chosen new setting, operator decisions and shot preparation. Unknown setting 50 breaks adjacency to 51; a known bean boundary also resets history. There are too few repeated transitions to train and hold out a credible previous-setting ablation. **Retention predictive value remains untestable here**, rather than disproven.
 
 ## Conclusions and next step
 
@@ -169,4 +189,4 @@ For the six earlier first-after-change/immediate-repeat pairs, repeat-minus-firs
 
 Limits include observational adaptation, small/uneven groups, unidentified sessions and earlier beans, missing/approximate transcription, unknown elapsed time/ageing/purge history, approximate corrected puck dose, unknown preparation quality, and absent true time-to-36-g measurements. Held-out comparisons overlap in their training histories and are not independent experimental trials. Coffee-to-target, shot savings, controller convergence and uncertainty calibration cannot be estimated honestly here.
 
-**Single next implementation step:** implement a small typed proportional-dose baseline with a past-only same-block median-rate comparator and explicit recommendation records for prospective evaluation. Keep the initial extraction evidence categorical and descriptive; collect targeted repeated settings and durations before extraction regression or retention features. This analysis does not start that phase.
+**Single next implementation step at the time of this analysis:** implement a small typed proportional-dose baseline with a past-only same-block median-rate comparator and explicit recommendation records for prospective evaluation. That step has since been completed; current project sequencing is tracked in [`next-steps.md`](next-steps.md).

@@ -1,56 +1,60 @@
 # Prospective dose-control baseline
 
-This is the first deployable grinder-output baseline. It recommends grind duration for a target grinder output, initially $18.0\,\mathrm g$. It does not recommend grind settings or model extraction.
+This is the first deployable grinder-output baseline. It recommends grind duration for a target raw grinder output, initially $D_{\mathrm{out}}^{\ast}=18.0\,\mathrm g$. It does not recommend grind settings or model extraction.
+
+Project-wide espresso symbols are defined in [`notation.md`](notation.md). This document defines the additional controller-specific symbols it uses.
 
 ## Controllers
 
 Both controllers implement the typed `DoseController` interface in `espresso_dialin.dose_control` and return the same serializable recommendation record.
 
+For target shot $n$, let $\mathcal H_n$ denote the set of **compatible earlier dose observations** available before shot $n$. Compatibility is defined below. Every $i\in\mathcal H_n$ therefore satisfies $i\lt n$ and has positive finite grind duration and raw grinder output.
+
 ### Last-shot proportional
 
-Use the most recent earlier compatible observation. Estimate the grinder rate as
+Let $j$ be the most recent observation in $\mathcal H_n$. Estimate the current grinder output rate as:
 
 ```math
-\hat r
+\hat r_n
 =
-\frac{D_{\mathrm{previous}}}{t_{\mathrm{previous}}},
+\frac{D_{\mathrm{out},j}}{t_{\mathrm{grind},j}}.
 ```
 
-then recommend
+Recommend:
 
 ```math
-t_{\mathrm{next}}
+t_{\mathrm{grind},n}^{\mathrm{rec}}
 =
-\frac{D_{\mathrm{target}}}{\hat r}
+\frac{D_{\mathrm{out}}^{\ast}}{\hat r_n}
 =
-t_{\mathrm{previous}}
-\frac{D_{\mathrm{target}}}{D_{\mathrm{previous}}}.
+t_{\mathrm{grind},j}
+\frac{D_{\mathrm{out}}^{\ast}}{D_{\mathrm{out},j}}.
 ```
 
 ### Past-only median rate
 
-For each compatible earlier observation $i$,
+For each compatible earlier observation $i\in\mathcal H_n$, define its observed grinder output rate:
 
 ```math
 r_i
 =
-\frac{D_i}{t_i}.
+\frac{D_{\mathrm{out},i}}{t_{\mathrm{grind},i}}.
 ```
 
-Estimate the current rate as
+Estimate the current rate as:
 
 ```math
-\hat r
+\hat r_n
 =
-\operatorname{median}(r_1,\ldots,r_k),
+\mathrm{median}_{i\in\mathcal H_n}(r_i),
 ```
 
-then recommend
+then recommend:
 
 ```math
-t_{\mathrm{next}}
+t_{\mathrm{grind},n}^{\mathrm{rec}}
 =
-\frac{D_{\mathrm{target}}}{\hat r}.
+\frac{D_{\mathrm{out}}^{\ast}}{\hat r_n}.
 ```
 
 Neither result is silently clamped. Targets and observed measurements must be finite and positive. Missing duration or output remains explicit and makes that observation unusable for dose control. With no usable compatible history, the controller raises `InsufficientDoseHistoryError` rather than borrowing unrelated data.
@@ -64,13 +68,14 @@ The initial `ExactDoseCompatibility` policy requires equality of every one of:
 - contiguous block identity;
 - exact, opaque grinder-setting label.
 
-The controllers also require an observation sequence strictly below the target sequence,
+The chronology requirement is:
 
 ```math
-\mathrm{sequence}_i < \mathrm{sequence}_{\mathrm{target}}.
+i \lt n
+\qquad\text{for every } i\in\mathcal H_n.
 ```
 
-They therefore reject future observations even if a caller supplies them. Grinder-setting labels are categorical: no Sette macro/micro ordering, spacing, or overlap is assumed.
+The controllers therefore reject future observations even if a caller supplies them. Grinder-setting labels are categorical: no Sette macro/micro ordering, spacing, or overlap is assumed.
 
 Compatibility is a protocol supplied to a controller, so a later validated policy can relax these rules without changing either algorithm. The default does not pool across beans, sessions, blocks, or settings to increase sample size.
 
@@ -78,25 +83,25 @@ Compatibility is a protocol supplied to a controller, so a later validated polic
 
 `DoseRecommendation` records the model identifier/version, context, target and recommended duration, estimated rate, expected output, exact source observation IDs, observation count, and latest included sequence. Its local ID is a deterministic hash of the model, target context, and history. `created_at` accepts a timezone-aware timestamp; it is `None` for the historical reconstruction because no real pre-shot creation time exists. Stable dict/JSON serialization is provided for later SQLite persistence.
 
-Both models expect the target output at their recommended duration by construction. That is not an uncertainty claim. No uncertainty interval is emitted.
+Both models expect $D_{\mathrm{out}}^{\ast}$ at their recommended duration by construction. That is not an uncertainty claim. No uncertainty interval is emitted.
 
-`score_recommendation` does not refit. Given stored rate $\hat r$ and the duration actually used $t_{\mathrm{actual}}$, it predicts
-
-```math
-\hat D_{\mathrm{actual}}
-=
-\hat r\,t_{\mathrm{actual}}.
-```
-
-The signed prediction error is
+`score_recommendation` does not refit. Suppose the stored pre-shot rate estimate is $\hat r_n$ and the operator actually uses duration $t_{\mathrm{grind},n}^{\mathrm{actual}}$. The frozen model predicts:
 
 ```math
-e
+\hat D_{\mathrm{out},n}
 =
-\hat D_{\mathrm{actual}}-D_{\mathrm{actual}},
+\hat r_n\,t_{\mathrm{grind},n}^{\mathrm{actual}}.
 ```
 
-with absolute error $|e|$. The scorer also reports whether actual output is within a target band. Its $0.2\,\mathrm g$ default is named and documented as provisional; comparative trial tolerances must be fixed before results are examined.
+The signed prediction error is defined as prediction minus observation:
+
+```math
+e_n
+=
+\hat D_{\mathrm{out},n}-D_{\mathrm{out},n},
+```
+
+with absolute error $|e_n|$. The scorer also reports whether actual output is within a target band. Its $0.2\,\mathrm g$ default is named and documented as provisional; comparative trial tolerances must be fixed before results are examined.
 
 ## Historical rolling evaluation
 
@@ -110,29 +115,29 @@ For each eligible historical shot, each controller receives the dataset but inte
 
 This produces 22 predictions per strategy: 21 in `unknown_pre_bio` / historical block 0 and one in `new_bio_espresso` / block 1. This exceeds the earlier analysis's 17 adjacent pairs because the controller may use the latest earlier exact-setting observation across intervening settings or incomplete rows, while never crossing a bean/block boundary.
 
-For prediction errors $e_1,\ldots,e_n$, the reported metrics are
+Let $M$ be the number of evaluated predictions and $e_m$ the signed error for evaluation case $m$. The reported metrics are:
 
 ```math
 \mathrm{MAE}
 =
-\frac{1}{n}\sum_{i=1}^{n}|e_i|,
+\frac{1}{M}\sum_{m=1}^{M}|e_m|,
 ```
 
 ```math
 \mathrm{RMSE}
 =
-\sqrt{\frac{1}{n}\sum_{i=1}^{n}e_i^2},
+\sqrt{\frac{1}{M}\sum_{m=1}^{M}e_m^2},
 ```
 
-and
+and:
 
 ```math
-\operatorname{MedAE}
+\mathrm{MedAE}
 =
-\operatorname{median}(|e_1|,\ldots,|e_n|).
+\mathrm{median}(|e_1|,\ldots,|e_M|).
 ```
 
-| Block | Strategy | n | MAE (g) | RMSE (g) | Median absolute error (g) |
+| Block | Strategy | Predictions | MAE (g) | RMSE (g) | Median absolute error (g) |
 | --- | --- | ---: | ---: | ---: | ---: |
 | All | Last-shot proportional | 22 | 0.835 | 1.017 | 0.757 |
 | All | Past-only median rate | 22 | 0.732 | 0.975 | 0.487 |
@@ -151,8 +156,8 @@ For every new bean/session/block:
 
 1. Choose one controller according to a comparison schedule fixed before the shot.
 2. Create and persist its recommendation before grinding, including timestamp and all source observation IDs.
-3. Use the exact recorded setting and recommended duration as closely as practical; record the actual duration rather than silently replacing it with the recommendation.
-4. Weigh and retain raw grinder output, then separately record any correction to puck dose.
+3. Use the exact recorded setting and recommended duration as closely as practical; record $t_{\mathrm{grind},n}^{\mathrm{actual}}$ rather than silently replacing it with $t_{\mathrm{grind},n}^{\mathrm{rec}}$.
+4. Weigh and retain raw grinder output $D_{\mathrm{out},n}$, then separately record any correction to puck dose $D_{\mathrm{puck},n}$.
 5. Score the frozen recommendation against actual duration/output without refitting on that shot.
 6. Add the shot to history only after scoring, then create the next recommendation.
 

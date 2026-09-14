@@ -10,6 +10,7 @@ Read at least:
 
 - `README.md`
 - `docs/model.md`
+- `docs/notation.md` for project-wide mathematical symbols
 - `docs/data-model.md`
 - `docs/validation.md`
 - `docs/decision-log.md`
@@ -91,7 +92,11 @@ A future production frontend/backend architecture is explicitly premature until 
 - Dependencies and tool configuration belong in `pyproject.toml`.
 - Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
-- In GitHub Markdown, use `$...$` for inline mathematics and fenced `math` blocks (triple backticks followed by `math`) for display equations. Do not put `$`/`$$` delimiters inside a `math` fence. GitHub's display-math pipeline can misparse a literal `<` or `>` inside TeX (for example `\sum_{i<j}`), so prefer TeX relation commands such as `\lt`, `\gt`, `\le`, `\ge`, or equivalent explicit index bounds. Use ordinary code fences only for code, commands, schemas, or literal text.
+- In GitHub Markdown, use literal `$...$` for inline mathematics and fenced `math` blocks (triple backticks followed by `math`) for display equations. Never substitute lookalike delimiters such as `§`, and do not put `$`/`$$` delimiters inside a `math` fence. GitHub's display-math pipeline can misparse a literal `<` or `>` inside TeX (for example `\sum_{i<j}`), so prefer TeX relation commands such as `\lt`, `\gt`, `\le`, `\ge`, or equivalent explicit index bounds. Avoid `\operatorname{...}` in repository math because it has rendered unreliably in GitHub; use established commands or `\mathrm{...}` for names such as `median`, `MAD`, and `MedAE`. A literal `*` inside inline math can also be consumed by Markdown emphasis parsing, so write superscript stars as `^{\ast}` rather than bare `^*`; do not “simplify” an escaped or `\ast` form back to a literal asterisk. Use ordinary code fences only for code, commands, schemas, or literal text.
+- Mathematical documentation may assume knowledge roughly equivalent to an Informatik/Computer-Science bachelor's degree. Do not explain standard algebra, calculus, linear-algebra notation, basic probability/statistics notation, or commonplace operators merely for completeness. Explain project-specific semantics, non-obvious modelling assumptions, and specialist methods where they matter.
+- Every **project-specific mathematical symbol** must either be defined in `docs/notation.md` or defined explicitly at first use in the document that introduces it. Conventional method-local notation is acceptable without tutorial-level explanation, but any symbol whose concrete role in the local model is not obvious should be identified briefly. Do not make readers infer state vectors, context variables, targets, residuals, feature encodings, or index meanings from convention alone.
+- Do not reuse a mathematical symbol for materially different concepts across project documentation without explicitly declaring the scope/local meaning.
+- Do not perform arithmetic on opaque grinder-setting labels. Expressions such as `G_n - G_(n-1)` require a separately defined and validated numerical mapping such as `z(G)`; otherwise use categorical or structured current-setting/transition features.
 - Do not silently rewrite `data/historical_shots_staging.csv`. Corrections to the transcription should be explicit and reviewable in Git history.
 - Do not add a license until the repository owner has explicitly chosen one.
 
