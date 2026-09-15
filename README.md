@@ -13,7 +13,7 @@ mise run setup
 mise run app
 ```
 
-`mise.toml` provides the repository-scoped Python 3.14 runtime plus uv and prek versions; `uv.lock` pins the Python environment. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for shell integration, quality checks, VS Code integration, and migration notes for older clones.
+`mise.toml` provides the repository-scoped Python 3.14 runtime plus uv and prek versions; `uv.lock` pins the Python environment. Python 3.14 is the supported project runtime; newer minor versions are adopted deliberately after the locked environment and quality gates have been validated. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for shell integration, quality checks, VS Code integration, and migration notes for older clones.
 
 The database is created at `data/live.sqlite3` and is gitignored. The guide covers backups,
 manual fallback, required fields, restarting between phases, and recommendation provenance.
