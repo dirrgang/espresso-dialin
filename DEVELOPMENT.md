@@ -17,9 +17,9 @@ From the repository root, run:
 mise run setup
 ```
 
-This installs the tool versions declared in `mise.toml`, synchronizes the project environment from `uv.lock`, and installs the `prek` Git hook.
+This installs the tool versions declared in `mise.toml`, synchronizes all project dependency groups from `uv.lock`, and installs the `prek` Git hook.
 
-If this clone still has a legacy hook from the previous `pre-commit` setup, `prek install` deliberately enters migration mode instead of deleting it. After confirming that the legacy hook is obsolete, replace it once with:
+If an older clone still has a legacy hook runner, `prek install` may deliberately enter migration mode instead of deleting the existing hook. After confirming that the old hook is obsolete, replace it once with:
 
 ```sh
 mise exec -- prek install --force
@@ -27,7 +27,7 @@ mise exec -- prek install --force
 
 Do not add `--force` to the normal setup task: repository bootstrap should not silently overwrite arbitrary user-managed Git hooks.
 
-The project currently keeps development and analysis tooling as `dev` and `analysis` extras. `mise run setup` installs both. The analysis extra contains notebook/plotting tools and is not required by CI.
+Development-only Python tooling is declared in the standardized `dev` dependency group and is synchronized by uv by default. Notebook and plotting tools live in the separate `analysis` group. `mise run setup` installs both groups for a full local development environment; CI only needs the default `dev` group.
 
 ## Common commands
 
@@ -59,7 +59,7 @@ The files are ordinary version-controlled files, not symlinks into a local envir
 After setting up the project environment, verify discovery from the repository root:
 
 ```sh
-uv run --locked --extra dev python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
+uv run --locked python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
 ```
 
 Read the `SKILL.md` at the printed path for version-matched Streamlit guidance.
@@ -88,7 +88,7 @@ To apply formatting and safe Ruff fixes locally:
 mise run fix
 ```
 
-`prek` runs the lightweight file and Ruff checks automatically on commit using the repository's existing `.pre-commit-config.yaml`. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
+`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
 
 ## Research and coding-agent workflow
 
@@ -138,8 +138,8 @@ In particular:
 
 ## Dependency policy
 
-Keep runtime dependencies small. Add a dependency only when it materially reduces implementation or modelling complexity. Runtime dependencies belong in `project.dependencies`; development and analysis-only dependencies must remain separate from runtime requirements.
+Keep runtime dependencies small. Add a dependency only when it materially reduces implementation or modelling complexity. Runtime dependencies belong in `project.dependencies`; local-only development and analysis tooling belongs in standardized PEP 735 `dependency-groups` and must not become published package extras.
 
-The current `dev` and `analysis` extras predate the uv/mise migration. A future cleanup may move local-only tooling to standardized PEP 735 dependency groups; that migration should be done together with regeneration and verification of `uv.lock`, not as an unrelated metadata-only edit.
+`uv.lock` is committed and is the reproducible resolution used by local development and CI. Dependency declarations and the lockfile must be updated together.
 
 The project intentionally does not have a public release or license yet. Those decisions should be made explicitly if the PoC becomes a maintained/public project.
