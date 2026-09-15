@@ -192,9 +192,7 @@ class Repository:
                 status=ShotStatus(row["resolution_status"]),
                 recorded_at=datetime.fromisoformat(row["resolution_recorded_at"]),
                 reason=row["resolution_reason"],
-                no_physical_grinding_confirmed=bool(confirmed)
-                if confirmed is not None
-                else None,
+                no_physical_grinding_confirmed=bool(confirmed) if confirmed is not None else None,
             )
             if row["resolution_status"]
             else None,
