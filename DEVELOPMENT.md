@@ -3,33 +3,51 @@
 ## Prerequisites
 
 - Git
-- Python 3.12 or newer
+- [mise](https://mise.jdx.dev/)
 
-The repository uses a standard `pyproject.toml`; no global Python packages are required.
+The repository declares its Python and developer-tool versions in `mise.toml`. Python dependencies are declared in `pyproject.toml` and resolved in the committed `uv.lock`; no global Python packages are required.
+
+For interactive shells, activating mise is recommended so repository-scoped tools such as `uv` and `prek` are directly available. Commands exposed through `mise run` work without shell activation.
 
 ## Environment setup
 
-### PowerShell
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev,analysis]"
-pre-commit install
-```
-
-### POSIX shell
+From the repository root, run:
 
 ```sh
-python3.12 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e '.[dev,analysis]'
-pre-commit install
+mise run setup
 ```
 
-The `analysis` extra contains notebook/plotting tools. It is optional for ordinary package development.
+This installs the tool versions declared in `mise.toml`, synchronizes all project dependency groups from `uv.lock`, and installs the `prek` Git hook.
+
+If an older clone still has a legacy hook runner, `prek install` may deliberately enter migration mode instead of deleting the existing hook. After confirming that the old hook is obsolete, replace it once with:
+
+```sh
+mise exec -- prek install --force
+```
+
+Do not add `--force` to the normal setup task: repository bootstrap should not silently overwrite arbitrary user-managed Git hooks.
+
+Development-only Python tooling is declared in the standardized `dev` dependency group and is synchronized by uv by default. Notebook and plotting tools live in the separate `analysis` group. `mise run setup` installs both groups for a full local development environment; CI only needs the default `dev` group.
+
+## Common commands
+
+```sh
+mise run check      # lint, formatting check, mypy, tests + coverage
+mise run fix        # apply safe Ruff fixes and formatting
+mise run test       # tests + coverage
+mise run typecheck  # mypy
+mise run app        # local Streamlit application
+```
+
+The tasks use `uv run --locked` so normal development commands fail rather than silently rewriting a stale lockfile.
+
+## VS Code
+
+The repository includes shared workspace recommendations under `.vscode/` for Python, Pylance, Ruff, mypy, and Jupyter. The workspace points Python tooling at `.venv`; Ruff and mypy use the repository environment rather than independent bundled tool versions.
+
+Pylance remains available for navigation, completion, and language-server features, but its type checker is disabled because strict mypy is the repository's authoritative type-checking gate.
+
+Editor integration is convenience only. The repository tasks and CI remain authoritative and can be run without VS Code.
 
 ## Streamlit agent skill
 
@@ -38,10 +56,10 @@ The repository includes a discovery skill at
 Codex discovers it from the repository; no personal skill installation is needed.
 The files are ordinary version-controlled files, not symlinks into a local environment.
 
-After activating the project environment, verify discovery from the repository root:
+After setting up the project environment, verify discovery from the repository root:
 
 ```sh
-python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
+uv run --locked python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
 ```
 
 Read the `SKILL.md` at the printed path for version-matched Streamlit guidance.
@@ -61,20 +79,16 @@ personal copy of the same skill.
 Run before committing substantive code changes:
 
 ```sh
-ruff check .
-ruff format --check .
-mypy src
-pytest --cov=espresso_dialin --cov-report=term-missing
+mise run check
 ```
 
 To apply formatting and safe Ruff fixes locally:
 
 ```sh
-ruff check --fix .
-ruff format .
+mise run fix
 ```
 
-Pre-commit runs the lightweight file and Ruff checks automatically. GitHub Actions runs linting, formatting, type checking, and tests on pull requests and pushes to `main`.
+`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
 
 ## Research and coding-agent workflow
 
@@ -124,6 +138,8 @@ In particular:
 
 ## Dependency policy
 
-Keep runtime dependencies small. Add a dependency only when it materially reduces implementation or modelling complexity. Development-only tools belong in the `dev` extra; notebook/visualization tools belong in the `analysis` extra.
+Keep runtime dependencies small. Add a dependency only when it materially reduces implementation or modelling complexity. Runtime dependencies belong in `project.dependencies`; local-only development and analysis tooling belongs in standardized PEP 735 `dependency-groups` and must not become published package extras.
+
+`uv.lock` is committed and is the reproducible resolution used by local development and CI. Dependency declarations and the lockfile must be updated together.
 
 The project intentionally does not have a public release or license yet. Those decisions should be made explicitly if the PoC becomes a maintained/public project.

@@ -43,7 +43,9 @@ dist/
 .ipynb_checkpoints/
 
 # IDE / editor
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 
 # OS metadata
