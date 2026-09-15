@@ -75,7 +75,15 @@ claim has been established; live collection and later evaluation remain necessar
 
 Grind-setting optimisation remains manual. Learning Mode and Phase 4 have not been implemented.
 
-## Phase 4 — Learning / Experiment mode and first designed experiments
+## Phase 3.1 — Acquisition hardening
+
+Implemented 2026-09-15: schema v2 and transactional v1 migration, explicit phase-recording
+timestamps with unknown legacy grinding times preserved, optional bag-open context, immutable
+abandonment/invalidation records, reason/confirmation UI, and lifecycle-aware controller
+eligibility. Users can release a blocked session without deleting measurements or frozen plans.
+No model improvement, retrospective replacement editor, or Learning Mode is included.
+
+## Phase 4 — Learning / Experiment mode and first designed experiments (not implemented)
 
 Add an explicit experiment intent distinct from normal assisted use. The first version should use transparent Design-of-Experiments principles rather than autonomous Bayesian optimisation.
 

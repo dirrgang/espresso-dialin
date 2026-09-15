@@ -17,78 +17,17 @@ from espresso_dialin.domain import (
     Plan,
     Session,
     Shot,
+    ShotResolution,
+    ShotStatus,
+    compatible_dose_block,
     utc_now,
 )
 from espresso_dialin.dose_control import DoseRecommendation
+from espresso_dialin.schema import initialize
 
-SCHEMA_VERSION = 1
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY, bean_id TEXT NOT NULL, bean_name TEXT NOT NULL,
-    started_at TEXT NOT NULL, ended_at TEXT, grinder TEXT NOT NULL, machine TEXT NOT NULL,
-    roaster TEXT, roast_date TEXT, target_puck_dose_g REAL NOT NULL,
-    target_yield_g REAL NOT NULL, target_time_min_s REAL NOT NULL,
-    target_time_max_s REAL NOT NULL
-);
-CREATE TABLE IF NOT EXISTS recommendations (
-    id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
-    target_sequence INTEGER NOT NULL CHECK(target_sequence > 0), created_at TEXT NOT NULL,
-    setting TEXT NOT NULL, duration_s REAL NOT NULL CHECK(duration_s > 0),
-    target_output_g REAL NOT NULL CHECK(target_output_g > 0),
-    strategy_id TEXT NOT NULL, model_version TEXT NOT NULL,
-    estimated_rate_g_s REAL, expected_output_g REAL, model_json TEXT,
-    selected INTEGER NOT NULL CHECK(selected IN (0, 1)),
-    UNIQUE(session_id, target_sequence, strategy_id),
-    UNIQUE(id, session_id, target_sequence)
-);
-CREATE UNIQUE INDEX IF NOT EXISTS one_selected_plan
-ON recommendations(session_id, target_sequence) WHERE selected = 1;
-CREATE TABLE IF NOT EXISTS shots (
-    id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
-    sequence INTEGER NOT NULL CHECK(sequence > 0), created_at TEXT NOT NULL,
-    completed_at TEXT, selected_recommendation_id TEXT NOT NULL,
-    actual_setting TEXT, actual_duration_s REAL, grinder_output_g REAL,
-    correction TEXT CHECK(correction IN ('NONE', 'TO_TARGET', 'MEASURED')),
-    puck_dose_g REAL, brew_duration_s REAL, final_yield_g REAL,
-    purged_before_shot INTEGER NOT NULL DEFAULT 0,
-    obviously_bad_shot INTEGER NOT NULL DEFAULT 0, notes TEXT NOT NULL DEFAULT '',
-    UNIQUE(session_id, sequence),
-    FOREIGN KEY(selected_recommendation_id, session_id, sequence)
-      REFERENCES recommendations(id, session_id, target_sequence)
-);
-CREATE UNIQUE INDEX IF NOT EXISTS one_pending_shot
-ON shots(session_id) WHERE completed_at IS NULL;
-CREATE TRIGGER IF NOT EXISTS frozen_plan_update BEFORE UPDATE ON recommendations
-BEGIN SELECT RAISE(ABORT, 'recommendations are immutable'); END;
-CREATE TRIGGER IF NOT EXISTS frozen_plan_delete BEFORE DELETE ON recommendations
-BEGIN SELECT RAISE(ABORT, 'recommendations are immutable'); END;
-CREATE TRIGGER IF NOT EXISTS no_late_plan BEFORE INSERT ON recommendations
-WHEN EXISTS (SELECT 1 FROM shots WHERE session_id = NEW.session_id
-             AND sequence = NEW.target_sequence)
-BEGIN SELECT RAISE(ABORT, 'cannot add predictions after shot creation'); END;
-CREATE TRIGGER IF NOT EXISTS selected_plan_link BEFORE INSERT ON shots
-WHEN NOT EXISTS (SELECT 1 FROM recommendations WHERE id = NEW.selected_recommendation_id
-                 AND selected = 1)
-BEGIN SELECT RAISE(ABORT, 'shot must link to selected plan'); END;
-CREATE TRIGGER IF NOT EXISTS frozen_shot_context BEFORE UPDATE ON shots
-WHEN NEW.id != OLD.id OR NEW.session_id != OLD.session_id OR NEW.sequence != OLD.sequence
-  OR NEW.created_at != OLD.created_at
-  OR NEW.selected_recommendation_id != OLD.selected_recommendation_id
-  OR OLD.completed_at IS NOT NULL
-BEGIN SELECT RAISE(ABORT, 'shot context and completed outcomes are immutable'); END;
-CREATE TRIGGER IF NOT EXISTS no_shot_delete BEFORE DELETE ON shots
-BEGIN SELECT RAISE(ABORT, 'shots must be retained'); END;
-CREATE TRIGGER IF NOT EXISTS frozen_session_context BEFORE UPDATE ON sessions
-WHEN NEW.id != OLD.id OR NEW.bean_id != OLD.bean_id OR NEW.bean_name != OLD.bean_name
-  OR NEW.grinder != OLD.grinder OR NEW.machine != OLD.machine
-  OR NEW.started_at != OLD.started_at OR NEW.roaster IS NOT OLD.roaster
-  OR NEW.roast_date IS NOT OLD.roast_date
-  OR NEW.target_puck_dose_g != OLD.target_puck_dose_g
-  OR NEW.target_yield_g != OLD.target_yield_g
-  OR NEW.target_time_min_s != OLD.target_time_min_s
-  OR NEW.target_time_max_s != OLD.target_time_max_s
-BEGIN SELECT RAISE(ABORT, 'session context is immutable'); END;
-"""
+SHOT_QUERY = """SELECT s.*, r.status AS resolution_status,
+    r.recorded_at AS resolution_recorded_at, r.reason AS resolution_reason
+    FROM shots s LEFT JOIN shot_resolutions r ON r.shot_id = s.id"""
 
 
 def _timestamp(value: datetime) -> str:
@@ -100,12 +39,7 @@ class Repository:
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
         with self._connection() as db:
-            version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, SCHEMA_VERSION):
-                raise ValueError(f"unsupported database schema version: {version}")
-            db.executescript(
-                "BEGIN IMMEDIATE;\n" + SCHEMA + f"\nPRAGMA user_version = {SCHEMA_VERSION}; COMMIT;"
-            )
+            initialize(db)
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
@@ -121,7 +55,10 @@ class Repository:
     def add_session(self, session: Session) -> None:
         with self._connection() as db:
             db.execute(
-                "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO sessions (id, bean_id, bean_name, started_at, ended_at, grinder, "
+                "machine, roaster, roast_date, target_puck_dose_g, target_yield_g, "
+                "target_time_min_s, target_time_max_s, bag_opened_date) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     session.id,
                     session.bean_id,
@@ -136,6 +73,7 @@ class Repository:
                     session.target_yield_g,
                     session.target_time_min_s,
                     session.target_time_max_s,
+                    session.bag_opened_date.isoformat() if session.bag_opened_date else None,
                 ),
             )
 
@@ -154,6 +92,9 @@ class Repository:
                         "roast_date": date.fromisoformat(row["roast_date"])
                         if row["roast_date"]
                         else None,
+                        "bag_opened_date": date.fromisoformat(row["bag_opened_date"])
+                        if row["bag_opened_date"]
+                        else None,
                     }
                 )
             )
@@ -170,7 +111,9 @@ class Repository:
         with self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             if db.execute(
-                "SELECT 1 FROM shots WHERE session_id=? AND completed_at IS NULL", (session_id,)
+                "SELECT 1 FROM shots s LEFT JOIN shot_resolutions r ON r.shot_id=s.id "
+                "WHERE s.session_id=? AND s.completed_at IS NULL AND r.shot_id IS NULL",
+                (session_id,),
             ).fetchone():
                 raise ValueError("complete the pending shot before ending the session")
             cursor = db.execute(
@@ -207,7 +150,7 @@ class Repository:
     def shots(self, session_id: str) -> list[Shot]:
         with self._connection() as db:
             rows = db.execute(
-                "SELECT * FROM shots WHERE session_id=? ORDER BY sequence", (session_id,)
+                SHOT_QUERY + " WHERE s.session_id=? ORDER BY s.sequence", (session_id,)
             ).fetchall()
         return [self._shot(row) for row in rows]
 
@@ -240,6 +183,16 @@ class Repository:
             completed_at=datetime.fromisoformat(row["completed_at"])
             if row["completed_at"]
             else None,
+            grinding_recorded_at=datetime.fromisoformat(row["grinding_recorded_at"])
+            if row["grinding_recorded_at"]
+            else None,
+            resolution=ShotResolution(
+                status=ShotStatus(row["resolution_status"]),
+                recorded_at=datetime.fromisoformat(row["resolution_recorded_at"]),
+                reason=row["resolution_reason"],
+            )
+            if row["resolution_status"]
+            else None,
         )
 
     def freeze(self, session_id: str, sequence: int, plans: Sequence[Plan]) -> Shot:
@@ -266,13 +219,16 @@ class Repository:
             if session is None or session["ended_at"] is not None:
                 raise ValueError("unknown or ended session")
             rows = db.execute(
-                "SELECT * FROM shots WHERE session_id=? ORDER BY sequence", (session_id,)
+                SHOT_QUERY + " WHERE s.session_id=? ORDER BY s.sequence", (session_id,)
             ).fetchall()
-            if sequence != len(rows) + 1 or any(r["completed_at"] is None for r in rows):
+            previous = [self._shot(row) for row in rows]
+            if sequence != len(previous) + 1 or any(s.pending for s in previous):
                 raise ValueError("stale sequence or pending shot; reload before freezing")
-            if any(datetime.fromisoformat(r["completed_at"]) >= shot.created_at for r in rows):
-                raise ValueError("plan must follow earlier completed shots")
-            sources = {row["id"]: row for row in rows}
+            if any(
+                s.terminal_at is not None and s.terminal_at >= shot.created_at for s in previous
+            ):
+                raise ValueError("plan must follow earlier terminal shots")
+            sources = {s.id: s for s in compatible_dose_block(previous, selected[0].setting)}
             for plan in plans:
                 if plan.target_output_g != session["target_puck_dose_g"]:
                     raise ValueError("plan target differs from session target")
@@ -286,11 +242,12 @@ class Repository:
                         source = sources.get(source_id)
                         if (
                             source is None
-                            or source["actual_setting"] != plan.setting
-                            or datetime.fromisoformat(source["completed_at"]) >= plan.created_at
+                            or not source.dose_eligible
+                            or source.terminal_at is None
+                            or source.terminal_at >= plan.created_at
                         ):
                             raise ValueError(
-                                "model source must be a prior compatible completed shot"
+                                "model source must be a prior compatible terminal shot"
                             )
                 db.execute(
                     "INSERT INTO recommendations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -327,26 +284,29 @@ class Repository:
         with self._connection() as db:
             cursor = db.execute(
                 "UPDATE shots SET actual_setting=?, actual_duration_s=?, grinder_output_g=?, "
-                "correction=?, puck_dose_g=? WHERE id=? AND completed_at IS NULL "
-                "AND actual_duration_s IS NULL",
+                "correction=?, puck_dose_g=?, grinding_recorded_at=? "
+                "WHERE id=? AND completed_at IS NULL AND actual_duration_s IS NULL "
+                "AND NOT EXISTS (SELECT 1 FROM shot_resolutions WHERE shot_id=shots.id)",
                 (
                     result.setting,
                     result.duration_s,
                     result.output_g,
                     result.correction.value,
                     result.puck_dose_g,
+                    _timestamp(utc_now()),
                     shot_id,
                 ),
             )
             if cursor.rowcount != 1:
-                raise ValueError("unknown shot or grinding result already saved")
+                raise ValueError("unknown shot, grinding result already saved, or shot resolved")
 
     def complete(self, shot_id: str, result: BrewingResult) -> None:
         with self._connection() as db:
             cursor = db.execute(
                 "UPDATE shots SET brew_duration_s=?, final_yield_g=?, purged_before_shot=?, "
                 "obviously_bad_shot=?, notes=?, completed_at=? "
-                "WHERE id=? AND actual_duration_s IS NOT NULL AND completed_at IS NULL",
+                "WHERE id=? AND actual_duration_s IS NOT NULL AND completed_at IS NULL "
+                "AND NOT EXISTS (SELECT 1 FROM shot_resolutions WHERE shot_id=shots.id)",
                 (
                     result.duration_s,
                     result.yield_g,
@@ -358,4 +318,25 @@ class Repository:
                 ),
             )
             if cursor.rowcount != 1:
-                raise ValueError("shot must have grinding results and not already be completed")
+                raise ValueError(
+                    "shot must have grinding results and not already be completed or resolved"
+                )
+
+    def resolve(self, shot_id: str, status: ShotStatus, reason: str) -> None:
+        """Append one immutable resolution; never UPDATE the original shot or predictions."""
+        with self._connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(SHOT_QUERY + " WHERE s.id=?", (shot_id,)).fetchone()
+            if row is None:
+                raise ValueError("unknown shot")
+            resolution = ShotResolution(status=status, recorded_at=utc_now(), reason=reason)
+            self._shot(row).validate_resolution(resolution)
+            db.execute(
+                "INSERT INTO shot_resolutions VALUES (?, ?, ?, ?)",
+                (
+                    shot_id,
+                    resolution.status.value,
+                    _timestamp(resolution.recorded_at),
+                    resolution.reason,
+                ),
+            )

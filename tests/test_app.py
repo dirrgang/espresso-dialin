@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from espresso_dialin.domain import Session, utc_now
+from espresso_dialin.domain import Session, ShotStatus, utc_now
 from espresso_dialin.repository import Repository
 
 APP = Path(__file__).parents[1] / "app.py"
@@ -141,3 +141,64 @@ def test_live_workflow_and_restart(tmp_path, monkeypatch):
     plans = repo.plans(session.id, 2)
     assert len(plans) == 2 and sum(p.selected for p in plans) == 1
     assert all(p.model.observation_ids == (shot.id,) for p in plans)
+
+
+def test_abandon_brew_restart_then_invalidate_and_continue(session_app):
+    repo, app = session_app
+    widget(app.text_input, "Grinder setting").input("3E").run()
+    widget(app.number_input, "Manual planned duration (s)").set_value(9.74).run()
+    widget(app.button, "Freeze plan before grinding").click().run()
+    widget(app.number_input, "Actual grind duration (s)").set_value(9.7)
+    widget(app.number_input, "Grinder output (g)").set_value(18)
+    widget(app.button, "Save grinding result").click().run()
+    assert not app.exception and not app.error
+    widget(app.text_area, "Reason (required)").input("Brew abandoned; grinder result is valid")
+    widget(app.button, "Confirm shot resolution").click().run()
+    assert app.error  # confirmation is required
+    assert repo.shots("session-2")[0].pending
+    widget(app.checkbox, "I confirm this action and its effect on controller history").check()
+    widget(app.button, "Confirm shot resolution").click().run()
+    assert not app.exception and not app.error
+    first = repo.shots("session-2")[0]
+    assert first.status == ShotStatus.ABANDONED and first.grinding_recorded_at is not None
+    app = AppTest.from_file(str(APP)).run()
+    widget(app.text_input, "Grinder setting").input("3E").run()
+    widget(app.selectbox, "Selected strategy").select("past-only-median-rate").run()
+    widget(app.button, "Freeze plan before grinding").click().run()
+    assert all(p.model.observation_ids == (first.id,) for p in repo.plans("session-2", 2))
+    widget(app.selectbox, "Action").select(ShotStatus.INVALIDATED).run()
+    widget(app.checkbox, "I confirm this action and its effect on controller history").check()
+    widget(app.button, "Confirm shot resolution").click().run()
+    assert app.error  # reason is required too
+    widget(app.text_area, "Reason (required)").input("Wrong planned setting; did not grind")
+    widget(app.button, "Confirm shot resolution").click().run()
+    assert not app.exception and not app.error
+    assert repo.shots("session-2")[1].status == ShotStatus.INVALIDATED
+    app = AppTest.from_file(str(APP)).run()
+    widget(app.text_input, "Grinder setting").input("3E").run()
+    assert any("Insufficient" in info.value for info in app.info)
+    widget(app.number_input, "Manual planned duration (s)").set_value(9.7).run()
+    widget(app.button, "Freeze plan before grinding").click().run()
+    assert not app.exception and not app.error
+    assert repo.shots("session-2")[-1].sequence == 3
+
+
+def test_completed_shot_can_be_invalidated_through_ui(session_app):
+    repo, app = session_app
+    from espresso_dialin.application import Acquisition
+    from espresso_dialin.domain import BrewingResult, CorrectionMode, GrindingResult
+
+    shot = Acquisition(repo).freeze("session-2", "3E", 1, "manual", 9.74)
+    repo.save_grinding(
+        shot.id,
+        GrindingResult(setting="3E", duration_s=97, output_g=18, correction=CorrectionMode.NONE),
+    )
+    repo.complete(shot.id, BrewingResult(duration_s=32, yield_g=36))
+    app.run()
+    widget(app.text_area, "Reason (required)").input("97 seconds was a typo for 9.7")
+    widget(app.checkbox, "I confirm this action and its effect on controller history").check()
+    widget(app.button, "Confirm shot resolution").click().run()
+    assert not app.exception and not app.error
+    invalid = repo.shots("session-2")[0]
+    assert invalid.status == ShotStatus.INVALIDATED
+    assert invalid.grinding.duration_s == 97

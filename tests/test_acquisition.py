@@ -80,7 +80,7 @@ def test_empty_path_schema_idempotence_and_restart(repo):
     assert shot.brewing.purged_before_shot and shot.brewing.obviously_bad_shot
     assert shot.created_at.utcoffset().total_seconds() == 0
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
 
 
 def test_unknown_schema_is_not_overwritten(tmp_path):

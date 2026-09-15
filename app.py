@@ -14,6 +14,7 @@ from espresso_dialin.domain import (
     CorrectionMode,
     GrindingResult,
     Session,
+    ShotStatus,
     utc_now,
 )
 from espresso_dialin.repository import Repository
@@ -49,6 +50,7 @@ def main():
             )
             roaster = st.text_input("Roaster (optional)")
             roast_date = st.date_input("Roast date (optional)", value=None)
+            bag_opened = st.date_input("Bag opened date (optional)", value=None)
             grinder = st.text_input("Grinder", value="Baratza Sette 270")
             machine = st.text_input("Machine", value="Sage/Breville Dual Boiler (BES920/SES920)")
             dose = st.number_input("Target puck dose (g)", value=18.0, min_value=0.01)
@@ -64,6 +66,7 @@ def main():
                         started_at=utc_now(),
                         roaster=roaster or None,
                         roast_date=roast_date,
+                        bag_opened_date=bag_opened,
                         grinder=grinder,
                         machine=machine,
                         target_puck_dose_g=dose,
@@ -93,12 +96,14 @@ def main():
     )
     session = by_id[session_id]
     st.write(f"{session.grinder} · {session.machine}")
+    if session.bag_opened_date:
+        st.caption(f"Bag opened: {session.bag_opened_date.isoformat()}")
     st.write(
         f"Target: {session.target_puck_dose_g:g} g puck → {session.target_yield_g:g} g "
         f"in {session.target_time_min_s:g}-{session.target_time_max_s:g} s"
     )
     shots = repo.shots(session_id)
-    pending = next((s for s in shots if s.completed_at is None), None)
+    pending = next((s for s in shots if s.pending), None)
     if session.ended_at is None and pending is None and st.button("End session"):
         with input_errors():
             repo.end_session(session_id)
@@ -220,7 +225,7 @@ def main():
         history.append(
             {
                 "Shot": shot.sequence,
-                "State": "complete" if shot.completed_at else "pending",
+                "State": shot.status.value,
                 "Strategy": plan.strategy_id,
                 "Planned setting": plan.setting,
                 "Actual setting": grind.setting if grind else None,
@@ -234,10 +239,67 @@ def main():
                 "Purged": brew_result.purged_before_shot if brew_result else None,
                 "Bad": brew_result.obviously_bad_shot if brew_result else None,
                 "Notes": brew_result.notes if brew_result else None,
+                "Plan frozen (UTC)": shot.plan_frozen_at.isoformat(),
+                "Grinding recorded (UTC)": shot.grinding_recorded_at.isoformat()
+                if shot.grinding_recorded_at
+                else None,
+                "Brewing recorded (UTC)": shot.brewing_recorded_at.isoformat()
+                if shot.brewing_recorded_at
+                else None,
+                "Resolution recorded (UTC)": shot.resolution.recorded_at.isoformat()
+                if shot.resolution
+                else None,
+                "Resolution reason": shot.resolution.reason if shot.resolution else None,
             }
         )
     if history:
         st.dataframe(history, hide_index=True)
+    actionable = {shot.id: shot for shot in shots if shot.resolution is None}
+    if actionable:
+        with st.expander("Abandon or invalidate a shot"):
+            shot_id = st.selectbox(
+                "Shot to resolve",
+                list(reversed(actionable)),
+                format_func=lambda key: (
+                    f"Shot {actionable[key].sequence} ({actionable[key].status.value})"
+                ),
+                key=f"resolve_{session_id}",
+            )
+            target_shot = actionable[shot_id]
+            labels = {
+                ShotStatus.ABANDONED: "Abandon brew, keep grinder observation"
+                if target_shot.grinding
+                else "Abandon shot without grinder observation",
+                ShotStatus.INVALIDATED: "Invalidate this shot",
+            }
+            actions = (
+                [ShotStatus.ABANDONED, ShotStatus.INVALIDATED]
+                if target_shot.pending
+                else [ShotStatus.INVALIDATED]
+            )
+            action = st.selectbox(
+                "Action", actions, format_func=lambda value: labels[value], key=f"action_{shot_id}"
+            )
+            st.caption(
+                "Abandonment retains any saved grinder result as valid. Invalidation "
+                "excludes the entire shot from future controller history. Original values "
+                "and frozen predictions stay unchanged. This action cannot be undone."
+            )
+            with st.form(f"resolution_{shot_id}_{action.value}", enter_to_submit=False):
+                reason = st.text_area("Reason (required)")
+                confirmed = st.checkbox(
+                    "I confirm this action and its effect on controller history"
+                )
+                if st.form_submit_button("Confirm shot resolution"):
+                    with input_errors():
+                        if not confirmed:
+                            raise ValueError("confirm the action before saving")
+                        repo.resolve(shot_id, action, reason)
+                        st.rerun()
+    st.caption(
+        "Timestamps record data entry, not exact physical grinder or pump events. "
+        "Unknown legacy grinding-entry times remain blank."
+    )
     st.caption(
         "TO_TARGET means approximately the session target; no precise puck mass is inferred. "
         "NONE means the grinder output was brewed unchanged."
