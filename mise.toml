@@ -16,16 +16,16 @@ run = "prek install"
 description = "Run Ruff lint and formatting checks"
 depends = ["sync"]
 run = [
-    "uv run --no-sync ruff check .",
-    "uv run --no-sync ruff format --check .",
+  "uv run --no-sync ruff check .",
+  "uv run --no-sync ruff format --check .",
 ]
 
 [tasks.fix]
 description = "Apply Ruff fixes and formatting"
 depends = ["sync"]
 run = [
-    "uv run --no-sync ruff check --fix .",
-    "uv run --no-sync ruff format .",
+  "uv run --no-sync ruff check --fix .",
+  "uv run --no-sync ruff format .",
 ]
 
 [tasks.typecheck]

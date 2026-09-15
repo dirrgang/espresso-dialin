@@ -1,4 +1,38 @@
-# Python bytecode and caches
+# Created by https://www.toptal.com/developers/gitignore/api/hugo,git,visualstudiocode,python
+# Edit at https://www.toptal.com/developers/gitignore?templates=hugo,git,visualstudiocode,python
+
+### Git ###
+# Created by git for backups. To disable backups in Git:
+# $ git config --global mergetool.keepBackup false
+*.orig
+
+# Created by git when using merge tools for conflicts
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*_BACKUP_*.txt
+*_BASE_*.txt
+*_LOCAL_*.txt
+*_REMOTE_*.txt
+
+### Hugo ###
+# Generated files by hugo
+/public/
+/resources/_gen/
+/assets/jsconfig.json
+hugo_stats.json
+
+# Executable may be added to repository
+hugo.exe
+hugo.darwin
+hugo.linux
+
+# Temporary lock file while building
+/.hugo_build.lock
+
+### Python ###
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,7 +50,18 @@ env/
 
 # Build artifacts
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
 
 # Local configuration / secrets
@@ -44,9 +89,14 @@ dist/
 
 # IDE / editor
 .vscode/*
-!.vscode/extensions.json
 !.vscode/settings.json
-.idea/
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
 
 # OS metadata
 .DS_Store
@@ -58,3 +108,5 @@ Desktop.ini
 *.bak
 *.swp
 *~
+
+data/.pytest-tmp
