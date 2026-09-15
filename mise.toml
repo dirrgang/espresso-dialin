@@ -6,31 +6,31 @@ prek = "0.5.2"
 [tasks.setup]
 description = "Set up the development environment"
 run = [
-    "uv sync --locked --all-extras",
+    "uv sync --locked --all-groups",
     "prek install",
 ]
 
 [tasks.lint]
 description = "Run Ruff lint and formatting checks"
 run = [
-    "uv run --locked --extra dev ruff check .",
-    "uv run --locked --extra dev ruff format --check .",
+    "uv run --locked ruff check .",
+    "uv run --locked ruff format --check .",
 ]
 
 [tasks.fix]
 description = "Apply Ruff fixes and formatting"
 run = [
-    "uv run --locked --extra dev ruff check --fix .",
-    "uv run --locked --extra dev ruff format .",
+    "uv run --locked ruff check --fix .",
+    "uv run --locked ruff format .",
 ]
 
 [tasks.typecheck]
 description = "Run mypy"
-run = "uv run --locked --extra dev mypy src"
+run = "uv run --locked mypy src"
 
 [tasks.test]
 description = "Run tests with coverage"
-run = "uv run --locked --extra dev pytest --cov=espresso_dialin --cov-report=term-missing"
+run = "uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing"
 
 [tasks.check]
 description = "Run all quality gates"
