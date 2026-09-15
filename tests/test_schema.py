@@ -117,12 +117,14 @@ def v2_ambiguous_pregrind_path(tmp_path):
                 "VALUES (?, 's', ?, ?, ?)",
                 (f"shot-{sequence}", sequence, created, rid),
             )
-        db.execute(
-            "UPDATE shots SET actual_setting='3E', actual_duration_s=9.7, grinder_output_g=18, "
-            "correction='TO_TARGET', grinding_recorded_at='2026-09-01T08:02:00+00:00', "
-            "brew_duration_s=32, final_yield_g=36, completed_at='2026-09-01T08:03:00+00:00' "
-            "WHERE id='shot-1'"
-        )
+            if sequence == 1:
+                db.execute(
+                    "UPDATE shots SET actual_setting='3E', actual_duration_s=9.7, "
+                    "grinder_output_g=18, correction='TO_TARGET', "
+                    "grinding_recorded_at='2026-09-01T08:02:00+00:00', "
+                    "brew_duration_s=32, final_yield_g=36, "
+                    "completed_at='2026-09-01T08:03:00+00:00' WHERE id='shot-1'"
+                )
         db.execute(
             "INSERT INTO shot_resolutions VALUES "
             "('shot-2','ABANDONED','2026-09-01T08:11:00+00:00','No reliable grinding result')"
