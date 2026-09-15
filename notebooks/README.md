@@ -4,10 +4,10 @@ Use notebooks for exploratory analysis, visualization, and model comparison over
 
 `01_historical_exploration.ipynb` uses the authoritative `data/historical_shots_corrected.csv`. Its analysis and conclusions were refreshed on 2026-09-14; see [historical-analysis.md](../docs/historical-analysis.md). The [original staging analysis](../docs/historical-analysis-staging-2026-09-11.md) is retained separately for provenance.
 
-Run `mise run setup` once to install the full development environment, including the `analysis` dependency group. A typical execution command is:
+Run `mise run setup` to install the locked Python 3.14 development and analysis environment, then run notebooks from the repository root or `notebooks/`. A typical execution command is:
 
 ```sh
-uv run --locked --group analysis jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
+uv run --locked --group analysis python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
 ```
 
 Clear generated outputs before committing; retain empirical conclusions in the research note.
