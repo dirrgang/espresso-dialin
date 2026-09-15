@@ -208,4 +208,4 @@ See `docs/` for the current modelling assumptions, data model, experiment plan, 
 
 ## Development
 
-The repository is bootstrapped as a typed Python 3.12+ project using a `src/` layout, mise, uv, Ruff, mypy, pytest, prek, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
+The repository is bootstrapped as a typed Python 3.14 project using a `src/` layout, mise, uv, Ruff, mypy, pytest, prek, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
