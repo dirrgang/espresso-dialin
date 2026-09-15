@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Python 3.14
+    name: Python 3.14 quality
     runs-on: ubuntu-latest
     env:
       UV_PYTHON: "3.14"
@@ -50,7 +50,7 @@ jobs:
         run: uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing
 
   windows-app-smoke:
-    name: Windows app smoke
+    name: Python 3.14 Windows app smoke
     runs-on: windows-latest
     env:
       UV_PYTHON: "3.14"
