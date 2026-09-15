@@ -340,9 +340,7 @@ def main():
                             shot_id,
                             action,
                             reason,
-                            no_physical_grinding_confirmed=True
-                            if pregrind_abandonment
-                            else None,
+                            no_physical_grinding_confirmed=True if pregrind_abandonment else None,
                         )
                         st.rerun()
     st.caption(
