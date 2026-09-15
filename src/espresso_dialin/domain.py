@@ -35,6 +35,30 @@ class CorrectionMode(StrEnum):
     MEASURED = "MEASURED"
 
 
+class ShotStatus(StrEnum):
+    PENDING_GRINDING = "PENDING_GRINDING"
+    PENDING_BREWING = "PENDING_BREWING"
+    COMPLETED = "COMPLETED"
+    ABANDONED = "ABANDONED"
+    INVALIDATED = "INVALIDATED"
+
+
+@dataclass(frozen=True, kw_only=True)
+class ShotResolution:
+    status: ShotStatus
+    recorded_at: datetime
+    reason: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, ShotStatus) or self.status not in (
+            ShotStatus.ABANDONED,
+            ShotStatus.INVALIDATED,
+        ):
+            raise ValueError("resolution must abandon or invalidate a shot")
+        aware(self.recorded_at)
+        required(self.reason, "resolution reason")
+
+
 @dataclass(frozen=True, kw_only=True)
 class Session:
     id: str
@@ -45,6 +69,7 @@ class Session:
     machine: str = "Sage/Breville Dual Boiler (BES920/SES920)"
     roaster: str | None = None
     roast_date: date | None = None
+    bag_opened_date: date | None = None
     ended_at: datetime | None = None
     target_puck_dose_g: float = 18.0
     target_yield_g: float = 36.0
@@ -153,6 +178,48 @@ class Shot:
     grinding: GrindingResult | None = None
     brewing: BrewingResult | None = None
     completed_at: datetime | None = None
+    grinding_recorded_at: datetime | None = None
+    resolution: ShotResolution | None = None
+
+    @property
+    def plan_frozen_at(self) -> datetime:
+        return self.created_at
+
+    @property
+    def brewing_recorded_at(self) -> datetime | None:
+        return self.completed_at
+
+    @property
+    def status(self) -> ShotStatus:
+        if self.resolution is not None:
+            return self.resolution.status
+        if self.completed_at is not None:
+            return ShotStatus.COMPLETED
+        return ShotStatus.PENDING_BREWING if self.grinding else ShotStatus.PENDING_GRINDING
+
+    @property
+    def pending(self) -> bool:
+        return self.status in (ShotStatus.PENDING_GRINDING, ShotStatus.PENDING_BREWING)
+
+    @property
+    def terminal_at(self) -> datetime | None:
+        return self.resolution.recorded_at if self.resolution else self.completed_at
+
+    @property
+    def dose_eligible(self) -> bool:
+        return self.grinding is not None and self.status in (
+            ShotStatus.COMPLETED,
+            ShotStatus.ABANDONED,
+        )
+
+    def validate_resolution(self, resolution: ShotResolution) -> None:
+        if self.resolution is not None:
+            raise ValueError("shot already has an abandonment/invalidation record")
+        if resolution.status == ShotStatus.ABANDONED and not self.pending:
+            raise ValueError("only a pending shot can be abandoned")
+        latest = self.completed_at or self.grinding_recorded_at or self.created_at
+        if resolution.recorded_at < latest:
+            raise ValueError("resolution cannot precede the recorded evidence")
 
     def __post_init__(self) -> None:
         for name in ("id", "session_id", "selected_recommendation_id"):
@@ -160,6 +227,10 @@ class Shot:
         if self.sequence <= 0:
             raise ValueError("shot sequence must be positive")
         aware(self.created_at)
+        if self.grinding_recorded_at is not None:
+            aware(self.grinding_recorded_at)
+            if self.grinding is None or self.grinding_recorded_at < self.created_at:
+                raise ValueError("grinding timestamp requires grinding after plan freezing")
         if self.brewing is not None and self.grinding is None:
             raise ValueError("grinding must precede brewing")
         if (self.brewing is None) != (self.completed_at is None):
@@ -168,3 +239,21 @@ class Shot:
             aware(self.completed_at)
             if self.completed_at < self.created_at:
                 raise ValueError("completion cannot precede creation")
+            if self.grinding_recorded_at and self.completed_at < self.grinding_recorded_at:
+                raise ValueError("brewing record cannot precede grinding record")
+        if self.resolution is not None:
+            latest = self.completed_at or self.grinding_recorded_at or self.created_at
+            if self.resolution.recorded_at < latest:
+                raise ValueError("resolution cannot precede the recorded evidence")
+            if self.resolution.status == ShotStatus.ABANDONED and self.brewing is not None:
+                raise ValueError("completed brew cannot be abandoned")
+
+
+def compatible_dose_block(shots: list[Shot], setting: str) -> list[Shot]:
+    """Unknown/invalid data break continuity instead of silently bridging a transition."""
+    compatible: list[Shot] = []
+    for shot in reversed(shots):
+        if not shot.dose_eligible or shot.grinding is None or shot.grinding.setting != setting:
+            break
+        compatible.append(shot)
+    return list(reversed(compatible))

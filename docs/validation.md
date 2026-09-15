@@ -103,6 +103,21 @@ integrity and restart behavior, not model superiority; see [live-workflow.md](li
 
 Where recommended and actual actions differ, keep them separate using notation such as $t_{\mathrm{grind},n}^{\mathrm{rec}}$ and $t_{\mathrm{grind},n}^{\mathrm{actual}}$ rather than silently substituting one for the other.
 
+## Phase 3.1 integrity and eligibility
+
+Acquisition tests include migration of a populated original v1 database, rollback after a
+forced migration failure, phase timestamp ordering, immutable abandonment/invalidation,
+restart recovery, and confirmation/reason requirements in the Streamlit UI. These checks
+establish data integrity, not model efficacy.
+
+Future dose history excludes invalidated shots and missing grinder results. A brew explicitly
+abandoned with valid grinder data can still contribute. Missing/invalid shots break contiguous
+setting compatibility rather than silently bridging transitions. Invalidation does not refit
+already-frozen predictions; analyses should distinguish what was known at freeze time from
+errors discovered later, and should not score invalid outcomes as trustworthy measurements.
+The resolution timestamp and retained original rows support that distinction. Acquisition
+timestamps must not be used as exact physical grinder/pump-event timings.
+
 ## Metrics
 
 ### Prediction metrics

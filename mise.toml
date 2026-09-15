@@ -38,4 +38,4 @@ depends = ["lint", "typecheck", "test"]
 
 [tasks.app]
 description = "Run the local Streamlit app"
-run = "uv run --locked streamlit run app.py --server.address 127.0.0.1"
+run = "uv run --locked streamlit run streamlit_app.py --server.address 127.0.0.1"

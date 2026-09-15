@@ -2,6 +2,7 @@ import sqlite3
 from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -12,14 +13,15 @@ from espresso_dialin.domain import (
     GrindingResult,
     Plan,
     Session,
+    Shot,
     utc_now,
 )
-from espresso_dialin.dose_control import score_recommendation
+from espresso_dialin.dose_control import DoseRecommendation, score_recommendation
 from espresso_dialin.repository import Repository
 
 
 @pytest.fixture
-def repo(tmp_path):
+def repo(tmp_path: Path) -> Repository:
     repository = Repository(tmp_path / "nested" / "live.sqlite3")
     repository.add_session(
         Session(
@@ -48,7 +50,7 @@ def grind(**kwargs):
     )
 
 
-def complete_shot(repo, setting="3E", output=20):
+def complete_shot(repo: Repository, setting: str = "3E", output: float = 20.0) -> Shot:
     app = Acquisition(repo)
     sequence = len(repo.shots("session")) + 1
     shot = app.freeze("session", setting, sequence, "manual", 9.74)
@@ -74,13 +76,16 @@ def test_empty_path_schema_idempotence_and_restart(repo):
     assert restarted.session("session") == session
     assert restarted.shots("session") == [shot]
     assert restarted.plans("session", 1) == plans
+    assert shot.grinding is not None
     assert shot.grinding.duration_s == 9.70
     assert plans[0].duration_s == 9.74
+    assert shot.brewing is not None
     assert shot.brewing.notes == "Uneven flow; retained."
     assert shot.brewing.purged_before_shot and shot.brewing.obviously_bad_shot
-    assert shot.created_at.utcoffset().total_seconds() == 0
+    offset = shot.created_at.utcoffset()
+    assert offset is not None and offset.total_seconds() == 0
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
 
 
 def test_unknown_schema_is_not_overwritten(tmp_path):
@@ -124,7 +129,9 @@ def test_both_shadows_are_frozen_and_score_actual_action(repo):
     app = Acquisition(repo)
     preview = app.preview("session", "3E")
     assert len(preview.plans) == 2
-    assert {p.model.observation_ids for p in preview.plans} == {(second.id,), (first.id, second.id)}
+    models = tuple(p.model for p in preview.plans if isinstance(p.model, DoseRecommendation))
+    assert len(models) == len(preview.plans)
+    assert {model.observation_ids for model in models} == {(second.id,), (first.id, second.id)}
     shot = app.freeze("session", "3E", 3, "last-shot-proportional")
     frozen = repo.plans("session", 3)
     assert sum(p.selected for p in frozen) == 1
@@ -281,6 +288,7 @@ def test_plan_rejects_mismatched_model_context(repo):
 def test_freeze_rejects_fabricated_sources_and_timestamps(repo):
     complete_shot(repo)
     plan = replace(Acquisition(repo).preview("session", "3E").plans[0], selected=True)
+    assert plan.model is not None
     for model in (
         replace(plan.model, observation_ids=("missing",)),
         replace(plan.model, bean_id="wrong"),

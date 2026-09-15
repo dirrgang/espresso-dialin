@@ -2,6 +2,7 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -139,8 +140,8 @@ def test_sequences_identity_and_timestamp_are_validated():
 
 def test_compatibility_policy_can_be_replaced_without_changing_controller():
     class SameBeanPolicy:
-        def compatible(self, candidate, requested):
-            return candidate.bean_id == requested.bean_id
+        def compatible(self, observation: DoseObservation, target: DoseTarget) -> bool:
+            return observation.bean_id == target.bean_id
 
     result = LastShotProportionalController(compatibility=SameBeanPolicy()).recommend(
         target(), [observation(1, session="other", block="other", setting="other")]
@@ -213,11 +214,17 @@ def test_historical_rolling_evaluation_is_past_only_and_separates_action_from_pr
         "last-shot-proportional",
         "past-only-median-rate",
     }
-    assert all(row["train_through"] < row["sequence"] for row in rows)
+    assert all(cast(int, row["train_through"]) < cast(int, row["sequence"]) for row in rows)
     assert all(row["prediction_g"] != row["recommended_duration_s"] for row in rows)
-    assert rolling_dose_backtest(shots[:25]) == [row for row in rows if row["sequence"] <= 25]
+    assert rolling_dose_backtest(shots[:25]) == [
+        row for row in rows if cast(int, row["sequence"]) <= 25
+    ]
 
     report = rolling_dose_report(shots)
-    assert report["overall"]["last-shot-proportional"]["n"] > 0
-    assert set(report["by_block"]) == {"historical-block-0", "historical-block-1"}
+    overall = cast(dict[str, dict[str, float | int | None]], report["overall"])
+    assert cast(int, overall["last-shot-proportional"]["n"]) > 0
+    assert set(cast(dict[str, object], report["by_block"])) == {
+        "historical-block-0",
+        "historical-block-1",
+    }
     assert rolling_dose_backtest(shots, controllers=[]) == []

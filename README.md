@@ -122,7 +122,7 @@ Suggested structure:
 
 ```text
 espresso-dialin/
-├── app.py
+├── streamlit_app.py
 ├── src/espresso_dialin/
 │   ├── domain.py
 │   ├── repository.py

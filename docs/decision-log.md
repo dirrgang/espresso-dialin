@@ -214,6 +214,28 @@ duration only when the actual setting matches; they do not reveal unexecuted act
 See [live-workflow.md](live-workflow.md). Phase 4, extraction optimisation and automatic
 grinder-setting selection remain unimplemented.
 
+## 2026-09-15 — Phase 3.1 acquisition hardening
+
+**Decision:** Add schema v2 with a nullable grinding-recorded timestamp, optional bag-open date,
+and one immutable abandonment/invalidation annotation per shot. Reuse existing creation and
+completion timestamps as plan-freeze and brew-recording timestamps. All are acquisition times;
+legacy grinding times remain unknown, and no physical-event times are fabricated.
+
+Abandonment ends an unfinished attempt and explicitly retains any saved valid grinder result.
+Invalidation can exclude a pending or completed shot with a required reason while preserving
+every original value. Neither resolution can be repeated or reversed; completed shots cannot
+be abandoned. No replacement observation is created automatically and no frozen prediction is
+refit. A subsequent shot denotes a new physical espresso, not retrospective re-entry.
+
+Invalidated/missing grinder observations break the contiguous compatible block. Completed and
+abandoned-with-valid-grinder observations may inform later dose predictions under the existing
+same-session/exact-setting policy. A source invalidated after prediction freeze remains in the
+frozen provenance; later analysis must account for that annotation. Bag-open context does not
+change pooling or model logic. Phase 4 remains unimplemented.
+
+**Rationale:** preserve raw evidence and prospective chronology while letting users recover from
+workflow mistakes. Migration must be transactional and leave unavailable legacy information null.
+
 ## Open decisions
 
 The following are intentionally unresolved:

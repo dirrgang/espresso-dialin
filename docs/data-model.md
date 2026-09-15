@@ -325,11 +325,10 @@ The initial live app may omit a separate `experiments` table if Learning Mode is
 
 Schema migrations can remain simple initially, but a schema version should exist before importing a meaningful historical or prospective dataset.
 
-## Implemented live schema (version 1)
+## Original live schema (version 1)
 
-The Phase 3 schema is defined in `src/espresso_dialin/repository.py`. `PRAGMA user_version`
-is initialized transactionally to 1; reopening is idempotent and unknown versions are rejected.
-There are three tables; separate bean/grinder/experiment tables are unnecessary for this phase.
+Phase 3 originally used three tables with `PRAGMA user_version = 1`. Phase 3.1 adds the
+v2 changes below; current schema definitions and migration live in `src/espresso_dialin/schema.py`.
 
 | Table | Persisted fields |
 | --- | --- |
@@ -354,3 +353,30 @@ measured puck mass. `NONE` declares brewed mass equal to output; `TO_TARGET` dec
 control at the session target with unquantified uncertainty. Neither declaration creates a
 second precise measurement. `MEASURED` requires a positive finite puck mass. Incomplete shots
 have null grinding/brewing fields until each corresponding phase is saved.
+
+## Current live schema (version 2)
+
+- `sessions.bag_opened_date`: optional ISO calendar date for the physical package. Bean
+  product identity remains separate; no lot identifier or automatic pooling is introduced.
+- `shots.grinding_recorded_at`: optional UTC acquisition timestamp. New successful grinding
+  saves populate it atomically with the measurements; migrated measurements retain null.
+- `shot_resolutions`: `shot_id` (primary/foreign key), `status` (`ABANDONED` or `INVALIDATED`),
+  UTC `recorded_at`, and required `reason`. Each row is immutable and does not UPDATE its shot.
+
+`Shot.status` derives `PENDING_GRINDING`, `PENDING_BREWING`, or `COMPLETED` from existing phase
+evidence, overridden by a resolution when present. This avoids duplicating state that could
+disagree with the saved measurements. `plan_frozen_at` aliases `created_at` and
+`brewing_recorded_at` aliases `completed_at`; no physical-event timing is inferred.
+
+Pending shots may be abandoned or invalidated. Completed shots may only be invalidated.
+A shot gets at most one resolution; subsequent resolutions and all later phase writes are
+rejected. Saved grinder data, completed outcomes, and frozen predictions remain unchanged.
+An abandoned brew retains its grinder observation as valid; invalidation excludes the entire
+shot. Missing/invalid grinder observations break the conservative contiguous setting block.
+
+The v1-to-v2 migration uses explicit ALTER/DDL steps under a single transaction. It preserves
+every existing value and does not manufacture timestamps or lifecycle annotations. It replaces
+the old pending-shot index with a trigger that accounts for resolutions, and adds guards for
+saved grinder measurements, phase timing and bag context. Fresh databases use v2 definitions
+directly. The original v1 SQL fixture in `tests/fixtures/schema_v1.sql` verifies real migration,
+data preservation, idempotence and rollback after failure.

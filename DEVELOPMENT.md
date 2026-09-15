@@ -35,7 +35,7 @@ Development-only Python tooling is declared in the standardized `dev` dependency
 mise run check      # lint, formatting check, mypy, tests + coverage
 mise run fix        # apply safe Ruff fixes and formatting
 mise run test       # tests + coverage
-mise run typecheck  # mypy
+mise run typecheck  # strict mypy for src
 mise run app        # local Streamlit application
 ```
 
@@ -43,7 +43,7 @@ The tasks use `uv run --locked` so normal development commands fail rather than 
 
 ## VS Code
 
-The repository includes shared workspace recommendations under `.vscode/` for Python, Pylance, Ruff, mypy, and Jupyter. The workspace points Python tooling at `.venv`; Ruff and mypy use the repository environment rather than independent bundled tool versions.
+The repository includes shared workspace recommendations under `.vscode/` for Python, Pylance, Ruff, mypy, and Jupyter. Select the repository `.venv` as the Python interpreter locally; Ruff and mypy use the repository environment rather than independent bundled tool versions.
 
 Pylance remains available for navigation, completion, and language-server features, but its type checker is disabled because strict mypy is the repository's authoritative type-checking gate.
 
@@ -88,7 +88,7 @@ To apply formatting and safe Ruff fixes locally:
 mise run fix
 ```
 
-`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
+`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. Full mypy and pytest checks remain repository-level quality gates rather than commit hooks. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
 
 ## Research and coding-agent workflow
 

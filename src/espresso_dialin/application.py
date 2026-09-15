@@ -3,7 +3,7 @@
 from dataclasses import dataclass, replace
 from uuid import uuid4
 
-from espresso_dialin.domain import Plan, Shot, utc_now
+from espresso_dialin.domain import Plan, Shot, compatible_dose_block, utc_now
 from espresso_dialin.dose_control import (
     DoseController,
     DoseObservation,
@@ -35,14 +35,10 @@ class Acquisition:
         if session.ended_at is not None:
             raise ValueError("session has ended")
         shots = self.repository.shots(session_id)
-        if any(shot.completed_at is None for shot in shots):
-            raise ValueError("complete the pending shot first")
+        if any(shot.pending for shot in shots):
+            raise ValueError("complete or resolve the pending shot first")
         # A setting change starts a new contiguous block, including a return to a label.
-        compatible: list[Shot] = []
-        for shot in reversed(shots):
-            if shot.grinding is None or shot.grinding.setting != setting:
-                break
-            compatible.insert(0, shot)
+        compatible = compatible_dose_block(shots, setting)
         sequence = len(shots) + 1
         block_id = f"{session_id}:{compatible[0].sequence if compatible else sequence}"
         now = utc_now()
@@ -67,9 +63,7 @@ class Acquisition:
                 grinder_output_g=shot.grinding.output_g,
             )
             for shot in compatible
-            if shot.grinding is not None
-            and shot.completed_at is not None
-            and shot.completed_at < now
+            if shot.grinding is not None and shot.terminal_at is not None and shot.terminal_at < now
         ]
         plans: list[Plan] = []
         for controller in CONTROLLERS:
