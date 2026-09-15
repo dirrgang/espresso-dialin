@@ -31,6 +31,31 @@ pre-commit install
 
 The `analysis` extra contains notebook/plotting tools. It is optional for ordinary package development.
 
+## Streamlit agent skill
+
+The repository includes a discovery skill at
+[`.agents/skills/developing-with-streamlit/`](.agents/skills/developing-with-streamlit/SKILL.md).
+Codex discovers it from the repository; no personal skill installation is needed.
+The files are ordinary version-controlled files, not symlinks into a local environment.
+
+After activating the project environment, verify discovery from the repository root:
+
+```sh
+python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
+```
+
+Read the `SKILL.md` at the printed path for version-matched Streamlit guidance.
+Bundled guidance requires Streamlit 1.57 or newer; this is an optional agent-tooling
+requirement, not a change to the application's supported dependency range. For older
+installations, use documentation matching the installed version. The discovery script
+does not install or upgrade packages.
+
+The small discovery skill is vendored; the full references remain in the Streamlit
+package and follow its installed version. See
+[`UPSTREAM.md`](.agents/skills/developing-with-streamlit/UPSTREAM.md) for the pinned
+source, license, local changes, and update procedure. Avoid installing a second
+personal copy of the same skill.
+
 ## Quality checks
 
 Run before committing substantive code changes:
