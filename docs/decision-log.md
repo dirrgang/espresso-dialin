@@ -236,6 +236,32 @@ change pooling or model logic. Phase 4 remains unimplemented.
 **Rationale:** preserve raw evidence and prospective chronology while letting users recover from
 workflow mistakes. Migration must be transactional and leave unavailable legacy information null.
 
+## 2026-09-15 — Confirmed pre-grind non-execution and grinder continuity
+
+**Decision:** A frozen plan records intent, not physical grinder execution. Schema v3 adds the
+nullable resolution field `no_physical_grinding_confirmed`. A pre-grind `ABANDONED` shot is
+transparent to grinder-state continuity only when that field is explicitly persisted as true.
+It retains the frozen recommendations, selected plan, timestamps and sequence, but contributes no
+dose observation because no physical grind occurred.
+
+An `ABANDONED` shot with a valid saved grinder result keeps that observation and follows the normal
+exact actual-setting continuity rule. `INVALIDATED` always remains a conservative continuity break,
+including when no grinder measurement exists. An `ABANDONED` row without grinder evidence and
+without the explicit confirmation is also a continuity break: missing data alone never proves that
+the grinder was not run.
+
+The v2-to-v3 migration leaves the new field null for every existing resolution. It therefore does
+not reinterpret old `ABANDONED`/missing-grinder rows. The frozen-plan UI provides an explicit,
+confirmed **Cancel frozen plan — no grinding performed** action that stores the new flag instead of
+deleting or undoing the plan. A narrowly scoped maintenance command may reclassify a known mistaken
+pre-grind invalidation only after exact identity/evidence checks and a SQLite online backup; the
+original resolution status, timestamp and reason remain embedded in the corrected audit reason.
+Ordinary startup performs only the schema migration, never the row-specific correction.
+
+**Rationale:** an unexecuted plan cannot change grinder state, while bridging an invalidated,
+legacy-ambiguous or merely unrecorded physical grind would make an unsupported scientific
+assumption.
+
 ## Open decisions
 
 The following are intentionally unresolved:
