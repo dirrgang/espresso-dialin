@@ -3,34 +3,40 @@ python = "3.14"
 uv = "0.12.13"
 prek = "0.5.2"
 
+[tasks.sync]
+description = "Synchronize the locked development environment"
+run = "uv sync --locked --all-groups"
+
 [tasks.setup]
 description = "Set up the development environment"
-run = [
-    "uv sync --locked --all-groups",
-    "prek install",
-]
+depends = ["sync"]
+run = "prek install"
 
 [tasks.lint]
 description = "Run Ruff lint and formatting checks"
+depends = ["sync"]
 run = [
-    "uv run --locked ruff check .",
-    "uv run --locked ruff format --check .",
+    "uv run --no-sync ruff check .",
+    "uv run --no-sync ruff format --check .",
 ]
 
 [tasks.fix]
 description = "Apply Ruff fixes and formatting"
+depends = ["sync"]
 run = [
-    "uv run --locked ruff check --fix .",
-    "uv run --locked ruff format .",
+    "uv run --no-sync ruff check --fix .",
+    "uv run --no-sync ruff format .",
 ]
 
 [tasks.typecheck]
 description = "Run mypy"
-run = "uv run --locked mypy src"
+depends = ["sync"]
+run = "uv run --no-sync mypy src"
 
 [tasks.test]
 description = "Run tests with coverage"
-run = "uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing"
+depends = ["sync"]
+run = "uv run --no-sync pytest --cov=espresso_dialin --cov-report=term-missing"
 
 [tasks.check]
 description = "Run all quality gates"
@@ -38,4 +44,5 @@ depends = ["lint", "typecheck", "test"]
 
 [tasks.app]
 description = "Run the local Streamlit app"
-run = "uv run --locked streamlit run streamlit_app.py --server.address 127.0.0.1"
+depends = ["sync"]
+run = "uv run --no-sync streamlit run streamlit_app.py --server.address 127.0.0.1"
