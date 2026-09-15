@@ -38,16 +38,16 @@ jobs:
         run: uv sync --locked
 
       - name: Lint
-        run: uv run --locked ruff check .
+        run: uv run --no-sync ruff check .
 
       - name: Check formatting
-        run: uv run --locked ruff format --check .
+        run: uv run --no-sync ruff format --check .
 
       - name: Type-check
-        run: uv run --locked mypy src
+        run: uv run --no-sync mypy src
 
       - name: Test
-        run: uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing
+        run: uv run --no-sync pytest --cov=espresso_dialin --cov-report=term-missing
 
   windows-app-smoke:
     name: Python 3.14 Windows app smoke
@@ -74,4 +74,4 @@ jobs:
         run: uv sync --locked
 
       - name: Run Streamlit integration tests
-        run: uv run --locked pytest tests/test_app.py
+        run: uv run --no-sync pytest tests/test_app.py
