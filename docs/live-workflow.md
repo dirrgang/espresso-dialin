@@ -7,7 +7,7 @@ Mode, retention model, hardware integration, or historical-data import into live
 
 ## Install and start
 
-From a fresh checkout, install `mise` once, then bootstrap the repository and start the app:
+From a fresh checkout, install `mise` once, then bootstrap the Python 3.14 environment and start the app:
 
 ```powershell
 mise run setup
