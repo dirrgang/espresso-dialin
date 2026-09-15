@@ -18,7 +18,7 @@ repo = "local"
 id = "ruff-check"
 name = "ruff check"
 language = "python"
-language_version = "3.12"
+language_version = "3.14"
 entry = "ruff check --force-exclude"
 args = ["--fix"]
 additional_dependencies = ["ruff==0.16.7"]
@@ -28,7 +28,7 @@ types_or = ["python", "pyi", "jupyter"]
 id = "ruff-format"
 name = "ruff format"
 language = "python"
-language_version = "3.12"
+language_version = "3.14"
 entry = "ruff format --force-exclude"
 additional_dependencies = ["ruff==0.16.7"]
 types_or = ["python", "pyi", "jupyter"]

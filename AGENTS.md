@@ -74,7 +74,7 @@ This split is a default workflow, not a hard tool restriction: use the tool best
 
 Preferred PoC stack:
 
-- Python 3.12+
+- Python 3.14
 - Streamlit
 - SQLite
 - NumPy / SciPy

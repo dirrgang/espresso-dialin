@@ -5,7 +5,7 @@
 - Git
 - [mise](https://mise.jdx.dev/)
 
-The repository declares its Python and developer-tool versions in `mise.toml`. Python dependencies are declared in `pyproject.toml` and resolved in the committed `uv.lock`; no global Python packages are required.
+The repository standardizes on Python 3.14 and declares its Python and developer-tool versions in `mise.toml`. Python dependencies are declared in `pyproject.toml` and resolved in the committed `uv.lock`; no global Python packages are required.
 
 For interactive shells, activating mise is recommended so repository-scoped tools such as `uv` and `prek` are directly available. Commands exposed through `mise run` work without shell activation.
 
@@ -32,18 +32,21 @@ Development-only Python tooling is declared in the standardized `dev` dependency
 ## Common commands
 
 ```sh
-mise run check      # lint, formatting check, mypy, tests + coverage
-mise run fix        # apply safe Ruff fixes and formatting
-mise run test       # tests + coverage
-mise run typecheck  # strict mypy for src
-mise run app        # local Streamlit application
+mise run sync       # synchronize the locked local environment
+mise run check      # sync once, then lint, formatting, mypy, tests + coverage
+mise run fix        # sync once, then apply safe Ruff fixes and formatting
+mise run test       # sync once, then tests + coverage
+mise run typecheck  # sync once, then strict mypy for src
+mise run app        # sync once, then local Streamlit application
 ```
 
-The tasks use `uv run --locked` so normal development commands fail rather than silently rewriting a stale lockfile.
+All repository tasks depend on the shared `sync` task. mise executes a shared dependency only once, then may run independent quality gates in parallel. The quality commands themselves use `uv run --no-sync`, so concurrent Ruff, mypy, and pytest processes do not race while trying to modify the same `.venv`. The shared sync uses `uv sync --locked --all-groups`, so stale lockfiles fail rather than being silently rewritten and the complete local development environment stays installed.
 
 ## VS Code
 
-The repository includes shared workspace recommendations under `.vscode/` for Python, Pylance, Ruff, mypy, and Jupyter. Select the repository `.venv` as the Python interpreter locally; Ruff and mypy use the repository environment rather than independent bundled tool versions.
+The repository includes shared workspace recommendations under `.vscode/` for mise, Python, Pylance, Ruff, mypy, and Jupyter. After `mise run setup`, select the repository `.venv` as the Python interpreter locally. On Windows this is `.venv\Scripts\python.exe`; on Linux/macOS it is `.venv/bin/python`. Ruff and mypy use the repository environment rather than independent bundled tool versions.
+
+The recommended mise VS Code extension remains useful for inspecting tools, environment variables, and tasks, but the repository disables its automatic configuration of other extensions. The Python executable installed by mise is the base interpreter used to create the uv environment; it is not the project interpreter. If mise-vscode previously wrote `python.defaultInterpreterPath` to the base mise Python, remove that workspace entry if desired and use `Python: Select Interpreter` to select `.venv`. VS Code stores an explicitly selected workspace interpreter internally, so that explicit selection takes precedence over a later workspace-level `python.defaultInterpreterPath` default.
 
 Pylance remains available for navigation, completion, and language-server features, but its type checker is disabled because strict mypy is the repository's authoritative type-checking gate.
 
@@ -59,7 +62,7 @@ The files are ordinary version-controlled files, not symlinks into a local envir
 After setting up the project environment, verify discovery from the repository root:
 
 ```sh
-uv run --locked python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
+uv run --no-sync python .agents/skills/developing-with-streamlit/scripts/discover.py --project-dir .
 ```
 
 Read the `SKILL.md` at the printed path for version-matched Streamlit guidance.
@@ -88,7 +91,7 @@ To apply formatting and safe Ruff fixes locally:
 mise run fix
 ```
 
-`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. Full mypy and pytest checks remain repository-level quality gates rather than commit hooks. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
+`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. Full mypy and pytest checks remain repository-level quality gates rather than commit hooks. GitHub Actions independently synchronizes the locked environment once and then runs Ruff, mypy, and pytest without additional environment mutation on Python 3.14 for pull requests and pushes to `main`, with a focused Windows app smoke test on the same Python version.
 
 ## Research and coding-agent workflow
 

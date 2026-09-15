@@ -7,19 +7,17 @@ Mode, retention model, hardware integration, or historical-data import into live
 
 ## Install and start
 
-From a fresh checkout, use Python 3.12 or newer. PowerShell:
+From a fresh checkout, install `mise` once, then bootstrap the Python 3.14 environment and start the app:
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-pre-commit install
-python -m streamlit run streamlit_app.py --server.address 127.0.0.1
+mise run setup
+mise run app
 ```
 
-On Linux/macOS, create the environment with `python3.12 -m venv .venv` and activate it
-with `. .venv/bin/activate`; the remaining commands are the same. Open the local URL
-printed by Streamlit, normally `http://127.0.0.1:8501`.
+`mise run setup` installs the repository-scoped Python, uv, and prek versions, synchronizes the
+locked development environment, and installs the Git hook. See [`../DEVELOPMENT.md`](../DEVELOPMENT.md)
+for shell integration and migration notes for older clones. Open the local URL printed by
+Streamlit, normally `http://127.0.0.1:8501`.
 
 The database is created automatically at `data/live.sqlite3`, relative to the checkout
 containing `streamlit_app.py`. Set `ESPRESSO_DIALIN_DB` to a different path before launching if needed:

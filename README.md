@@ -2,7 +2,7 @@
 
 Experimental, local-first proof of concept for adaptive espresso dial-in.
 
-**Phase 3 is usable for prospective collection:** a local Streamlit + SQLite app freezes
+**Phase 3.1 is usable for prospective collection:** a local Streamlit + SQLite app freezes
 dose recommendations before grinding and records actual grinding/brewing results separately.
 Grinder settings remain manually chosen. Start with the [live workflow guide](docs/live-workflow.md).
 
@@ -13,7 +13,7 @@ mise run setup
 mise run app
 ```
 
-`mise.toml` provides the repository-scoped Python, uv, and prek versions; `uv.lock` pins the Python environment. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for shell integration, quality checks, VS Code integration, and migration notes for older clones.
+`mise.toml` provides the repository-scoped Python 3.14 runtime plus uv and prek versions; `uv.lock` pins the Python environment. Python 3.14 is the supported project runtime; newer minor versions are adopted deliberately after the locked environment and quality gates have been validated. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for shell integration, quality checks, VS Code integration, and migration notes for older clones.
 
 The database is created at `data/live.sqlite3` and is gitignored. The guide covers backups,
 manual fallback, required fields, restarting between phases, and recommendation provenance.
@@ -208,4 +208,4 @@ See `docs/` for the current modelling assumptions, data model, experiment plan, 
 
 ## Development
 
-The repository is bootstrapped as a typed Python 3.12+ project using a `src/` layout, mise, uv, Ruff, mypy, pytest, prek, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
+The repository is bootstrapped as a typed Python 3.14 project using a `src/` layout, mise, uv, Ruff, mypy, pytest, prek, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
