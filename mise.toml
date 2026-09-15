@@ -38,6 +38,11 @@ description = "Run tests with coverage"
 depends = ["sync"]
 run = "uv run --no-sync pytest --cov=espresso_dialin --cov-report=term-missing"
 
+[tasks.app-smoke]
+description = "Run Streamlit integration smoke tests"
+depends = ["sync"]
+run = "uv run --no-sync pytest tests/test_app.py"
+
 [tasks.check]
 description = "Run all quality gates"
 depends = ["lint", "typecheck", "test"]
