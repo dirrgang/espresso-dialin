@@ -1,19 +1,42 @@
-"""Explicit, transactional SQLite schema initialization and v1 to v2 migration."""
+"""Explicit, transactional SQLite schema initialization and v1 to v3 migration."""
 
 import sqlite3
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
-LIFECYCLE_SCHEMA = """
-CREATE TABLE shot_resolutions (
-    shot_id TEXT PRIMARY KEY REFERENCES shots(id),
-    status TEXT NOT NULL CHECK(status IN ('ABANDONED', 'INVALIDATED')),
-    recorded_at TEXT NOT NULL,
-    reason TEXT NOT NULL CHECK(length(trim(reason)) > 0)
-);
-CREATE TRIGGER resolution_update BEFORE UPDATE ON shot_resolutions
+RESOLUTION_UPDATE_TRIGGER = """CREATE TRIGGER resolution_update
+BEFORE UPDATE ON shot_resolutions
 BEGIN SELECT RAISE(ABORT, 'resolution records are immutable'); END;
-CREATE TRIGGER resolution_delete BEFORE DELETE ON shot_resolutions
+"""
+
+CONFIRMED_NON_EXECUTION_TRIGGER = """CREATE TRIGGER confirmed_non_execution_insert
+BEFORE INSERT ON shot_resolutions
+WHEN NEW.no_physical_grinding_confirmed = 1 AND (
+    NEW.status != 'ABANDONED'
+    OR NOT EXISTS (SELECT 1 FROM shots WHERE id = NEW.shot_id)
+    OR EXISTS (
+        SELECT 1 FROM shots WHERE id = NEW.shot_id AND (
+            actual_setting IS NOT NULL
+            OR actual_duration_s IS NOT NULL
+            OR grinder_output_g IS NOT NULL
+            OR correction IS NOT NULL
+            OR puck_dose_g IS NOT NULL
+            OR grinding_recorded_at IS NOT NULL
+            OR brew_duration_s IS NOT NULL
+            OR final_yield_g IS NOT NULL
+            OR completed_at IS NOT NULL
+            OR purged_before_shot != 0
+            OR obviously_bad_shot != 0
+            OR notes != ''
+        )
+    )
+)
+BEGIN SELECT RAISE(ABORT, 'confirmed non-execution requires an unground abandoned shot'); END;
+"""
+
+RESOLUTION_GUARDS = (
+    RESOLUTION_UPDATE_TRIGGER
+    + """CREATE TRIGGER resolution_delete BEFORE DELETE ON shot_resolutions
 BEGIN SELECT RAISE(ABORT, 'resolution records are immutable'); END;
 CREATE TRIGGER resolution_transition BEFORE INSERT ON shot_resolutions
 WHEN NOT EXISTS (SELECT 1 FROM shots WHERE id = NEW.shot_id)
@@ -50,6 +73,32 @@ CREATE TRIGGER frozen_bag_context BEFORE UPDATE OF bag_opened_date ON sessions
 WHEN NEW.bag_opened_date IS NOT OLD.bag_opened_date
 BEGIN SELECT RAISE(ABORT, 'session bag context is immutable'); END;
 """
+)
+
+LIFECYCLE_SCHEMA_V2 = (
+    """CREATE TABLE shot_resolutions (
+    shot_id TEXT PRIMARY KEY REFERENCES shots(id),
+    status TEXT NOT NULL CHECK(status IN ('ABANDONED', 'INVALIDATED')),
+    recorded_at TEXT NOT NULL,
+    reason TEXT NOT NULL CHECK(length(trim(reason)) > 0)
+);
+"""
+    + RESOLUTION_GUARDS
+)
+
+LIFECYCLE_SCHEMA = (
+    """CREATE TABLE shot_resolutions (
+    shot_id TEXT PRIMARY KEY REFERENCES shots(id),
+    status TEXT NOT NULL CHECK(status IN ('ABANDONED', 'INVALIDATED')),
+    recorded_at TEXT NOT NULL,
+    reason TEXT NOT NULL CHECK(length(trim(reason)) > 0),
+    no_physical_grinding_confirmed INTEGER
+        CHECK(no_physical_grinding_confirmed IS NULL OR no_physical_grinding_confirmed = 1)
+);
+"""
+    + RESOLUTION_GUARDS
+    + CONFIRMED_NON_EXECUTION_TRIGGER
+)
 
 
 def _execute_schema(db: sqlite3.Connection, script: str) -> None:
@@ -65,11 +114,20 @@ def _execute_schema(db: sqlite3.Connection, script: str) -> None:
 
 
 def migrate_v1_to_v2(db: sqlite3.Connection) -> None:
-    """Add only new nullable context/timestamps and immutable lifecycle annotations."""
+    """Add nullable context/timestamps and immutable lifecycle annotations."""
     db.execute("ALTER TABLE sessions ADD COLUMN bag_opened_date TEXT")
     db.execute("ALTER TABLE shots ADD COLUMN grinding_recorded_at TEXT")
     db.execute("DROP INDEX one_pending_shot")
-    _execute_schema(db, LIFECYCLE_SCHEMA)
+    _execute_schema(db, LIFECYCLE_SCHEMA_V2)
+
+
+def migrate_v2_to_v3(db: sqlite3.Connection) -> None:
+    """Persist explicit confirmation that a pre-grind plan was physically unexecuted."""
+    db.execute(
+        "ALTER TABLE shot_resolutions ADD COLUMN no_physical_grinding_confirmed INTEGER "
+        "CHECK(no_physical_grinding_confirmed IS NULL OR no_physical_grinding_confirmed = 1)"
+    )
+    _execute_schema(db, CONFIRMED_NON_EXECUTION_TRIGGER)
 
 
 def initialize(db: sqlite3.Connection) -> None:
@@ -80,6 +138,9 @@ def initialize(db: sqlite3.Connection) -> None:
         _execute_schema(db, LIFECYCLE_SCHEMA)
     elif version == 1:
         migrate_v1_to_v2(db)
+        migrate_v2_to_v3(db)
+    elif version == 2:
+        migrate_v2_to_v3(db)
     elif version != SCHEMA_VERSION:
         raise ValueError(f"unsupported database schema version: {version}")
     db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")

@@ -85,7 +85,7 @@ def test_empty_path_schema_idempotence_and_restart(repo):
     offset = shot.created_at.utcoffset()
     assert offset is not None and offset.total_seconds() == 0
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_unknown_schema_is_not_overwritten(tmp_path):
@@ -154,9 +154,9 @@ def test_history_is_prior_completed_same_session_and_contiguous_setting(repo):
     repo.add_session(Session(id="other", bean_id="bean", bean_name="Coffee", started_at=utc_now()))
     assert not app.preview("other", "3E").plans
     complete_shot(repo, setting="3F")
-    assert not app.preview("session", "3E").plans  # returning does not bridge a change
+    assert not app.preview("session", "3E").plans
     shot = app.freeze("session", "3E", 3, "manual", 10)
-    repo.save_grinding(shot.id, grind(setting="3F"))  # actual setting differs from plan
+    repo.save_grinding(shot.id, grind(setting="3F"))
     repo.complete(shot.id, BrewingResult(duration_s=32, yield_g=36))
     assert not app.preview("session", "3E").plans
     assert app.preview("session", "3F").plans

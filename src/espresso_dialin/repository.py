@@ -26,7 +26,8 @@ from espresso_dialin.dose_control import DoseRecommendation
 from espresso_dialin.schema import initialize
 
 SHOT_QUERY = """SELECT s.*, r.status AS resolution_status,
-    r.recorded_at AS resolution_recorded_at, r.reason AS resolution_reason
+    r.recorded_at AS resolution_recorded_at, r.reason AS resolution_reason,
+    r.no_physical_grinding_confirmed AS resolution_no_physical_grinding_confirmed
     FROM shots s LEFT JOIN shot_resolutions r ON r.shot_id = s.id"""
 
 
@@ -156,6 +157,7 @@ class Repository:
 
     @staticmethod
     def _shot(row: sqlite3.Row) -> Shot:
+        confirmed = row["resolution_no_physical_grinding_confirmed"]
         return Shot(
             id=row["id"],
             session_id=row["session_id"],
@@ -190,6 +192,7 @@ class Repository:
                 status=ShotStatus(row["resolution_status"]),
                 recorded_at=datetime.fromisoformat(row["resolution_recorded_at"]),
                 reason=row["resolution_reason"],
+                no_physical_grinding_confirmed=bool(confirmed) if confirmed is not None else None,
             )
             if row["resolution_status"]
             else None,
@@ -322,21 +325,36 @@ class Repository:
                     "shot must have grinding results and not already be completed or resolved"
                 )
 
-    def resolve(self, shot_id: str, status: ShotStatus, reason: str) -> None:
+    def resolve(
+        self,
+        shot_id: str,
+        status: ShotStatus,
+        reason: str,
+        *,
+        no_physical_grinding_confirmed: bool | None = None,
+    ) -> None:
         """Append one immutable resolution; never UPDATE the original shot or predictions."""
         with self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(SHOT_QUERY + " WHERE s.id=?", (shot_id,)).fetchone()
             if row is None:
                 raise ValueError("unknown shot")
-            resolution = ShotResolution(status=status, recorded_at=utc_now(), reason=reason)
+            resolution = ShotResolution(
+                status=status,
+                recorded_at=utc_now(),
+                reason=reason,
+                no_physical_grinding_confirmed=no_physical_grinding_confirmed,
+            )
             self._shot(row).validate_resolution(resolution)
             db.execute(
-                "INSERT INTO shot_resolutions VALUES (?, ?, ?, ?)",
+                "INSERT INTO shot_resolutions "
+                "(shot_id, status, recorded_at, reason, no_physical_grinding_confirmed) "
+                "VALUES (?, ?, ?, ?, ?)",
                 (
                     shot_id,
                     resolution.status.value,
                     _timestamp(resolution.recorded_at),
                     resolution.reason,
+                    1 if resolution.no_physical_grinding_confirmed is True else None,
                 ),
             )

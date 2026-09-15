@@ -48,6 +48,7 @@ class ShotResolution:
     status: ShotStatus
     recorded_at: datetime
     reason: str
+    no_physical_grinding_confirmed: bool | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.status, ShotStatus) or self.status not in (
@@ -57,6 +58,13 @@ class ShotResolution:
             raise ValueError("resolution must abandon or invalidate a shot")
         aware(self.recorded_at)
         required(self.reason, "resolution reason")
+        if (
+            self.no_physical_grinding_confirmed is not None
+            and self.no_physical_grinding_confirmed is not True
+        ):
+            raise ValueError("non-execution confirmation must be true or unknown")
+        if self.no_physical_grinding_confirmed is True and self.status != ShotStatus.ABANDONED:
+            raise ValueError("only an abandoned shot can confirm no physical grinding")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -217,6 +225,13 @@ class Shot:
             raise ValueError("shot already has an abandonment/invalidation record")
         if resolution.status == ShotStatus.ABANDONED and not self.pending:
             raise ValueError("only a pending shot can be abandoned")
+        if resolution.no_physical_grinding_confirmed is True and (
+            self.grinding is not None
+            or self.grinding_recorded_at is not None
+            or self.brewing is not None
+            or self.completed_at is not None
+        ):
+            raise ValueError("confirmed non-execution requires a shot with no physical evidence")
         latest = self.completed_at or self.grinding_recorded_at or self.created_at
         if resolution.recorded_at < latest:
             raise ValueError("resolution cannot precede the recorded evidence")
@@ -247,12 +262,33 @@ class Shot:
                 raise ValueError("resolution cannot precede the recorded evidence")
             if self.resolution.status == ShotStatus.ABANDONED and self.brewing is not None:
                 raise ValueError("completed brew cannot be abandoned")
+            if self.resolution.no_physical_grinding_confirmed is True and (
+                self.grinding is not None
+                or self.grinding_recorded_at is not None
+                or self.brewing is not None
+                or self.completed_at is not None
+            ):
+                raise ValueError(
+                    "confirmed non-execution requires a shot with no physical evidence"
+                )
 
 
 def compatible_dose_block(shots: list[Shot], setting: str) -> list[Shot]:
-    """Unknown/invalid data break continuity instead of silently bridging a transition."""
+    """Return the contiguous physical grinder history for an exact setting.
+
+    Only a persisted, explicit confirmation that no physical grinding occurred is transparent
+    to continuity. Missing evidence without that confirmation and every invalidation remain
+    conservative block boundaries.
+    """
     compatible: list[Shot] = []
     for shot in reversed(shots):
+        if (
+            shot.status == ShotStatus.ABANDONED
+            and shot.grinding is None
+            and shot.resolution is not None
+            and shot.resolution.no_physical_grinding_confirmed is True
+        ):
+            continue
         if not shot.dose_eligible or shot.grinding is None or shot.grinding.setting != setting:
             break
         compatible.append(shot)

@@ -46,7 +46,9 @@ remain versioned; neither historical source is modified or automatically pooled 
    requires a manual duration. No estimated rate or expected output is invented.
 4. Click **Freeze plan before grinding**. Wait for the saved-plan confirmation before
    grinding. All available model candidates and the selected plan are saved together.
-   Merely displaying the preview does not persist it.
+   Merely displaying the preview does not persist it. If the wrong plan was frozen and the
+   grinder has not been run, use **Cancel frozen plan — no grinding performed** instead of
+   inventing measurements or deleting the frozen intent.
 5. Grind, then record the **actual** setting, duration and raw grinder output. The duration
    field starts empty: a planned 9.74 s and actual 9.70 s remain different facts.
    Record the correction mode and save the grinding result.
@@ -55,8 +57,8 @@ remain versioned; neither historical source is modified or automatically pooled 
    Click **Complete shot**. Bad shots are retained.
 7. Review recent history or start the next shot. The next model history uses eligible
    earlier valid terminal observations (completed or abandoned with a retained grinder result).
-   Restarting the server or browser preserves saved
-   plans and intermediate grinding results. Unsaved form entries are not durable.
+   Restarting the server or browser preserves saved plans and intermediate grinding results.
+   Unsaved form entries are not durable.
 
 On a fresh browser connection or server restart, the app selects the newest session that
 has not been ended (or the newest session if all are ended). You can select another session;
@@ -106,12 +108,17 @@ grinding results as final. This protects against application mistakes; it is not
 tamper-proof ledger against someone deliberately modifying the database or dropping triggers.
 
 Only completed shots or abandoned brews with a retained valid grinder result in the same
-session and current contiguous run of the exact **actual** setting are eligible. Invalidated
-shots and shots without a grinder result break continuity; history does not bridge unknown
-or unreliable transitions. Changing setting, including changing away and later returning,
-starts a new block. A new session starts empty even for a previously used bean. One
-compatible observation is sufficient for both existing controllers. Bad-brew
-flags do not discard raw grinder-output data; they do not diagnose a grinder-output fault.
+session and current contiguous run of the exact **actual** setting are observations. A
+pre-grind abandonment is transparent to that physical grinder history only when the operator
+explicitly confirms that no physical grinding occurred and that confirmation is persisted.
+Legacy or otherwise unconfirmed `ABANDONED` rows without grinder evidence remain conservative
+continuity breaks. Invalidated shots always break continuity, including when their measurements
+are missing, because execution or evidence is wrong or uncertain. Changing actual setting,
+including changing away and later returning, starts a new block. A frozen planned setting is
+intent, not physical execution, and cannot by itself change grinder state. A new session starts
+empty even for a previously used bean. One compatible observation is sufficient for both
+existing controllers. Bad-brew flags do not discard raw grinder-output data; they do not diagnose
+a grinder-output fault.
 
 Both available model predictions are saved, even if manual is selected. Each includes its
 model version, frozen rate, expected output at its proposed duration, block identity, exact
@@ -145,13 +152,16 @@ Use **Abandon or invalidate a shot** below recent history. Select the shot and a
 enter a required reason, check the confirmation, and click **Confirm shot resolution**.
 The selector includes older shots, not just the 20 shown in the recent-history table.
 
-- **Abandon shot without grinder observation:** ends an unfinished attempt without inventing
-  measurements. It releases the session but supplies no controller observation.
-- **Abandon brew, keep grinder observation:** explicitly declares the saved grinding result
-  valid while ending the brew attempt. The grinder result can inform later dose predictions.
-- **Invalidate this shot:** use for a typo or clearly erroneous record, including a completed
-  shot. It excludes the entire shot from future controller history. The wrong value remains
-  visible alongside the invalidation reason and timestamp; it is never overwritten.
+- **Abandon before grinding — confirm no physical grinding occurred:** ends an unexecuted
+  frozen plan. The explicit physical confirmation is persisted, the session is released,
+  no controller observation is created, and grinder continuity is preserved.
+- **Abandon brew — keep valid grinder result:** explicitly declares the saved grinding result
+  valid while ending the brew attempt. The actual-setting continuity rules apply normally and
+  the grinder result can inform later dose predictions.
+- **Invalidate — execution or evidence is uncertain:** use when execution or recorded evidence
+  is wrong or uncertain, including a completed shot. It excludes the entire shot from future
+  controller history and always breaks continuity. The wrong value remains visible alongside
+  the invalidation reason and timestamp; it is never overwritten.
 
 Both actions release a pending shot so another physical espresso can start normally in the
 same session. Existing frozen recommendations remain unchanged, even if a source observation
@@ -165,23 +175,56 @@ Completed shots can be invalidated but not abandoned. Resolved shots cannot be c
 receive more measurements. Session context remains fixed. There is no generic editing/deletion
 or retrospective-entry UI; Phase 4 remains unimplemented.
 
-## Schema v2 and recording timestamps
+Missing measurements alone never prove non-execution. Only the persisted explicit confirmation
+has that meaning. Arbitrary missing or invalid data must not be bridged.
 
-Launching the app automatically migrates a valid v1 database to v2 in one transaction. Back up
-the database before updating (see above). A failed migration rolls back all changes, including
-the schema version, and can be retried. Reopening v2 is idempotent; unsupported versions are
-rejected. Fresh databases are created directly at v2. An older v1 app cannot open the upgraded
-database; reverting requires the pre-upgrade backup.
+### Narrow maintenance correction
 
-| Domain timestamp | Storage | Meaning |
+`scripts/reclassify_pregrind_invalidation.py` corrects a known, explicitly identified row that
+was invalidated even though the operator confirms the grinder was never run. It is not a general
+shot editor. First launch the updated app once so the database is migrated to schema v3. Then stop
+Streamlit before running the maintenance command. The database path, session ID, and shot ID are
+all required; the default is a read-only dry run:
+
+```powershell
+uv run python scripts/reclassify_pregrind_invalidation.py .\data\live.sqlite3 `
+  --session-id <exact-session-id> --shot-id <exact-shot-id>
+```
+
+Apply only after reviewing the candidate and add both `--apply` and
+`--confirm-no-physical-grinding`. Before mutation, the command creates a timestamped backup with
+SQLite's backup API. It refuses rows that are not currently `INVALIDATED`, already carry a
+non-execution confirmation, contain any grinding/brewing evidence, or lack the expected schema-v3
+guards. The one transaction temporarily removes the verified resolution-update guard, changes
+the resolution to `ABANDONED`, persists `no_physical_grinding_confirmed = 1`, embeds the original
+status/reason/timestamp in the corrected reason, restores the guard, and runs SQLite integrity and
+foreign-key checks before commit. The shot, frozen recommendations, sequence, and recording
+timestamps are not changed. Ordinary app startup never performs this reclassification.
+
+## Schema v3 and recording timestamps
+
+Launching the app automatically migrates valid v1 or v2 databases to v3 in one transaction.
+Back up the database before updating (see above). A failed migration rolls back all changes,
+including the schema version, and can be retried. Reopening v3 is idempotent; unsupported versions
+are rejected. Fresh databases are created directly at v3. Older app versions cannot open the
+upgraded database; reverting requires the pre-upgrade backup.
+
+Schema v3 adds nullable `shot_resolutions.no_physical_grinding_confirmed`. New explicit pre-grind
+cancellations store `1`. Existing v2 resolution rows migrate with `NULL`; in particular, an old
+`ABANDONED` row with no grinder result remains an unknown transition and therefore still breaks
+continuity. The migration never infers non-execution from missing measurements or reason text.
+
+| Domain timestamp / flag | Storage | Meaning |
 | --- | --- | --- |
 | `plan_frozen_at` | Existing shot `created_at` | Plan frozen and pending shot saved |
-| `grinding_recorded_at` | New nullable shot column | Grinding result successfully saved |
+| `grinding_recorded_at` | Nullable shot column | Grinding result successfully saved |
 | `brewing_recorded_at` | Existing `completed_at` | Brew result successfully saved |
 | Resolution `recorded_at` | Immutable `shot_resolutions` row | Abandonment/invalidation recorded |
+| `no_physical_grinding_confirmed` | Nullable resolution flag | `1` only after explicit confirmation that the frozen plan was not physically executed |
 
-These are timezone-aware UTC acquisition timestamps, not physical grinder-start/stop or
-pump-start/stop measurements. Their precision reflects the recording clock, not physical-event
+These timestamps are timezone-aware UTC acquisition timestamps, not physical grinder-start/stop
+or pump-start/stop measurements. Their precision reflects the recording clock, not physical-event
 accuracy. Legacy grinding-entry times remain null: creation/completion times cannot reconstruct
 them. Existing v1 creation/completion timestamps retain their original meanings. Legacy
-bag-open dates are null. History displays status, recording timestamps and resolution reasons.
+bag-open dates are null. History displays status, recording timestamps, non-execution confirmation,
+and resolution reasons.

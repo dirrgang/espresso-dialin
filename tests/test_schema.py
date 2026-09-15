@@ -1,4 +1,4 @@
-"""Migrate an actual v1 schema and populated evidence, not a relabeled v2 database."""
+"""Migrate actual legacy schemas and populated evidence without inventing semantics."""
 
 import sqlite3
 from contextlib import closing
@@ -78,8 +78,7 @@ def v1_path(tmp_path):
             if sid == "one":
                 db.execute(
                     "UPDATE shots SET actual_setting='3E',actual_duration_s=9.7,"
-                    "grinder_output_g=20, "
-                    "correction='TO_TARGET' WHERE id=?",
+                    "grinder_output_g=20, correction='TO_TARGET' WHERE id=?",
                     (f"shot-{seq}",),
                 )
                 if seq == 1:
@@ -89,6 +88,47 @@ def v1_path(tmp_path):
                         "completed_at='2026-09-01T08:05:00+00:00' "
                         "WHERE id='shot-1'"
                     )
+    return path
+
+
+@pytest.fixture
+def v2_ambiguous_pregrind_path(tmp_path):
+    path = tmp_path / "legacy-v2.sqlite3"
+    with closing(sqlite3.connect(path)) as db, db:
+        schema._execute_schema(db, schema.FRESH_SCHEMA)
+        schema._execute_schema(db, schema.LIFECYCLE_SCHEMA_V2)
+        db.execute("PRAGMA user_version = 2")
+        db.execute(
+            "INSERT INTO sessions VALUES "
+            "('s','b','Coffee','2026-09-01T08:00:00+00:00',NULL,'Grinder','Machine',"
+            "NULL,NULL,18,36,30,35,NULL)"
+        )
+        for sequence, rid, created in (
+            (1, "r1", "2026-09-01T08:01:00+00:00"),
+            (2, "r2", "2026-09-01T08:10:00+00:00"),
+        ):
+            db.execute(
+                "INSERT INTO recommendations VALUES "
+                "(?, 's', ?, ?, '3E', 9.7, 18, 'manual', '1', NULL, NULL, NULL, 1)",
+                (rid, sequence, created),
+            )
+            db.execute(
+                "INSERT INTO shots (id,session_id,sequence,created_at,selected_recommendation_id) "
+                "VALUES (?, 's', ?, ?, ?)",
+                (f"shot-{sequence}", sequence, created, rid),
+            )
+            if sequence == 1:
+                db.execute(
+                    "UPDATE shots SET actual_setting='3E', actual_duration_s=9.7, "
+                    "grinder_output_g=18, correction='TO_TARGET', "
+                    "grinding_recorded_at='2026-09-01T08:02:00+00:00', "
+                    "brew_duration_s=32, final_yield_g=36, "
+                    "completed_at='2026-09-01T08:03:00+00:00' WHERE id='shot-1'"
+                )
+        db.execute(
+            "INSERT INTO shot_resolutions VALUES "
+            "('shot-2','ABANDONED','2026-09-01T08:11:00+00:00','No reliable grinding result')"
+        )
     return path
 
 
@@ -112,14 +152,14 @@ def test_v1_migration_preserves_every_original_value_and_unknown_times(v1_path):
                 db.execute(f"SELECT {','.join(columns)} FROM {table} ORDER BY id").fetchall()
                 == rows
             )
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
         assert not db.execute("PRAGMA foreign_key_check").fetchall()
     assert all(session.bag_opened_date is None for session in repo.sessions())
     complete, pending = repo.shots("one")
     assert complete.status == ShotStatus.COMPLETED
     assert complete.brewing_recorded_at == complete.completed_at
     assert complete.plan_frozen_at == complete.created_at
-    assert complete.grinding_recorded_at is None  # v1 did not record this event
+    assert complete.grinding_recorded_at is None
     assert pending.status == ShotStatus.PENDING_BREWING and pending.grinding_recorded_at is None
     assert repo.shots("two")[0].status == ShotStatus.PENDING_GRINDING
     migrated_model = repo.plans("one", 2)[0].model
@@ -133,6 +173,23 @@ def test_v1_migration_preserves_every_original_value_and_unknown_times(v1_path):
     assert len(models) == len(plans)
     assert {model.observation_ids for model in models} == {("shot-2",), ("shot-1", "shot-2")}
     assert Acquisition(repo).freeze("one", "3E", 3, "past-only-median-rate").pending
+
+
+def test_v2_migration_keeps_ambiguous_pregrind_abandonment_conservative(
+    v2_ambiguous_pregrind_path,
+):
+    repo = Repository(v2_ambiguous_pregrind_path)
+    with closing(sqlite3.connect(v2_ambiguous_pregrind_path)) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        columns = {row[1] for row in db.execute("PRAGMA table_info(shot_resolutions)")}
+        assert "no_physical_grinding_confirmed" in columns
+        assert db.execute(
+            "SELECT no_physical_grinding_confirmed FROM shot_resolutions WHERE shot_id='shot-2'"
+        ).fetchone() == (None,)
+    legacy = repo.shots("s")[1]
+    assert legacy.resolution is not None
+    assert legacy.resolution.no_physical_grinding_confirmed is None
+    assert not Acquisition(repo).preview("s", "3E").plans
 
 
 def test_migration_failure_rolls_back_ddl_data_and_version(v1_path, monkeypatch):
@@ -156,18 +213,22 @@ def test_migration_failure_rolls_back_ddl_data_and_version(v1_path, monkeypatch)
         assert not db.execute(
             "SELECT name FROM sqlite_master WHERE name='shot_resolutions'"
         ).fetchone()
-    Repository(v1_path)  # retry succeeds after rollback
+    Repository(v1_path)
 
 
 def test_fresh_schema_does_not_run_legacy_migration(tmp_path, monkeypatch):
-    def unexpected_migration(db):
-        pytest.fail("fresh databases must be created directly at v2")
+    def unexpected_v1_migration(db):
+        pytest.fail("fresh databases must be created directly at v3")
 
-    monkeypatch.setattr(schema, "migrate_v1_to_v2", unexpected_migration)
+    def unexpected_v2_migration(db):
+        pytest.fail("fresh databases must be created directly at v3")
+
+    monkeypatch.setattr(schema, "migrate_v1_to_v2", unexpected_v1_migration)
+    monkeypatch.setattr(schema, "migrate_v2_to_v3", unexpected_v2_migration)
     repo = Repository(tmp_path / "fresh.sqlite3")
     assert repo.sessions() == []
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_app_launch_migrates_v1_and_shows_pending_phase(v1_path, monkeypatch):
@@ -175,7 +236,7 @@ def test_app_launch_migrates_v1_and_shows_pending_phase(v1_path, monkeypatch):
     app = AppTest.from_file(str(Path(__file__).parents[1] / "streamlit_app.py")).run()
     assert not app.exception and not app.error
     with closing(sqlite3.connect(v1_path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
     app.selectbox(key="current_session").select("one").run()
     assert not app.exception and not app.error
     assert any(input.label == "Brew duration (s)" for input in app.number_input)
