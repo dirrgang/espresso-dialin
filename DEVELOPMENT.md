@@ -5,7 +5,7 @@
 - Git
 - [mise](https://mise.jdx.dev/)
 
-The repository declares its Python and developer-tool versions in `mise.toml`. Python dependencies are declared in `pyproject.toml` and resolved in the committed `uv.lock`; no global Python packages are required.
+The repository standardizes on Python 3.14 and declares its Python and developer-tool versions in `mise.toml`. Python dependencies are declared in `pyproject.toml` and resolved in the committed `uv.lock`; no global Python packages are required.
 
 For interactive shells, activating mise is recommended so repository-scoped tools such as `uv` and `prek` are directly available. Commands exposed through `mise run` work without shell activation.
 
@@ -88,7 +88,7 @@ To apply formatting and safe Ruff fixes locally:
 mise run fix
 ```
 
-`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. Full mypy and pytest checks remain repository-level quality gates rather than commit hooks. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on pull requests and pushes to `main` for supported Python versions.
+`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. Full mypy and pytest checks remain repository-level quality gates rather than commit hooks. GitHub Actions independently runs the locked Ruff, mypy, and pytest quality gates on Python 3.14 for pull requests and pushes to `main`, with a focused Windows app smoke test on the same Python version.
 
 ## Research and coding-agent workflow
 
