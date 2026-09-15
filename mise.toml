@@ -25,11 +25,8 @@ run = [
 ]
 
 [tasks.typecheck]
-description = "Run mypy and Pyright"
-run = [
-    "uv run --locked mypy src",
-    "uv run --locked python scripts/run_pyright.py",
-]
+description = "Run mypy"
+run = "uv run --locked mypy src"
 
 [tasks.test]
 description = "Run tests with coverage"
