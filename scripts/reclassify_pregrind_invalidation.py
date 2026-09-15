@@ -58,7 +58,7 @@ NULL_EVIDENCE_FIELDS = (
 
 
 def _normalize_sql(value: str) -> str:
-    return " ".join(value.rstrip(";").split()).casefold()
+    return " ".join(value.strip().rstrip(";").split()).casefold()
 
 
 def _read_only_uri(path: Path) -> str:
