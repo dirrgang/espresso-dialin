@@ -4,7 +4,7 @@
   "ruff.importStrategy": "fromEnvironment",
   "ruff.configurationPreference": "filesystemFirst",
   "mypy-type-checker.importStrategy": "fromEnvironment",
-  "mypy-type-checker.reportingScope": "workspace",
+  "mypy-type-checker.reportingScope": "custom",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
