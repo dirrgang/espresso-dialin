@@ -1,0 +1,41 @@
+[tools]
+python = "3.12"
+uv = "0.12"
+prek = "0.4"
+
+[tasks.setup]
+description = "Set up the development environment"
+run = [
+    "uv sync --all-extras",
+    "prek install --force",
+]
+
+[tasks.lint]
+description = "Run Ruff lint and formatting checks"
+run = [
+    "uv run ruff check .",
+    "uv run ruff format --check .",
+]
+
+[tasks.fix]
+description = "Apply Ruff fixes and formatting"
+run = [
+    "uv run ruff check --fix .",
+    "uv run ruff format .",
+]
+
+[tasks.typecheck]
+description = "Run mypy"
+run = "uv run mypy src"
+
+[tasks.test]
+description = "Run tests with coverage"
+run = "uv run pytest --cov=espresso_dialin --cov-report=term-missing"
+
+[tasks.check]
+description = "Run all quality gates"
+depends = ["lint", "typecheck", "test"]
+
+[tasks.app]
+description = "Run the local Streamlit app"
+run = "uv run streamlit run app.py --server.address 127.0.0.1"
