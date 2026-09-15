@@ -327,8 +327,9 @@ Schema migrations can remain simple initially, but a schema version should exist
 
 ## Original live schema (version 1)
 
-Phase 3 originally used three tables with `PRAGMA user_version = 1`. Phase 3.1 adds the
-v2 changes below; current schema definitions and migration live in `src/espresso_dialin/schema.py`.
+Phase 3 originally used three tables with `PRAGMA user_version = 1`. Phase 3.1 added the
+v2 changes below; schema v3 adds explicit non-execution provenance. Current schema definitions
+and migrations live in `src/espresso_dialin/schema.py`.
 
 | Table | Persisted fields |
 | --- | --- |
@@ -354,7 +355,9 @@ control at the session target with unquantified uncertainty. Neither declaration
 second precise measurement. `MEASURED` requires a positive finite puck mass. Incomplete shots
 have null grinding/brewing fields until each corresponding phase is saved.
 
-## Current live schema (version 2)
+## Live schema version 2
+
+Schema v2 added:
 
 - `sessions.bag_opened_date`: optional ISO calendar date for the physical package. Bean
   product identity remains separate; no lot identifier or automatic pooling is introduced.
@@ -372,11 +375,30 @@ Pending shots may be abandoned or invalidated. Completed shots may only be inval
 A shot gets at most one resolution; subsequent resolutions and all later phase writes are
 rejected. Saved grinder data, completed outcomes, and frozen predictions remain unchanged.
 An abandoned brew retains its grinder observation as valid; invalidation excludes the entire
-shot. Missing/invalid grinder observations break the conservative contiguous setting block.
+shot. Under v2, a missing grinder observation is conservatively ambiguous and breaks the
+contiguous compatible block.
 
-The v1-to-v2 migration uses explicit ALTER/DDL steps under a single transaction. It preserves
-every existing value and does not manufacture timestamps or lifecycle annotations. It replaces
-the old pending-shot index with a trigger that accounts for resolutions, and adds guards for
-saved grinder measurements, phase timing and bag context. Fresh databases use v2 definitions
-directly. The original v1 SQL fixture in `tests/fixtures/schema_v1.sql` verifies real migration,
-data preservation, idempotence and rollback after failure.
+## Current live schema (version 3)
+
+Schema v3 adds nullable `shot_resolutions.no_physical_grinding_confirmed`. The value is persisted
+as `1` only when the operator explicitly confirms that the frozen plan was never physically
+executed. Normal application writes permit that confirmation only for an `ABANDONED` shot with no
+grinding or brewing evidence. A frozen planned setting/duration is intent and does not itself
+count as physical grinder state.
+
+Continuity semantics are therefore:
+
+- completed observations and abandoned brews with valid grinder evidence follow the exact
+  **actual-setting** contiguous-block rule;
+- an abandoned pre-grind plan with `no_physical_grinding_confirmed = 1` contributes no dose
+  observation and is transparent while scanning physical grinder history;
+- invalidation always breaks continuity;
+- an abandoned row without grinder evidence and without explicit confirmation also breaks
+  continuity because missing evidence alone does not prove non-execution.
+
+The v2-to-v3 migration adds the nullable field and leaves every existing row `NULL`. It never
+infers non-execution from missing measurements, status, or reason text. This preserves the
+conservative semantics of legacy v2 data. The v1 migration proceeds through the same v2 state
+before adding the v3 field, all within one transaction. Fresh databases are created directly at
+v3. Migration tests verify data preservation, conservative legacy behavior, idempotence and
+rollback after failure.
