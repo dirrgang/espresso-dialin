@@ -63,10 +63,7 @@ class ShotResolution:
             and self.no_physical_grinding_confirmed is not True
         ):
             raise ValueError("non-execution confirmation must be true or unknown")
-        if (
-            self.no_physical_grinding_confirmed is True
-            and self.status != ShotStatus.ABANDONED
-        ):
+        if self.no_physical_grinding_confirmed is True and self.status != ShotStatus.ABANDONED:
             raise ValueError("only an abandoned shot can confirm no physical grinding")
 
 
@@ -234,9 +231,7 @@ class Shot:
             or self.brewing is not None
             or self.completed_at is not None
         ):
-            raise ValueError(
-                "confirmed non-execution requires a shot with no physical evidence"
-            )
+            raise ValueError("confirmed non-execution requires a shot with no physical evidence")
         latest = self.completed_at or self.grinding_recorded_at or self.created_at
         if resolution.recorded_at < latest:
             raise ValueError("resolution cannot precede the recorded evidence")
