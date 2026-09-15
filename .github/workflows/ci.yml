@@ -16,62 +16,68 @@ jobs:
   quality:
     name: Python 3.14 quality
     runs-on: ubuntu-latest
-    env:
-      UV_PYTHON: "3.14"
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.14"
+          persist-credentials: false
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          version: "0.12.13"
-          enable-cache: true
+          version: "2026.9.9"
 
-      - name: Sync locked development environment
-        run: uv sync --locked
+      - name: Resolve uv cache directory
+        id: uv-cache
+        run: echo "dir=$(uv cache dir)" >> "$GITHUB_OUTPUT"
 
-      - name: Lint
-        run: uv run --no-sync ruff check .
+      - name: Restore uv cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.uv-cache.outputs.dir }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
 
-      - name: Check formatting
-        run: uv run --no-sync ruff format --check .
+      - name: Run quality gates
+        run: mise run check
 
-      - name: Type-check
-        run: uv run --no-sync mypy src
-
-      - name: Test
-        run: uv run --no-sync pytest --cov=espresso_dialin --cov-report=term-missing
+      - name: Minimize uv cache
+        if: always()
+        run: uv cache prune --ci
 
   windows-app-smoke:
     name: Python 3.14 Windows app smoke
     runs-on: windows-latest
-    env:
-      UV_PYTHON: "3.14"
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.14"
+          persist-credentials: false
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          version: "0.12.13"
-          enable-cache: true
+          version: "2026.9.9"
 
-      - name: Sync locked development environment
-        run: uv sync --locked
+      - name: Resolve uv cache directory
+        id: uv-cache
+        shell: pwsh
+        run: '"dir=$(uv cache dir)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append'
 
-      - name: Run Streamlit integration tests
-        run: uv run --no-sync pytest tests/test_app.py
+      - name: Restore uv cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.uv-cache.outputs.dir }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Run Streamlit integration smoke tests
+        run: mise run app-smoke
+
+      - name: Minimize uv cache
+        if: always()
+        run: uv cache prune --ci
