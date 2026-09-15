@@ -234,7 +234,9 @@ class Shot:
             or self.brewing is not None
             or self.completed_at is not None
         ):
-            raise ValueError("confirmed non-execution requires a shot with no physical evidence")
+            raise ValueError(
+                "confirmed non-execution requires a shot with no physical evidence"
+            )
         latest = self.completed_at or self.grinding_recorded_at or self.created_at
         if resolution.recorded_at < latest:
             raise ValueError("resolution cannot precede the recorded evidence")
@@ -271,7 +273,9 @@ class Shot:
                 or self.brewing is not None
                 or self.completed_at is not None
             ):
-                raise ValueError("confirmed non-execution requires a shot with no physical evidence")
+                raise ValueError(
+                    "confirmed non-execution requires a shot with no physical evidence"
+                )
 
 
 def compatible_dose_block(shots: list[Shot], setting: str) -> list[Shot]:
