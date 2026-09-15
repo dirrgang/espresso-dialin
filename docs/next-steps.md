@@ -36,7 +36,9 @@ The baselines define the minimum standard that richer grinder-output models must
 
 ## Phase 3 — Minimal prospective data-acquisition application
 
-**Next implementation priority.** Build the smallest useful Streamlit + SQLite vertical slice early enough that future shots are prospective, timestamped, and linked to recommendations created before outcomes are known.
+**Implemented 2026-09-14.** The local Streamlit + SQLite application records prospective,
+timestamped shots linked to plans frozen before grinding. See [live-workflow.md](live-workflow.md)
+for installation, normal use, database location and backups.
 
 Required flow:
 
@@ -65,7 +67,13 @@ The UI must not contain model logic. Data collection must never be blocked becau
 
 Initial live setup should make it easy to create/select the current bean **REWE Bio Espresso ganze Bohnen, 1000 g** without hard-coding that bean as a permanent application default.
 
-Deliverable: an application that can already be used during normal espresso preparation even while grind-setting optimisation remains manual.
+Delivered: session creation/selection, explicit manual fallback, both existing dose baselines
+as frozen candidates with one selected plan, resumable grinding/brewing entry, recent history,
+and schema version 1 with provenance guards. Automated repository and Streamlit workflow tests
+cover persistence, chronology, restart and immutable recommendations. No prospective efficacy
+claim has been established; live collection and later evaluation remain necessary.
+
+Grind-setting optimisation remains manual. Learning Mode and Phase 4 have not been implemented.
 
 ## Phase 4 — Learning / Experiment mode and first designed experiments
 

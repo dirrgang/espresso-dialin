@@ -94,6 +94,13 @@ Once a model is usable:
 
 Do not overwrite historical recommendations after model updates.
 
+Phase 3 now persists both available dose-model predictions before grinding, even when the
+selected action is manual. Use each frozen rate at the actual recorded grind duration for
+later prediction evaluation, and require an exact match between actual and applicable setting.
+Do not assign the observed output to an unexecuted shadow duration. The application does not
+yet report comparative efficacy or coffee savings. Its automated tests establish acquisition
+integrity and restart behavior, not model superiority; see [live-workflow.md](live-workflow.md).
+
 Where recommended and actual actions differ, keep them separate using notation such as $t_{\mathrm{grind},n}^{\mathrm{rec}}$ and $t_{\mathrm{grind},n}^{\mathrm{actual}}$ rather than silently substituting one for the other.
 
 ## Metrics

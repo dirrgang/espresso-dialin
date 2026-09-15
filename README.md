@@ -2,6 +2,21 @@
 
 Experimental, local-first proof of concept for adaptive espresso dial-in.
 
+**Phase 3 is usable for prospective collection:** a local Streamlit + SQLite app freezes
+dose recommendations before grinding and records actual grinding/brewing results separately.
+Grinder settings remain manually chosen. Start with the [live workflow guide](docs/live-workflow.md).
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+pre-commit install
+python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+The database is created at `data/live.sqlite3` and is gitignored. The guide covers backups,
+manual fallback, required fields, restarting between phases, and recommendation provenance.
+
 The project is not intended to be another generic espresso diary. Its primary research question is whether a small learning model can use the measurements a home barista already makes to reach a target recipe with fewer wasted shots and less manual trial-and-error than simple heuristics.
 
 ## Current target
@@ -25,7 +40,9 @@ For each shot the user can enter data at leisure:
 3. Optionally correct the puck dose to the target (normally 18 g).
 4. After brewing: brew duration and final beverage yield.
 
-The system then stores the observation and recommends the grinder setting and grind duration for the next shot.
+The current application stores the observation and offers dose-duration recommendations
+for your manually chosen next setting when compatible live history exists. Automatic
+grinder-setting selection and extraction optimisation remain future work.
 
 ### Dose correction is intentional
 
