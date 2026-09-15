@@ -1,5 +1,4 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
   "python.analysis.typeCheckingMode": "off",
   "ruff.importStrategy": "fromEnvironment",
   "ruff.configurationPreference": "filesystemFirst",
