@@ -1,5 +1,5 @@
 [tools]
-python = "3.12"
+python = "3.14"
 uv = "0.12.13"
 prek = "0.5.2"
 
