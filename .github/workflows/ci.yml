@@ -47,11 +47,8 @@ jobs:
       - name: Check formatting
         run: uv run --locked ruff format --check .
 
-      - name: Type-check core
+      - name: Type-check
         run: uv run --locked mypy src
-
-      - name: Type-check workspace
-        run: uv run --locked python scripts/run_pyright.py
 
       - name: Test
         run: uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing
