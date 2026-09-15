@@ -16,3 +16,19 @@ repos:
       - id: ruff-check
         args: ["--fix"]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: python scripts/run_pyright.py
+        language: python
+        additional_dependencies:
+          - "nbqa>=1.9,<2"
+          - "numpy>=2.0,<3"
+          - "pandas>=2.2,<3"
+          - "pyright[nodejs]>=1.1.405,<2"
+          - "pytest>=8,<9"
+          - "scipy>=1.13,<2"
+          - "streamlit>=1.40,<2"
+        pass_filenames: false

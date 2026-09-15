@@ -83,6 +83,7 @@ def test_resolutions_retain_evidence_release_session_and_control_eligibility(
     resolved = Repository(repo.path).shots("s")[0]
     assert resolved.status == status and not resolved.pending
     assert replace(resolved, resolution=None) == original
+    assert resolved.resolution is not None
     assert resolved.resolution.reason
     assert repo.plans("s", 1) == frozen
     assert bool(Acquisition(repo).preview("s", "3E").plans) == (
@@ -111,7 +112,9 @@ def test_completed_invalidation_keeps_measurement_and_already_frozen_predictions
     grind(repo, second)
     repo.complete(second.id, BrewingResult(duration_s=31, yield_g=36))
     preview = Acquisition(repo).preview("s", "3E")
-    assert all(plan.model.observation_ids == (second.id,) for plan in preview.plans)
+    models = tuple(plan.model for plan in preview.plans if plan.model is not None)
+    assert len(models) == len(preview.plans)
+    assert all(model.observation_ids == (second.id,) for model in models)
     assert repo.plans("s", 2) == frozen
 
 

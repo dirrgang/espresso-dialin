@@ -1,4 +1,4 @@
-"""Local prospective espresso acquisition UI. Run with streamlit run app.py."""
+"""Local prospective espresso acquisition UI. Run with ``streamlit run``."""
 
 import os
 import sqlite3
@@ -59,6 +59,8 @@ def main():
             upper = st.number_input("Target brew time maximum (s)", value=35.0, min_value=0.01)
             if st.form_submit_button("Create session"):
                 with input_errors():
+                    if bean_name is None:
+                        raise ValueError("bean name is required")
                     session = Session(
                         id=str(uuid4()),
                         bean_id=known_beans.get(bean_name, str(uuid4())),

@@ -14,7 +14,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 pre-commit install
-python -m streamlit run app.py --server.address 127.0.0.1
+python -m streamlit run streamlit_app.py --server.address 127.0.0.1
 ```
 
 On Linux/macOS, create the environment with `python3.12 -m venv .venv` and activate it
@@ -22,7 +22,7 @@ with `. .venv/bin/activate`; the remaining commands are the same. Open the local
 printed by Streamlit, normally `http://127.0.0.1:8501`.
 
 The database is created automatically at `data/live.sqlite3`, relative to the checkout
-containing `app.py`. Set `ESPRESSO_DIALIN_DB` to a different path before launching if needed:
+containing `streamlit_app.py`. Set `ESPRESSO_DIALIN_DB` to a different path before launching if needed:
 
 ```powershell
 $env:ESPRESSO_DIALIN_DB = 'C:\espresso-data\live.sqlite3'
@@ -92,7 +92,7 @@ executed the recommendation. Actual setting and duration are the execution evide
 
 ## Freezing and chronology
 
-`app.py` handles forms and display; `application.py` assembles compatible history and calls
+`streamlit_app.py` handles forms and display; `application.py` assembles compatible history and calls
 the unchanged dose controllers; typed records and validation live in `domain.py`;
 `repository.py` owns all SQL and transactions.
 

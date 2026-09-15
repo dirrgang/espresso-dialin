@@ -45,5 +45,8 @@ jobs:
       - name: Type-check
         run: mypy src
 
+      - name: Pylance-compatible type-check
+        run: python scripts/run_pyright.py
+
       - name: Test
         run: pytest --cov=espresso_dialin --cov-report=term-missing

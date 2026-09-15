@@ -111,6 +111,7 @@ Before considering a code change complete, run:
 ruff check .
 ruff format --check .
 mypy src
+python scripts/run_pyright.py
 pytest --cov=espresso_dialin --cov-report=term-missing
 ```
 

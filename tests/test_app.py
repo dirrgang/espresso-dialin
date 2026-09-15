@@ -7,7 +7,7 @@ from streamlit.testing.v1 import AppTest
 from espresso_dialin.domain import Session, ShotStatus, utc_now
 from espresso_dialin.repository import Repository
 
-APP = Path(__file__).parents[1] / "app.py"
+APP = Path(__file__).parents[1] / "streamlit_app.py"
 
 
 def widget(items, label):
@@ -128,8 +128,10 @@ def test_live_workflow_and_restart(tmp_path, monkeypatch):
     assert not app.exception and not app.error
     assert repo.plans(session.id, 1) == frozen
     shot = repo.shots(session.id)[0]
+    assert shot.grinding is not None
     assert shot.grinding.duration_s == 9.7
     assert shot.grinding.puck_dose_g is None
+    assert shot.brewing is not None
     assert shot.brewing.yield_g == 36.8
     assert shot.brewing.obviously_bad_shot
     app = AppTest.from_file(str(APP)).run()
@@ -140,7 +142,9 @@ def test_live_workflow_and_restart(tmp_path, monkeypatch):
     assert not app.exception and not app.error
     plans = repo.plans(session.id, 2)
     assert len(plans) == 2 and sum(p.selected for p in plans) == 1
-    assert all(p.model.observation_ids == (shot.id,) for p in plans)
+    models = tuple(p.model for p in plans if p.model is not None)
+    assert len(models) == len(plans)
+    assert all(model.observation_ids == (shot.id,) for model in models)
 
 
 def test_abandon_brew_restart_then_invalidate_and_continue(session_app):

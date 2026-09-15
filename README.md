@@ -11,7 +11,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 pre-commit install
-python -m streamlit run app.py --server.address 127.0.0.1
+python -m streamlit run streamlit_app.py --server.address 127.0.0.1
 ```
 
 The database is created at `data/live.sqlite3` and is gitignored. The guide covers backups,
@@ -121,7 +121,7 @@ Suggested structure:
 
 ```text
 espresso-dialin/
-├── app.py
+├── streamlit_app.py
 ├── src/espresso_dialin/
 │   ├── domain.py
 │   ├── repository.py

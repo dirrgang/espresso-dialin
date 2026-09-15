@@ -50,6 +50,7 @@ def v1_path(tmp_path):
                 )
             ],
         )
+        assert model.created_at is not None
         for rid, sid, seq, created, prediction in (
             ("manual-1", "one", 1, "2026-09-01T08:01:00+00:00", None),
             (model.recommendation_id, "one", 2, model.created_at.isoformat(), model),
@@ -121,13 +122,16 @@ def test_v1_migration_preserves_every_original_value_and_unknown_times(v1_path):
     assert complete.grinding_recorded_at is None  # v1 did not record this event
     assert pending.status == ShotStatus.PENDING_BREWING and pending.grinding_recorded_at is None
     assert repo.shots("two")[0].status == ShotStatus.PENDING_GRINDING
-    assert len(repo.plans("one", 2)[0].model.observation_ids) == 1
+    migrated_model = repo.plans("one", 2)[0].model
+    assert migrated_model is not None and len(migrated_model.observation_ids) == 1
     after = snapshot(v1_path)
     Repository(v1_path)
     assert snapshot(v1_path) == after
     repo.resolve(pending.id, ShotStatus.ABANDONED, "Legacy brew abandoned; grinder result valid")
     plans = Acquisition(repo).preview("one", "3E").plans
-    assert {p.model.observation_ids for p in plans} == {("shot-2",), ("shot-1", "shot-2")}
+    models = tuple(p.model for p in plans if p.model is not None)
+    assert len(models) == len(plans)
+    assert {model.observation_ids for model in models} == {("shot-2",), ("shot-1", "shot-2")}
     assert Acquisition(repo).freeze("one", "3E", 3, "past-only-median-rate").pending
 
 
@@ -168,7 +172,7 @@ def test_fresh_schema_does_not_run_legacy_migration(tmp_path, monkeypatch):
 
 def test_app_launch_migrates_v1_and_shows_pending_phase(v1_path, monkeypatch):
     monkeypatch.setenv("ESPRESSO_DIALIN_DB", str(v1_path))
-    app = AppTest.from_file(str(Path(__file__).parents[1] / "app.py")).run()
+    app = AppTest.from_file(str(Path(__file__).parents[1] / "streamlit_app.py")).run()
     assert not app.exception and not app.error
     with closing(sqlite3.connect(v1_path)) as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 2

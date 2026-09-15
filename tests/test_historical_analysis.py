@@ -1,5 +1,6 @@
 import csv
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -84,9 +85,9 @@ def test_derived_values_do_not_mutate_raw_or_confuse_puck(tmp_path):
     assert metric(shot, "grinder_output_g") == 20
     assert dict(shot.raw) == before
     with pytest.raises(TypeError):
-        shot.raw["grinder_output_g"] = "18"
+        cast(dict[str, str], shot.raw)["grinder_output_g"] = "18"
     with pytest.raises(TypeError):
-        shot.numbers["grinder_output_g"] = 18
+        cast(dict[str, float | None], shot.numbers)["grinder_output_g"] = 18
 
 
 @pytest.mark.parametrize("value", ["", "  "])
@@ -178,7 +179,7 @@ def test_past_only_prediction_and_common_target(tmp_path):
     assert rolling[0]["raw_error_s"] == 0
     assert rolling[0]["normalized_error_s"] == 0
     assert rolling[1]["raw_error_s"] == -70
-    assert all(row["train_through"] < row["sequence"] for row in rolling)
+    assert all(cast(int, row["train_through"]) < cast(int, row["sequence"]) for row in rolling)
     assert extraction_backtest(shots[:2]) == rolling[:1]
 
 
@@ -268,7 +269,8 @@ def test_error_metrics_and_report(tmp_path):
     assert error_summary([], "error")["mae"] is None
     shots = load_shots(fixture_csv(tmp_path, [{}]))
     report = research_report(shots)
-    assert report["audit"]["rows"] == 1
+    audit = cast(dict[str, object], report["audit"])
+    assert audit["rows"] == 1
     assert report["dose_pairs"] == []
 
 

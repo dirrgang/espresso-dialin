@@ -89,6 +89,7 @@ class DoseCompatibilityPolicy(Protocol):
 
     def compatible(self, observation: DoseObservation, target: DoseTarget) -> bool:
         """Return whether the observation belongs to the target's dose history."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -217,6 +218,7 @@ class DoseController(Protocol):
         self, target: DoseTarget, observations: Sequence[DoseObservation]
     ) -> DoseRecommendation:
         """Make a recommendation using observations strictly before the target."""
+        ...
 
 
 def _compatible_history(

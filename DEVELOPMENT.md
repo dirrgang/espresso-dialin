@@ -64,6 +64,7 @@ Run before committing substantive code changes:
 ruff check .
 ruff format --check .
 mypy src
+python scripts/run_pyright.py
 pytest --cov=espresso_dialin --cov-report=term-missing
 ```
 
@@ -74,7 +75,10 @@ ruff check --fix .
 ruff format .
 ```
 
-Pre-commit runs the lightweight file and Ruff checks automatically. GitHub Actions runs linting, formatting, type checking, and tests on pull requests and pushes to `main`.
+Pre-commit runs the file, Ruff, and project-wide Pyright checks automatically. Pyright covers
+the packaged source, tests, root Streamlit entry point, and the historical-exploration
+notebook (through nbQA) using the same type-checking engine as Pylance. GitHub Actions runs
+linting, formatting, both type checkers, and tests on pull requests and pushes to `main`.
 
 ## Research and coding-agent workflow
 
