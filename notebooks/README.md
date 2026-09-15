@@ -7,7 +7,7 @@ Use notebooks for exploratory analysis, visualization, and model comparison over
 Run `mise run setup` to install the locked Python 3.14 development and analysis environment, then run notebooks from the repository root or `notebooks/`. A typical execution command is:
 
 ```sh
-uv run --locked --group analysis python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
+uv run --locked --group analysis jupyter nbconvert --to notebook --execute --inplace notebooks/01_historical_exploration.ipynb
 ```
 
 Clear generated outputs before committing; retain empirical conclusions in the research note.
