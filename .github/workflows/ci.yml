@@ -39,16 +39,16 @@ jobs:
           enable-cache: true
 
       - name: Sync locked development environment
-        run: uv sync --locked --extra dev
+        run: uv sync --locked
 
       - name: Lint
-        run: uv run --locked --extra dev ruff check .
+        run: uv run --locked ruff check .
 
       - name: Check formatting
-        run: uv run --locked --extra dev ruff format --check .
+        run: uv run --locked ruff format --check .
 
       - name: Type-check
-        run: uv run --locked --extra dev mypy src
+        run: uv run --locked mypy src
 
       - name: Test
-        run: uv run --locked --extra dev pytest --cov=espresso_dialin --cov-report=term-missing
+        run: uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing
