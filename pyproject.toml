@@ -15,12 +15,9 @@ dependencies = [
     "streamlit>=1.40,<2",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "mypy>=1.13,<2",
-    "nbqa>=1.9,<2",
-    "pre-commit>=4,<5",
-    "pyright[nodejs]>=1.1.405,<2",
     "pytest>=8,<9",
     "pytest-cov>=6,<7",
     "ruff>=0.11,<1",
@@ -66,10 +63,3 @@ strict = true
 warn_unused_configs = true
 pretty = true
 show_error_codes = true
-
-[tool.pyright]
-include = ["src", "tests", "scripts", "streamlit_app.py"]
-exclude = ["data", "notebooks", "**/node_modules", "**/__pycache__", "**/.*", ".venv"]
-extraPaths = ["src"]
-pythonVersion = "3.12"
-typeCheckingMode = "standard"

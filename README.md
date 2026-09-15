@@ -6,13 +6,14 @@ Experimental, local-first proof of concept for adaptive espresso dial-in.
 dose recommendations before grinding and records actual grinding/brewing results separately.
 Grinder settings remain manually chosen. Start with the [live workflow guide](docs/live-workflow.md).
 
+For development, install `mise` once, then bootstrap the repository with:
+
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-pre-commit install
-python -m streamlit run streamlit_app.py --server.address 127.0.0.1
+mise run setup
+mise run app
 ```
+
+`mise.toml` provides the repository-scoped Python, uv, and prek versions; `uv.lock` pins the Python environment. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for shell integration, quality checks, VS Code integration, and migration notes for older clones.
 
 The database is created at `data/live.sqlite3` and is gitignored. The guide covers backups,
 manual fallback, required fields, restarting between phases, and recommendation provenance.
@@ -121,7 +122,7 @@ Suggested structure:
 
 ```text
 espresso-dialin/
-├── streamlit_app.py
+├── app.py
 ├── src/espresso_dialin/
 │   ├── domain.py
 │   ├── repository.py
@@ -207,4 +208,4 @@ See `docs/` for the current modelling assumptions, data model, experiment plan, 
 
 ## Development
 
-The repository is bootstrapped as a typed Python 3.12+ project using a `src/` layout, Ruff, mypy, pytest, pre-commit, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.
+The repository is bootstrapped as a typed Python 3.12+ project using a `src/` layout, mise, uv, Ruff, mypy, pytest, prek, and GitHub Actions. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for environment setup and quality-check commands.

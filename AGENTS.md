@@ -92,7 +92,7 @@ A future production frontend/backend architecture is explicitly premature until 
 - `data/historical_shots_staging.csv` is the auditable initial transcription and should remain unchanged except for an explicit decision to correct the transcription record itself.
 - `data/historical_shots_corrected.csv` is the authoritative historical source for current modelling, backtests, and gap analysis; it may contain documented user-supplied corrections that are not inferable from the source image alone.
 - Do not use staging-based numeric findings as current benchmarks after the corrected dataset became authoritative; rerun/regenerate them first.
-- Dependencies and tool configuration belong in `pyproject.toml`.
+- Python dependencies and Python-tool configuration belong in `pyproject.toml`; repository runtime/tool bootstrap belongs in `mise.toml`; commit-hook configuration belongs in `prek.toml`; resolved Python dependencies belong in `uv.lock`.
 - Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
 - In GitHub Markdown, use literal `$...$` for inline mathematics and fenced `math` blocks (triple backticks followed by `math`) for display equations. Never substitute lookalike delimiters such as `§`, and do not put `$`/`$$` delimiters inside a `math` fence. GitHub's display-math pipeline can misparse a literal `<` or `>` inside TeX (for example `\sum_{i<j}`), so prefer TeX relation commands such as `\lt`, `\gt`, `\le`, `\ge`, or equivalent explicit index bounds. Avoid `\operatorname{...}` in repository math because it has rendered unreliably in GitHub; use established commands or `\mathrm{...}` for names such as `median`, `MAD`, and `MedAE`. A literal `*` inside inline math can also be consumed by Markdown emphasis parsing, so write superscript stars as `^{\ast}` rather than bare `^*`; do not “simplify” an escaped or `\ast` form back to a literal asterisk. Use ordinary code fences only for code, commands, schemas, or literal text.
@@ -108,20 +108,25 @@ A future production frontend/backend architecture is explicitly premature until 
 Before considering a code change complete, run:
 
 ```sh
-ruff check .
-ruff format --check .
-mypy src
-python scripts/run_pyright.py
-pytest --cov=espresso_dialin --cov-report=term-missing
+mise run check
 ```
 
-For normal development, install the pre-commit hooks once:
+This is the repository-level entry point for the same core gates enforced in CI:
 
 ```sh
-pre-commit install
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked mypy src
+uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing
 ```
 
-CI runs the same core checks on supported Python versions. Do not weaken a quality gate merely to make a change pass; either fix the issue or document why the rule is inappropriate and adjust the configuration deliberately.
+For normal development, bootstrap the environment and install the commit hook once per clone:
+
+```sh
+mise run setup
+```
+
+`prek` executes `prek.toml`; generic file checks use native built-in hooks and Ruff runs in an isolated hook environment. Do not weaken a quality gate merely to make a change pass; either fix the issue or document why the rule is inappropriate and adjust the configuration deliberately.
 
 ## Initial real setup
 
