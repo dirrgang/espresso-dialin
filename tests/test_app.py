@@ -8,10 +8,15 @@ from espresso_dialin.domain import Session, utc_now
 from espresso_dialin.repository import Repository
 
 APP = Path(__file__).parents[1] / "app.py"
+APP_TEST_TIMEOUT_S = 10
 
 
 def widget(items, label):
     return next(item for item in items if item.label == label)
+
+
+def start_app():
+    return AppTest.from_file(str(APP), default_timeout=APP_TEST_TIMEOUT_S).run()
 
 
 @pytest.fixture
@@ -29,7 +34,7 @@ def session_app(tmp_path, monkeypatch):
                 started_at=now - timedelta(days=3 - i),
             )
         )
-    return repo, AppTest.from_file(str(APP)).run()
+    return repo, start_app()
 
 
 def test_resume_defaults_to_latest_active_session_and_preserves_explicit_choice(session_app):
@@ -39,11 +44,11 @@ def test_resume_defaults_to_latest_active_session_and_preserves_explicit_choice(
     app.run()
     assert app.selectbox(key="current_session").value == "session-0"
     repo.end_session("session-2")
-    restarted = AppTest.from_file(str(APP)).run()
+    restarted = start_app()
     assert restarted.selectbox(key="current_session").value == "session-1"
     repo.end_session("session-1")
     repo.end_session("session-0")
-    restarted = AppTest.from_file(str(APP)).run()
+    restarted = start_app()
     assert restarted.selectbox(key="current_session").value == "session-2"
     assert not restarted.exception
 
@@ -95,7 +100,7 @@ def test_invalid_shot_forms_keep_history_and_allow_retry(session_app):
 def test_live_workflow_and_restart(tmp_path, monkeypatch):
     path = tmp_path / "smoke.sqlite3"
     monkeypatch.setenv("ESPRESSO_DIALIN_DB", str(path))
-    app = AppTest.from_file(str(APP)).run()
+    app = start_app()
     assert not app.exception
     assert all(not form.proto.form.enter_to_submit for form in app.get("form"))
     widget(app.selectbox, "Bean").select("REWE Bio Espresso ganze Bohnen, 1000 g").run()
@@ -112,14 +117,14 @@ def test_live_workflow_and_restart(tmp_path, monkeypatch):
     assert repo.shots(session.id)[0].grinding is None
     assert all(not form.proto.form.enter_to_submit for form in app.get("form"))
     # Restart between physical phases, so widget state cannot mask persistence errors.
-    app = AppTest.from_file(str(APP)).run()
+    app = start_app()
     widget(app.selectbox, "Dose correction").select("TO_TARGET").run()
     widget(app.number_input, "Actual grind duration (s)").set_value(9.70)
     widget(app.number_input, "Grinder output (g)").set_value(17.8)
     widget(app.button, "Save grinding result").click().run()
     assert not app.exception and not app.error
     assert all(not form.proto.form.enter_to_submit for form in app.get("form"))
-    app = AppTest.from_file(str(APP)).run()
+    app = start_app()
     widget(app.number_input, "Brew duration (s)").set_value(32.0)
     widget(app.number_input, "Final beverage yield (g)").set_value(36.8)
     widget(app.checkbox, "Obviously bad shot").check()
@@ -132,7 +137,7 @@ def test_live_workflow_and_restart(tmp_path, monkeypatch):
     assert shot.grinding.puck_dose_g is None
     assert shot.brewing.yield_g == 36.8
     assert shot.brewing.obviously_bad_shot
-    app = AppTest.from_file(str(APP)).run()
+    app = start_app()
     widget(app.text_input, "Grinder setting").input("3E").run()
     assert len(app.table[0].value) == 2
     widget(app.selectbox, "Selected strategy").select("past-only-median-rate").run()
