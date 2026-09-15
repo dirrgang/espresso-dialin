@@ -165,7 +165,10 @@ def test_abandon_brew_restart_then_invalidate_and_continue(session_app):
     widget(app.button, "Confirm shot resolution").click().run()
     assert app.error  # confirmation is required
     assert repo.shots("session-2")[0].pending
-    widget(app.checkbox, "I confirm this action and its effect on controller history").check()
+    widget(
+        app.checkbox,
+        "I confirm the saved grinding result is valid and brewing was abandoned",
+    ).check()
     widget(app.button, "Confirm shot resolution").click().run()
     assert not app.exception and not app.error
     first = repo.shots("session-2")[0]
@@ -176,7 +179,10 @@ def test_abandon_brew_restart_then_invalidate_and_continue(session_app):
     widget(app.button, "Freeze plan before grinding").click().run()
     assert all(p.model.observation_ids == (first.id,) for p in repo.plans("session-2", 2))
     widget(app.selectbox, "Action").select(ShotStatus.INVALIDATED).run()
-    widget(app.checkbox, "I confirm this action and its effect on controller history").check()
+    widget(
+        app.checkbox,
+        "I confirm that execution or recorded evidence is wrong or uncertain",
+    ).check()
     widget(app.button, "Confirm shot resolution").click().run()
     assert app.error  # reason is required too
     widget(app.text_area, "Reason (required)").input("Wrong planned setting; did not grind")
@@ -205,9 +211,56 @@ def test_completed_shot_can_be_invalidated_through_ui(session_app):
     repo.complete(shot.id, BrewingResult(duration_s=32, yield_g=36))
     app.run()
     widget(app.text_area, "Reason (required)").input("97 seconds was a typo for 9.7")
-    widget(app.checkbox, "I confirm this action and its effect on controller history").check()
+    widget(
+        app.checkbox,
+        "I confirm that execution or recorded evidence is wrong or uncertain",
+    ).check()
     widget(app.button, "Confirm shot resolution").click().run()
     assert not app.exception and not app.error
     invalid = repo.shots("session-2")[0]
     assert invalid.status == ShotStatus.INVALIDATED
     assert invalid.grinding.duration_s == 97
+
+
+def test_explicit_pregrind_cancel_survives_restart_and_preserves_history(session_app):
+    repo, app = session_app
+    widget(app.text_input, "Grinder setting").input("3E").run()
+    widget(app.number_input, "Manual planned duration (s)").set_value(9.74).run()
+    widget(app.button, "Freeze plan before grinding").click().run()
+    widget(app.number_input, "Actual grind duration (s)").set_value(9.7)
+    widget(app.number_input, "Grinder output (g)").set_value(18)
+    widget(app.button, "Save grinding result").click().run()
+    widget(app.number_input, "Brew duration (s)").set_value(32)
+    widget(app.number_input, "Final beverage yield (g)").set_value(36)
+    widget(app.button, "Complete shot").click().run()
+    first = repo.shots("session-2")[0]
+
+    widget(app.text_input, "Grinder setting").input("3E").run()
+    widget(app.selectbox, "Selected strategy").select("past-only-median-rate").run()
+    widget(app.button, "Freeze plan before grinding").click().run()
+    frozen = repo.plans("session-2", 2)
+    widget(app.text_area, "Reason for cancelling frozen plan (required)").input(
+        "Wrong plan selected"
+    )
+    widget(app.button, "Cancel frozen plan — no grinding performed").click().run()
+    assert app.error and repo.shots("session-2")[1].pending
+    widget(
+        app.checkbox,
+        "I confirm that no physical grinding occurred for this plan",
+    ).check()
+    widget(app.button, "Cancel frozen plan — no grinding performed").click().run()
+    assert not app.exception and not app.error
+    abandoned = repo.shots("session-2")[1]
+    assert abandoned.status == ShotStatus.ABANDONED and abandoned.grinding is None
+    assert repo.plans("session-2", 2) == frozen
+
+    restarted = start_app()
+    widget(restarted.text_input, "Grinder setting").input("3E").run()
+    assert len(restarted.table[0].value) == 2
+    widget(restarted.selectbox, "Selected strategy").select("past-only-median-rate").run()
+    widget(restarted.button, "Freeze plan before grinding").click().run()
+    assert not restarted.exception and not restarted.error
+    assert all(
+        plan.model is not None and plan.model.observation_ids == (first.id,)
+        for plan in repo.plans("session-2", 3)
+    )

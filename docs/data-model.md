@@ -371,8 +371,12 @@ disagree with the saved measurements. `plan_frozen_at` aliases `created_at` and
 Pending shots may be abandoned or invalidated. Completed shots may only be invalidated.
 A shot gets at most one resolution; subsequent resolutions and all later phase writes are
 rejected. Saved grinder data, completed outcomes, and frozen predictions remain unchanged.
-An abandoned brew retains its grinder observation as valid; invalidation excludes the entire
-shot. Missing/invalid grinder observations break the conservative contiguous setting block.
+An abandoned brew retains its grinder observation as valid. A pre-grind abandonment explicitly
+confirms that no physical grinding occurred; it has no dose observation and is transparent to
+grinder-state continuity. Invalidation excludes the entire shot and always breaks continuity,
+even when grinder measurements are absent, because execution or evidence remains uncertain.
+Arbitrary missing data must not be treated as confirmed non-execution. Frozen plan fields are
+intent and do not themselves alter physical grinder state.
 
 The v1-to-v2 migration uses explicit ALTER/DDL steps under a single transaction. It preserves
 every existing value and does not manufacture timestamps or lifecycle annotations. It replaces

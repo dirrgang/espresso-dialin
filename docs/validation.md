@@ -110,13 +110,15 @@ forced migration failure, phase timestamp ordering, immutable abandonment/invali
 restart recovery, and confirmation/reason requirements in the Streamlit UI. These checks
 establish data integrity, not model efficacy.
 
-Future dose history excludes invalidated shots and missing grinder results. A brew explicitly
-abandoned with valid grinder data can still contribute. Missing/invalid shots break contiguous
-setting compatibility rather than silently bridging transitions. Invalidation does not refit
-already-frozen predictions; analyses should distinguish what was known at freeze time from
-errors discovered later, and should not score invalid outcomes as trustworthy measurements.
-The resolution timestamp and retained original rows support that distinction. Acquisition
-timestamps must not be used as exact physical grinder/pump-event timings.
+Future dose history excludes invalidated shots. A brew explicitly abandoned with valid grinder
+data can still contribute under the normal exact-actual-setting rule. A pre-grind abandonment
+requires explicit confirmation that no physical grinding occurred; it contributes no observation
+but is transparent to grinder continuity. Invalidation remains a conservative block boundary
+even when grinder fields are missing. No other missing data may be interpreted as non-execution
+or bridged. Invalidation does not refit already-frozen predictions; analyses should distinguish
+what was known at freeze time from errors discovered later, and should not score invalid outcomes
+as trustworthy measurements. The resolution timestamp and retained original rows support that
+distinction. Acquisition timestamps must not be used as exact physical grinder/pump-event timings.
 
 ## Metrics
 

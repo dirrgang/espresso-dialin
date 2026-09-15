@@ -33,15 +33,18 @@ def repo(tmp_path):
     return repo
 
 
-def start(repo):
-    return Acquisition(repo).freeze("s", "3E", len(repo.shots("s")) + 1, "manual", 9.74)
+def start(repo, setting="3E", duration_s=9.74):
+    return Acquisition(repo).freeze("s", setting, len(repo.shots("s")) + 1, "manual", duration_s)
 
 
-def grind(repo, shot):
+def grind(repo, shot, setting="3E", duration_s=9.7, output_g=20):
     repo.save_grinding(
         shot.id,
         GrindingResult(
-            setting="3E", duration_s=9.7, output_g=20, correction=CorrectionMode.TO_TARGET
+            setting=setting,
+            duration_s=duration_s,
+            output_g=output_g,
+            correction=CorrectionMode.TO_TARGET,
         ),
     )
 
@@ -77,9 +80,14 @@ def test_resolutions_retain_evidence_release_session_and_control_eligibility(
         grind(repo, shot)
     original = repo.shots("s")[0]
     frozen = repo.plans("s", 1)
-    repo.resolve(
-        shot.id, status, "Physical brew stopped" if status == ShotStatus.ABANDONED else "Typo"
-    )
+    reason = "Typo"
+    if status == ShotStatus.ABANDONED:
+        reason = (
+            "Brew stopped; grinder result valid"
+            if has_grinding
+            else "Confirmed no physical grinding occurred"
+        )
+    repo.resolve(shot.id, status, reason)
     resolved = Repository(repo.path).shots("s")[0]
     assert resolved.status == status and not resolved.pending
     assert replace(resolved, resolution=None) == original
@@ -118,13 +126,86 @@ def test_completed_invalidation_keeps_measurement_and_already_frozen_predictions
     assert repo.plans("s", 2) == frozen
 
 
-def test_invalidated_and_unknown_shots_break_continuity(repo):
+def test_pregrind_abandonment_is_transparent_to_existing_history(repo):
     first = start(repo)
     grind(repo, first)
-    repo.resolve(first.id, ShotStatus.ABANDONED, "Brew abandoned; grinder result valid")
+    repo.complete(first.id, BrewingResult(duration_s=32, yield_g=36))
     second = start(repo)
-    repo.resolve(second.id, ShotStatus.ABANDONED, "No reliable grinding result")
+    repo.resolve(second.id, ShotStatus.ABANDONED, "Confirmed no physical grinding occurred")
+    models = tuple(plan.model for plan in Acquisition(repo).preview("s", "3E").plans if plan.model)
+    assert {model.observation_ids for model in models} == {(first.id,)}
+
+
+def test_multiple_pregrind_abandonments_are_transparent(repo):
+    first = start(repo)
+    grind(repo, first)
+    repo.complete(first.id, BrewingResult(duration_s=32, yield_g=36))
+    for _ in range(2):
+        abandoned = start(repo)
+        repo.resolve(
+            abandoned.id,
+            ShotStatus.ABANDONED,
+            "Confirmed no physical grinding occurred",
+        )
+    assert all(
+        plan.model is not None and plan.model.observation_ids == (first.id,)
+        for plan in Acquisition(repo).preview("s", "3E").plans
+    )
+
+
+def test_pregrind_invalidation_still_breaks_continuity(repo):
+    first = start(repo)
+    grind(repo, first)
+    repo.complete(first.id, BrewingResult(duration_s=32, yield_g=36))
+    second = start(repo)
+    repo.resolve(second.id, ShotStatus.INVALIDATED, "Execution is uncertain")
     assert not Acquisition(repo).preview("s", "3E").plans
+
+
+def test_abandoned_valid_grinding_observation_obeys_actual_setting_continuity(repo):
+    first = start(repo)
+    grind(repo, first)
+    repo.resolve(first.id, ShotStatus.ABANDONED, "Grinding valid; brew abandoned")
+    assert Acquisition(repo).preview("s", "3E").plans
+    assert not Acquisition(repo).preview("s", "3F").plans
+
+    second = start(repo, "3F")
+    grind(repo, second, setting="3F")
+    repo.resolve(second.id, ShotStatus.ABANDONED, "Grinding valid; brew abandoned")
+    assert Acquisition(repo).preview("s", "3F").plans
+    assert not Acquisition(repo).preview("s", "3E").plans
+
+
+def test_real_world_pregrind_gap_preserves_preview_and_frozen_source_ids(repo):
+    first = start(repo, "4E", 8.75)
+    grind(repo, first, setting="4E", duration_s=8.75, output_g=15.30)
+    repo.complete(first.id, BrewingResult(duration_s=30, yield_g=37.37))
+
+    unexecuted = start(repo, "4E", 10.3)
+    repo.resolve(
+        unexecuted.id,
+        ShotStatus.ABANDONED,
+        "Wrong selection; confirmed no physical grinding occurred",
+    )
+
+    newest = start(repo, "4E", 10.3)
+    grind(repo, newest, setting="4E", duration_s=10.3, output_g=19.65)
+    repo.complete(newest.id, BrewingResult(duration_s=57, yield_g=35.43))
+
+    preview = Acquisition(repo).preview("s", "4E")
+    by_strategy = {plan.strategy_id: plan for plan in preview.plans}
+    last = by_strategy["last-shot-proportional"]
+    median = by_strategy["past-only-median-rate"]
+    assert last.model is not None and last.model.observation_ids == (newest.id,)
+    assert median.model is not None and median.model.observation_ids == (first.id, newest.id)
+    assert last.duration_s == pytest.approx(9.4351, abs=0.0001)
+    assert median.duration_s == pytest.approx(9.8459, abs=0.0001)
+
+    frozen = Acquisition(repo).freeze("s", "4E", 4, "past-only-median-rate")
+    assert frozen.sequence == 4
+    persisted = {plan.strategy_id: plan.model for plan in repo.plans("s", 4)}
+    assert persisted["last-shot-proportional"].observation_ids == (newest.id,)
+    assert persisted["past-only-median-rate"].observation_ids == (first.id, newest.id)
 
 
 def test_reject_stale_prediction_if_source_is_invalidated_before_freeze(repo):

@@ -46,7 +46,9 @@ remain versioned; neither historical source is modified or automatically pooled 
    requires a manual duration. No estimated rate or expected output is invented.
 4. Click **Freeze plan before grinding**. Wait for the saved-plan confirmation before
    grinding. All available model candidates and the selected plan are saved together.
-   Merely displaying the preview does not persist it.
+   Merely displaying the preview does not persist it. If the wrong plan was frozen and the
+   grinder has not been run, use **Cancel frozen plan — no grinding performed** instead of
+   inventing measurements or deleting the frozen intent.
 5. Grind, then record the **actual** setting, duration and raw grinder output. The duration
    field starts empty: a planned 9.74 s and actual 9.70 s remain different facts.
    Record the correction mode and save the grinding result.
@@ -106,12 +108,15 @@ grinding results as final. This protects against application mistakes; it is not
 tamper-proof ledger against someone deliberately modifying the database or dropping triggers.
 
 Only completed shots or abandoned brews with a retained valid grinder result in the same
-session and current contiguous run of the exact **actual** setting are eligible. Invalidated
-shots and shots without a grinder result break continuity; history does not bridge unknown
-or unreliable transitions. Changing setting, including changing away and later returning,
-starts a new block. A new session starts empty even for a previously used bean. One
-compatible observation is sufficient for both existing controllers. Bad-brew
-flags do not discard raw grinder-output data; they do not diagnose a grinder-output fault.
+session and current contiguous run of the exact **actual** setting are observations. A
+pre-grind abandonment explicitly confirms that no physical grinding occurred, contributes no
+observation, and is transparent while scanning that run. Invalidated shots always break
+continuity, including when their measurements are missing, because execution or evidence is
+wrong or uncertain. Changing actual setting, including changing away and later returning,
+starts a new block. A frozen planned setting is intent, not physical execution, and cannot by
+itself change grinder state. A new session starts empty even for a previously used bean. One
+compatible observation is sufficient for both existing controllers. Bad-brew flags do not
+discard raw grinder-output data; they do not diagnose a grinder-output fault.
 
 Both available model predictions are saved, even if manual is selected. Each includes its
 model version, frozen rate, expected output at its proposed duration, block identity, exact
@@ -145,13 +150,16 @@ Use **Abandon or invalidate a shot** below recent history. Select the shot and a
 enter a required reason, check the confirmation, and click **Confirm shot resolution**.
 The selector includes older shots, not just the 20 shown in the recent-history table.
 
-- **Abandon shot without grinder observation:** ends an unfinished attempt without inventing
-  measurements. It releases the session but supplies no controller observation.
-- **Abandon brew, keep grinder observation:** explicitly declares the saved grinding result
-  valid while ending the brew attempt. The grinder result can inform later dose predictions.
-- **Invalidate this shot:** use for a typo or clearly erroneous record, including a completed
-  shot. It excludes the entire shot from future controller history. The wrong value remains
-  visible alongside the invalidation reason and timestamp; it is never overwritten.
+- **Abandon before grinding — confirm no physical grinding occurred:** ends an unexecuted
+  frozen plan. It requires that explicit physical confirmation, releases the session, supplies
+  no controller observation, and does not break grinder continuity.
+- **Abandon brew — keep valid grinder result:** explicitly declares the saved grinding result
+  valid while ending the brew attempt. The actual-setting continuity rules apply normally and
+  the grinder result can inform later dose predictions.
+- **Invalidate — execution or evidence is uncertain:** use when execution or recorded evidence
+  is wrong or uncertain, including a completed shot. It excludes the entire shot from future
+  controller history and always breaks continuity. The wrong value remains visible alongside
+  the invalidation reason and timestamp; it is never overwritten.
 
 Both actions release a pending shot so another physical espresso can start normally in the
 same session. Existing frozen recommendations remain unchanged, even if a source observation
@@ -164,6 +172,30 @@ invalidation after abandonment. Choose invalidation if the grinder measurement i
 Completed shots can be invalidated but not abandoned. Resolved shots cannot be completed or
 receive more measurements. Session context remains fixed. There is no generic editing/deletion
 or retrospective-entry UI; Phase 4 remains unimplemented.
+
+Missing measurements alone never prove non-execution. Only the operator's explicit pre-grind
+abandonment has that meaning. Arbitrary missing or invalid data must not be bridged.
+
+### Narrow maintenance correction
+
+`scripts/reclassify_pregrind_invalidation.py` corrects a known, explicitly identified row that
+was invalidated even though the operator confirms the grinder was never run. It is not a general
+shot editor. The database path, session ID, and shot ID are all required; the default is a
+read-only dry run:
+
+```powershell
+uv run python scripts/reclassify_pregrind_invalidation.py .\data\live.sqlite3 `
+  --session-id <exact-session-id> --shot-id <exact-shot-id>
+```
+
+Apply only after reviewing the candidate and add both `--apply` and
+`--confirm-no-physical-grinding`. Before mutation, the command creates a timestamped backup with
+SQLite's backup API. It refuses rows that are not currently `INVALIDATED`, contain any grinding
+or brewing evidence, or lack the expected immutable trigger. The one transaction temporarily
+replaces that verified trigger, changes the resolution to `ABANDONED`, embeds the original
+status/reason/timestamp in the corrected reason, restores the trigger, and runs SQLite integrity
+and foreign-key checks before commit. The shot, frozen recommendations, sequence, and recording
+timestamps are not changed. Ordinary app startup never performs this correction.
 
 ## Schema v2 and recording timestamps
 

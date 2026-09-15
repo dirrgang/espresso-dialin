@@ -250,9 +250,16 @@ class Shot:
 
 
 def compatible_dose_block(shots: list[Shot], setting: str) -> list[Shot]:
-    """Unknown/invalid data break continuity instead of silently bridging a transition."""
+    """Return the contiguous physical grinder history for an exact setting.
+
+    A pre-grind abandonment explicitly records that no grinder action occurred, so it is
+    transparent to continuity. Invalidation and every other unknown/invalid transition remain
+    conservative block boundaries.
+    """
     compatible: list[Shot] = []
     for shot in reversed(shots):
+        if shot.status == ShotStatus.ABANDONED and shot.grinding is None:
+            continue
         if not shot.dose_eligible or shot.grinding is None or shot.grinding.setting != setting:
             break
         compatible.append(shot)

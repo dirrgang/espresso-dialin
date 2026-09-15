@@ -227,14 +227,38 @@ every original value. Neither resolution can be repeated or reversed; completed 
 be abandoned. No replacement observation is created automatically and no frozen prediction is
 refit. A subsequent shot denotes a new physical espresso, not retrospective re-entry.
 
-Invalidated/missing grinder observations break the contiguous compatible block. Completed and
+Invalidated observations break the contiguous compatible block. Completed and
 abandoned-with-valid-grinder observations may inform later dose predictions under the existing
-same-session/exact-setting policy. A source invalidated after prediction freeze remains in the
-frozen provenance; later analysis must account for that annotation. Bag-open context does not
-change pooling or model logic. Phase 4 remains unimplemented.
+same-session/exact-setting policy. The later pre-grind-abandonment decision below distinguishes
+confirmed physical non-execution from otherwise missing grinder evidence. A source invalidated
+after prediction freeze remains in the frozen provenance; later analysis must account for that
+annotation. Bag-open context does not change pooling or model logic. Phase 4 remains unimplemented.
 
 **Rationale:** preserve raw evidence and prospective chronology while letting users recover from
 workflow mistakes. Migration must be transactional and leave unavailable legacy information null.
+
+## 2026-09-15 — Pre-grind abandonment and grinder continuity
+
+**Decision:** A frozen plan records intent, not physical grinder execution. `ABANDONED` with no
+saved grinding result now means the operator explicitly confirms that no physical grinding
+occurred. Such a shot retains its frozen recommendations, selected plan, timestamps, and sequence,
+contributes no dose observation, and is transparent when finding the contiguous physical grinder
+history.
+
+`ABANDONED` with a valid saved grinding result keeps that observation and follows the normal exact
+actual-setting continuity rule. `INVALIDATED` always remains a conservative continuity break,
+including when no grinder measurement exists, because physical execution or evidence is wrong or
+uncertain. Missing data alone must never be inferred to mean non-execution.
+
+The frozen-plan UI provides an explicit, confirmed **Cancel frozen plan — no grinding performed**
+action rather than deleting or undoing the plan. A narrowly scoped, explicit maintenance command
+may reclassify a known mistaken pre-grind invalidation only after exact identity/evidence checks and
+a SQLite online backup; original resolution metadata remains in the corrected audit reason.
+Ordinary startup does not auto-repair rows. Schema version remains v2 because the existing
+resolution record already represents the required semantics and audit trail.
+
+**Rationale:** an unexecuted plan cannot change grinder state, while bridging an invalidated or
+merely unrecorded physical grind would make an unsupported scientific assumption.
 
 ## Open decisions
 

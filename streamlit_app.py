@@ -153,6 +153,23 @@ def main():
                             ),
                         )
                         st.rerun()
+            with st.container(border=True):
+                st.markdown("**Frozen plan was not executed?**")
+                st.caption(
+                    "Use this only when no physical grinding occurred. The frozen plan and "
+                    "audit trail remain saved, and the session is released for the next shot."
+                )
+                with st.form(f"cancel_pregrind_{pending.id}", enter_to_submit=False):
+                    reason = st.text_area("Reason for cancelling frozen plan (required)")
+                    confirmed = st.checkbox(
+                        "I confirm that no physical grinding occurred for this plan"
+                    )
+                    if st.form_submit_button("Cancel frozen plan — no grinding performed"):
+                        with input_errors():
+                            if not confirmed:
+                                raise ValueError("confirm that no physical grinding occurred")
+                            repo.resolve(pending.id, ShotStatus.ABANDONED, reason)
+                            st.rerun()
         else:
             st.write(
                 f"Grinding saved: {pending.grinding.duration_s:g} s / "
@@ -269,10 +286,10 @@ def main():
             )
             target_shot = actionable[shot_id]
             labels = {
-                ShotStatus.ABANDONED: "Abandon brew, keep grinder observation"
+                ShotStatus.ABANDONED: "Abandon brew — keep valid grinder result"
                 if target_shot.grinding
-                else "Abandon shot without grinder observation",
-                ShotStatus.INVALIDATED: "Invalidate this shot",
+                else "Abandon before grinding — confirm no physical grinding occurred",
+                ShotStatus.INVALIDATED: "Invalidate — execution or evidence is uncertain",
             }
             actions = (
                 [ShotStatus.ABANDONED, ShotStatus.INVALIDATED]
@@ -282,16 +299,30 @@ def main():
             action = st.selectbox(
                 "Action", actions, format_func=lambda value: labels[value], key=f"action_{shot_id}"
             )
-            st.caption(
-                "Abandonment retains any saved grinder result as valid. Invalidation "
-                "excludes the entire shot from future controller history. Original values "
-                "and frozen predictions stay unchanged. This action cannot be undone."
-            )
+            if action == ShotStatus.ABANDONED and target_shot.grinding is None:
+                st.caption(
+                    "Pre-grind abandonment is an explicit physical fact: no grinding occurred. "
+                    "It keeps the frozen plan but is transparent to grinder continuity."
+                )
+                confirmation = "I confirm that no physical grinding occurred for this plan"
+            elif action == ShotStatus.ABANDONED:
+                st.caption(
+                    "Post-grind abandonment keeps the saved grinder result as valid while "
+                    "recording that brewing was abandoned."
+                )
+                confirmation = (
+                    "I confirm the saved grinding result is valid and brewing was abandoned"
+                )
+            else:
+                st.caption(
+                    "Use invalidation when physical execution or recorded evidence is wrong or "
+                    "uncertain. It breaks grinder continuity. Original values and frozen "
+                    "predictions stay unchanged."
+                )
+                confirmation = "I confirm that execution or recorded evidence is wrong or uncertain"
             with st.form(f"resolution_{shot_id}_{action.value}", enter_to_submit=False):
                 reason = st.text_area("Reason (required)")
-                confirmed = st.checkbox(
-                    "I confirm this action and its effect on controller history"
-                )
+                confirmed = st.checkbox(confirmation)
                 if st.form_submit_button("Confirm shot resolution"):
                     with input_errors():
                         if not confirmed:
