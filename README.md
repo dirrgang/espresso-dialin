@@ -2,7 +2,7 @@
 
 Experimental, local-first proof of concept for adaptive espresso dial-in.
 
-**Phase 3 is usable for prospective collection:** a local Streamlit + SQLite app freezes
+**Phase 3.1 is usable for prospective collection:** a local Streamlit + SQLite app freezes
 dose recommendations before grinding and records actual grinding/brewing results separately.
 Grinder settings remain manually chosen. Start with the [live workflow guide](docs/live-workflow.md).
 
