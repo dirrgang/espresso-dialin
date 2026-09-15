@@ -14,14 +14,10 @@ concurrency:
 
 jobs:
   quality:
-    name: Python ${{ matrix.python-version }}
+    name: Python 3.14
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.12", "3.13", "3.14"]
     env:
-      UV_PYTHON: ${{ matrix.python-version }}
+      UV_PYTHON: "3.14"
 
     steps:
       - name: Check out repository
@@ -30,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.14"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
@@ -57,7 +53,7 @@ jobs:
     name: Windows app smoke
     runs-on: windows-latest
     env:
-      UV_PYTHON: "3.12"
+      UV_PYTHON: "3.14"
 
     steps:
       - name: Check out repository
@@ -66,7 +62,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
