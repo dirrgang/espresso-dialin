@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
 
@@ -21,6 +22,15 @@ DEFAULT_DATABASE = Path(__file__).parent / "data" / "live.sqlite3"
 CURRENT_BEAN = "REWE Bio Espresso ganze Bohnen, 1000 g"
 
 
+@contextmanager
+def input_errors():
+    """Keep the rest of the page and its widget state alive after a rejected action."""
+    try:
+        yield
+    except (ValueError, sqlite3.Error) as error:
+        st.error(str(error))
+
+
 def main():
     st.title("Espresso dial-in")
     repo = Repository(Path(os.environ.get("ESPRESSO_DIALIN_DB", DEFAULT_DATABASE)))
@@ -33,7 +43,7 @@ def main():
             "Bean",
             ["New bean…", *known_beans, *([] if CURRENT_BEAN in known_beans else [CURRENT_BEAN])],
         )
-        with st.form("session"):
+        with st.form("session", enter_to_submit=False):
             bean_name = st.text_input(
                 "Bean name", value="" if bean_choice == "New bean…" else bean_choice
             )
@@ -46,27 +56,31 @@ def main():
             lower = st.number_input("Target brew time minimum (s)", value=30.0, min_value=0.01)
             upper = st.number_input("Target brew time maximum (s)", value=35.0, min_value=0.01)
             if st.form_submit_button("Create session"):
-                session = Session(
-                    id=str(uuid4()),
-                    bean_id=known_beans.get(bean_name, str(uuid4())),
-                    bean_name=bean_name,
-                    started_at=utc_now(),
-                    roaster=roaster or None,
-                    roast_date=roast_date,
-                    grinder=grinder,
-                    machine=machine,
-                    target_puck_dose_g=dose,
-                    target_yield_g=target_yield,
-                    target_time_min_s=lower,
-                    target_time_max_s=upper,
-                )
-                repo.add_session(session)
-                st.session_state["current_session"] = session.id
-                st.rerun()
+                with input_errors():
+                    session = Session(
+                        id=str(uuid4()),
+                        bean_id=known_beans.get(bean_name, str(uuid4())),
+                        bean_name=bean_name,
+                        started_at=utc_now(),
+                        roaster=roaster or None,
+                        roast_date=roast_date,
+                        grinder=grinder,
+                        machine=machine,
+                        target_puck_dose_g=dose,
+                        target_yield_g=target_yield,
+                        target_time_min_s=lower,
+                        target_time_max_s=upper,
+                    )
+                    repo.add_session(session)
+                    st.session_state["current_session"] = session.id
+                    st.rerun()
     if not sessions:
         st.info("Create a session to record your first espresso.")
         return
     by_id = {s.id: s for s in sessions}
+    if st.session_state.get("current_session") not in by_id:
+        latest_active = next((s for s in reversed(sessions) if s.ended_at is None), sessions[-1])
+        st.session_state["current_session"] = latest_active.id
     session_id = st.selectbox(
         "Current session",
         list(by_id),
@@ -86,8 +100,9 @@ def main():
     shots = repo.shots(session_id)
     pending = next((s for s in shots if s.completed_at is None), None)
     if session.ended_at is None and pending is None and st.button("End session"):
-        repo.end_session(session_id)
-        st.rerun()
+        with input_errors():
+            repo.end_session(session_id)
+            st.rerun()
     if pending:
         plans = repo.plans(session_id, pending.sequence)
         selected = next(p for p in plans if p.selected)
@@ -104,7 +119,7 @@ def main():
                 "NONE: brewed unchanged. TO_TARGET: approximately corrected to target. "
                 "MEASURED: final puck dose weighed separately."
             )
-            with st.form(f"grinding_{pending.id}"):
+            with st.form(f"grinding_{pending.id}", enter_to_submit=False):
                 actual_setting = st.text_input("Actual grinder setting", value=selected.setting)
                 duration = st.number_input(
                     "Actual grind duration (s)", value=None, min_value=0.001, format="%.3f"
@@ -117,26 +132,27 @@ def main():
                     disabled=mode != CorrectionMode.MEASURED,
                 )
                 if st.form_submit_button("Save grinding result"):
-                    if duration is None or output is None:
-                        raise ValueError("enter actual duration and grinder output")
-                    repo.save_grinding(
-                        pending.id,
-                        GrindingResult(
-                            setting=actual_setting,
-                            duration_s=duration,
-                            output_g=output,
-                            correction=CorrectionMode(mode),
-                            puck_dose_g=puck if mode == CorrectionMode.MEASURED else None,
-                        ),
-                    )
-                    st.rerun()
+                    with input_errors():
+                        if duration is None or output is None:
+                            raise ValueError("enter actual duration and grinder output")
+                        repo.save_grinding(
+                            pending.id,
+                            GrindingResult(
+                                setting=actual_setting,
+                                duration_s=duration,
+                                output_g=output,
+                                correction=CorrectionMode(mode),
+                                puck_dose_g=puck if mode == CorrectionMode.MEASURED else None,
+                            ),
+                        )
+                        st.rerun()
         else:
             st.write(
                 f"Grinding saved: {pending.grinding.duration_s:g} s / "
                 f"{pending.grinding.output_g:g} g · {pending.grinding.correction}"
             )
             st.subheader("Brewing result")
-            with st.form(f"brewing_{pending.id}"):
+            with st.form(f"brewing_{pending.id}", enter_to_submit=False):
                 brew = st.number_input("Brew duration (s)", value=None, min_value=0.001)
                 final_yield = st.number_input(
                     "Final beverage yield (g)", value=None, min_value=0.001
@@ -145,19 +161,20 @@ def main():
                 bad = st.checkbox("Obviously bad shot")
                 notes = st.text_area("Notes (optional)")
                 if st.form_submit_button("Complete shot"):
-                    if brew is None or final_yield is None:
-                        raise ValueError("enter brew duration and actual final yield")
-                    repo.complete(
-                        pending.id,
-                        BrewingResult(
-                            duration_s=brew,
-                            yield_g=final_yield,
-                            purged_before_shot=purge,
-                            obviously_bad_shot=bad,
-                            notes=notes,
-                        ),
-                    )
-                    st.rerun()
+                    with input_errors():
+                        if brew is None or final_yield is None:
+                            raise ValueError("enter brew duration and actual final yield")
+                        repo.complete(
+                            pending.id,
+                            BrewingResult(
+                                duration_s=brew,
+                                yield_g=final_yield,
+                                purged_before_shot=purge,
+                                obviously_bad_shot=bad,
+                                notes=notes,
+                            ),
+                        )
+                        st.rerun()
     elif session.ended_at is None:
         st.header("Next shot")
         st.caption("Choose the grinder setting manually. Freeze the plan before grinding.")
@@ -192,8 +209,9 @@ def main():
                 disabled=strategy != "manual",
             )
             if st.button("Freeze plan before grinding"):
-                app.freeze(session_id, setting, preview.target.next_sequence, strategy, manual)
-                st.rerun()
+                with input_errors():
+                    app.freeze(session_id, setting, preview.target.next_sequence, strategy, manual)
+                    st.rerun()
     st.header("Recent history")
     history = []
     for shot in reversed(shots[-20:]):

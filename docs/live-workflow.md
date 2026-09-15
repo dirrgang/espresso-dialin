@@ -56,6 +56,12 @@ remain versioned; neither historical source is modified or automatically pooled 
    earlier completed observations. Restarting the server or browser preserves saved
    plans and intermediate grinding results. Unsaved form entries are not durable.
 
+On a fresh browser connection or server restart, the app selects the newest session that
+has not been ended (or the newest session if all are ended). You can select another session;
+that choice remains active through normal reruns and validation errors. Session, grinding,
+and brewing forms require an explicit submit-button click: pressing Enter in a field does
+not save the form. Invalid entries show an error while keeping the rest of the page available.
+
 There is no time-critical entry. Each physical phase can finish before entering its results,
 but the plan must be frozen before grinding. Timestamps are UTC, timezone-aware **entry
 timestamps**, not measurements of the exact physical grinder/pump start or stop time.
