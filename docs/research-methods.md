@@ -263,9 +263,12 @@ Direct espresso precedent exists: Pannusch et al. used a central composite desig
 
 This does not imply that a CCD is automatically the best design for our exact workflow, but it strongly supports deliberate experimental shots rather than relying only on opportunistic logging.
 
-## 6. Planned Learning / Experiment mode
+## 6. Learning / Experiment mode
 
-The application should eventually distinguish two objectives.
+The application distinguishes two objectives. The first implementation uses frozen fixed-condition
+replication and balanced local duration-response schedules; [experiments.md](experiments.md)
+records the checked historical gaps, design rationale, stopping rules, costs and limitations.
+The infrastructure is implemented; real designed collection and empirical conclusions remain pending.
 
 ### Assisted / normal mode
 

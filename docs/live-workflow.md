@@ -1,9 +1,9 @@
 # Live prospective acquisition
 
-Phase 3.1 provides a local Streamlit application backed by Python's standard SQLite driver.
+Phases 3.1 and 4 provide a local Streamlit application backed by Python's standard SQLite driver.
 Grinder setting remains your manual choice. The application reuses the two existing dose
-controllers; neither is declared the winner. There is no extraction optimisation, Learning
-Mode, retention model, hardware integration, or historical-data import into live history.
+controllers; neither is declared the winner. Learning mode adds predefined experiments. There is
+no extraction optimisation, retention model, hardware integration, or historical-data import.
 
 ## Install and start
 
@@ -173,7 +173,7 @@ Each shot supports one irreversible resolution: there is no undo, repeat resolut
 invalidation after abandonment. Choose invalidation if the grinder measurement is uncertain.
 Completed shots can be invalidated but not abandoned. Resolved shots cannot be completed or
 receive more measurements. Session context remains fixed. There is no generic editing/deletion
-or retrospective-entry UI; Phase 4 remains unimplemented.
+or retrospective-entry UI.
 
 Missing measurements alone never prove non-execution. Only the persisted explicit confirmation
 has that meaning. Arbitrary missing or invalid data must not be bridged.
@@ -182,8 +182,8 @@ has that meaning. Arbitrary missing or invalid data must not be bridged.
 
 `scripts/reclassify_pregrind_invalidation.py` corrects a known, explicitly identified row that
 was invalidated even though the operator confirms the grinder was never run. It is not a general
-shot editor. First launch the updated app once so the database is migrated to schema v3. Then stop
-Streamlit before running the maintenance command. The database path, session ID, and shot ID are
+shot editor. First launch the updated app once so the database is migrated to the current schema
+v4. Then stop Streamlit before running the maintenance command. The database path, session ID, and shot ID are
 all required; the default is a read-only dry run:
 
 ```powershell
@@ -201,12 +201,12 @@ status/reason/timestamp in the corrected reason, restores the guard, and runs SQ
 foreign-key checks before commit. The shot, frozen recommendations, sequence, and recording
 timestamps are not changed. Ordinary app startup never performs this reclassification.
 
-## Schema v3 and recording timestamps
+## Schema v4 and recording timestamps
 
-Launching the app automatically migrates valid v1 or v2 databases to v3 in one transaction.
+Launching the app automatically migrates valid v1, v2 or v3 databases to v4 in one transaction.
 Back up the database before updating (see above). A failed migration rolls back all changes,
-including the schema version, and can be retried. Reopening v3 is idempotent; unsupported versions
-are rejected. Fresh databases are created directly at v3. Older app versions cannot open the
+including the schema version, and can be retried. Reopening v4 is idempotent; unsupported versions
+are rejected. Fresh databases are created directly at v4. Older app versions cannot open the
 upgraded database; reverting requires the pre-upgrade backup.
 
 Schema v3 adds nullable `shot_resolutions.no_physical_grinding_confirmed`. New explicit pre-grind
@@ -228,3 +228,33 @@ accuracy. Legacy grinding-entry times remain null: creation/completion times can
 them. Existing v1 creation/completion timestamps retain their original meanings. Legacy
 bag-open dates are null. History displays status, recording timestamps, non-execution confirmation,
 and resolution reasons.
+
+## Learning / Experiment workflow
+
+Choose **Learning** under **Use mode**. Create an experiment in the selected session, state the
+research question, and enter the current reference setting/duration. Review the entire sequence,
+held/varied inputs, attempt count, approximate coffee budget and stopping rule. Then click
+**Freeze experiment plan**. Previewing alone records nothing. Choose an existing experiment to
+resume it after restart; its schedule and membership are durable.
+
+Click **Freeze next experimental shot** before each grind. It uses the same grinding, puck
+correction, brewing and resolution forms as Assisted mode. Save actual inputs, even if they
+vary from the plan; add an optional **Deviation / interruption note** at grinding entry. The
+experiment table and recent history show input mismatches without changing the plan. Brewing
+notes can retain additional context.
+
+Cancel a step by freezing its shot and then using the existing explicit no-grinding cancellation
+with reason and confirmation. It consumes that planned attempt, retains the frozen plan, and
+creates no physical transition. Invalidated or uncertain attempts retain the conservative
+continuity break. A failed attempt is never silently replaced. Finish/resolve any pending shot
+before stopping the experiment with a reason. Unstarted steps remain unstarted; a stopped
+experiment cannot resume. Ending the session prevents further execution; stop unfinished
+experiments with a reason when closing their collection.
+
+**FINISHED** means terminal attempts, not successful replication or empirical proof. Counts
+separate finished attempts from completed brews. Switching back to Assisted preserves the
+experiment and every measurement. Record intervening physical grinds and interruptions; the
+experiment schedule alone cannot establish uninterrupted physical execution.
+
+See [experiments.md](experiments.md) for the first-offer rationale, designs, programmatic raw
+observation access and deferred protocols. No prospective experiment results are claimed yet.

@@ -228,3 +228,20 @@ Known bean identity is no longer the main uncertainty: sequences 1â€“39 are CafÃ
 - unrecorded puck-preparation quality can create large residuals.
 
 Historical data are useful for warm-starting, estimating some repeatability, rejecting obviously bad model ideas and deciding which experiments would add information. Prospective trials remain the real test of controller performance.
+
+## Phase 4 acquisition integrity versus empirical validation
+
+Schema-v4 tests cover fresh creation; populated v1/v2/v3 migration; rollback and idempotence;
+immutable complete designs; explicit new shot intent and unknown legacy intent; ordered,
+one-shot-per-step links; cross-session and input mismatch rejection; restart/progress; raw
+planned/actual values and deviations; stopping; abandonment/invalidation; and unchanged v3
+confirmed-non-execution continuity. Streamlit AppTest exercises both designs through preview,
+freeze, actual deviation, brewing, restart, pre-grind cancellation and early stop, alongside the
+existing Assisted regression suite. Run all gates with `mise run check`.
+
+These tests use synthetic temporary databases, not real coffee observations. They establish
+acquisition integrity, not causal identification, noise precision, controller savings or
+hypothesis confirmation. [experiments.md](experiments.md) specifies the selected pilots and
+remaining identification gaps. Count planned attempts, completed brews, abandoned/invalidated
+attempts and actual grinder mass separately. Never impute output for unexecuted steps or score
+experimental exploration costs as ordinary Assisted dial-in performance.

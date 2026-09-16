@@ -85,7 +85,7 @@ def test_empty_path_schema_idempotence_and_restart(repo):
     offset = shot.created_at.utcoffset()
     assert offset is not None and offset.total_seconds() == 0
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
 
 
 def test_unknown_schema_is_not_overwritten(tmp_path):
@@ -317,7 +317,7 @@ def test_database_link_cannot_cross_sessions_or_select_a_shadow(repo):
             with pytest.raises(sqlite3.IntegrityError):
                 db.execute(
                     "INSERT INTO shots (id, session_id, sequence, created_at, "
-                    "selected_recommendation_id) VALUES (?, ?, ?, ?, ?)",
+                    "selected_recommendation_id, intent) VALUES (?, ?, ?, ?, ?, 'ASSISTED')",
                     ("invalid", "other", 1, utc_now().isoformat(), recommendation_id),
                 )
     assert not repo.shots("other")

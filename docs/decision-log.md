@@ -262,6 +262,31 @@ Ordinary startup performs only the schema migration, never the row-specific corr
 legacy-ambiguous or merely unrecorded physical grind would make an unsupported scientific
 assumption.
 
+## 2026-09-16 — First bounded Phase-4 experiment infrastructure
+
+**Decision:** Add schema v4 with immutable experiments/steps, explicit prospective shot intent,
+unique step membership, optional grinding deviation notes and append-only early stops. Legacy
+intent stays unknown. Steps feed ordinary acquisition; progress derives from shot resolutions
+and outcomes. V3 confirmed pre-grind non-execution and physical continuity are unchanged.
+
+Offer three fixed-condition repeats first (3-6 selectable before freezing) to address missing
+current-bean replication at low coffee cost. Also offer seven fixed-setting duration attempts
+in reference/low/high/reference/high/low/reference order, balancing linear sequence position
+and retaining reference revisits. Counts include resolved attempts; no automatic replacement
+or outcome-dependent extension. A recorded early stop retains the entire original schedule.
+
+**Evidence and limits:** Rechecked corrected data still have no REWE identical-setting/duration
+output repeats, while Cafe Intencion already has several. Duration and setting contrasts remain
+operator-adapted, seven immediate pairs do not isolate retention, and unrecorded historical
+session boundaries prevent within-session drift identification. See [experiments.md](experiments.md)
+for source hash, counts, budgets and methodology. No designed prospective measurements or
+empirical claims accompany this software increment; Phase-4 data collection remains pending.
+
+Dedicated transition, categorical setting-contrast and elapsed-time drift protocols are deferred.
+No grinder-label arithmetic, richer model, recency weighting or autonomous experiment selection
+is introduced. Eligible experimental grinder results retain the existing Assisted controller
+eligibility rules, but evaluation must preserve and separate selection intent.
+
 ## Open decisions
 
 The following are intentionally unresolved:
@@ -272,7 +297,7 @@ The following are intentionally unresolved:
 - exact grinder-setting representation/calibration for the Sette 270;
 - acceptable target bands for dose/yield when benchmarking “dialed in”;
 - how much uncertainty to assign to a puck dose that was manually corrected “to approximately 18 g”;
-- exact first Learning-Mode experiment plan and stopping criteria;
+- later Learning-Mode protocols and evidence needed beyond the first bounded pilots;
 - when/if recursive forgetting should be introduced for drift;
 - whether a Gaussian-process surrogate has enough prospective data and a defensible grinder-distance representation to be useful;
 - when Bayesian optimisation provides enough value over transparent DoE schedules to justify autonomous experiment selection;

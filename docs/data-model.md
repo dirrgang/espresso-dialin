@@ -111,44 +111,11 @@ Do not assume every future session uses these defaults.
 
 A planned experiment records **why** one or more shots are being requested before their results are known.
 
-Conceptual fields:
-
-```text
-id
-session_id
-created_at
-mode
-question
-plan_type
-planned_conditions_json
-replication_target?
-stopping_rule_json?
-coffee_budget_g?
-status
-notes?
-```
-
-`mode` should distinguish at least:
-
-```text
-NORMAL
-LEARNING
-```
-
-Possible `plan_type` values may eventually include:
-
-```text
-REPEATABILITY
-DURATION_RESPONSE
-SETTING_COMPARISON
-TRANSITION_RETENTION
-DRIFT_REFERENCE
-CUSTOM
-```
-
-Do not hard-code a large taxonomy prematurely; the essential semantic requirement is that designed experiments are identifiable and that their intended question/conditions were recorded before outcomes.
-
-A later Bayesian/active-learning system may generate an experiment plan automatically. The persistence semantics should remain the same: the selected experimental action and its rationale/acquisition metadata are frozen before the shot.
+The implemented `Experiment` and `ExperimentStep` records use typed fields and explicit SQL
+columns for schedule semantics; see **Current live schema (version 4)** below. Experiment status
+and step progress derive from existing shot evidence and an optional immutable early stop.
+The first families are fixed-condition replication and local duration response. Future selection
+methods must preserve the same pre-outcome design and immutable membership boundary.
 
 ### Shot
 
@@ -321,7 +288,7 @@ shots
 recommendations
 ```
 
-The initial live app may omit a separate `experiments` table if Learning Mode is not yet implemented, provided shot/recommendation schemas can later add experiment identity without losing semantic distinctions.
+Schema v4 includes explicit experiment and step tables; membership is frozen before acquisition.
 
 Schema migrations can remain simple initially, but a schema version should exist before importing a meaningful historical or prospective dataset.
 
@@ -378,7 +345,7 @@ An abandoned brew retains its grinder observation as valid; invalidation exclude
 shot. Under v2, a missing grinder observation is conservatively ambiguous and breaks the
 contiguous compatible block.
 
-## Current live schema (version 3)
+## Live schema version 3 (continuity semantics retained in v4)
 
 Schema v3 adds nullable `shot_resolutions.no_physical_grinding_confirmed`. The value is persisted
 as `1` only when the operator explicitly confirms that the frozen plan was never physically
@@ -399,6 +366,45 @@ Continuity semantics are therefore:
 The v2-to-v3 migration adds the nullable field and leaves every existing row `NULL`. It never
 infers non-execution from missing measurements, status, or reason text. This preserves the
 conservative semantics of legacy v2 data. The v1 migration proceeds through the same v2 state
-before adding the v3 field, all within one transaction. Fresh databases are created directly at
-v3. Migration tests verify data preservation, conservative legacy behavior, idempotence and
+before adding the v3 field, all within one transaction. V3 originally created fresh databases
+directly at v3; current initialization adds the v4 structures below. Migration tests verify data preservation, conservative legacy behavior, idempotence and
 rollback after failure.
+
+## Current live schema (version 4)
+
+V4 adds three explicit tables and three nullable shot columns. No schedule is stored as JSON.
+
+| Record | Stored semantics |
+| --- | --- |
+| `experiments` | immutable ID, session FK (and thus bean/setup association), creation time, family, research question, stopping rule, controls, estimated coffee, predefined step count |
+| `experiment_steps` | immutable ID, experiment FK, sequence, exact setting, duration, condition identity, within-condition replicate, role, optional earlier reference sequence |
+| `experiment_stops` | one immutable early-stop timestamp and required reason per experiment |
+| `shots.intent` | `ASSISTED` or `EXPERIMENT` for every new shot; legacy rows remain NULL/unknown |
+| `shots.experiment_step_id` | nullable unique FK; required exactly for experimental intent |
+| `shots.deviation_note` | optional note saved atomically with actual grinding; immutable with grinding evidence; legacy NULL |
+
+Creation is atomic: steps are inserted under a deferred experiment FK, then the experiment
+header seals the complete sequence. Database triggers reject changing/deleting either record
+or extending a sealed schedule. A step can reference only an earlier step of its experiment;
+typed domain validation also checks replicate numbering and stable condition/reference inputs.
+The storage layer does not encode the family-specific schedule algorithm.
+
+Shot insertion requires matching session, creation after the experiment, matching frozen
+selected inputs, an unstopped experiment and terminal prior steps. A unique index prevents two
+shots from consuming one step. Intent/membership cannot change, including before grinding.
+Existing frozen-recommendation, chronology, one-pending-shot, resolution and physical-continuity
+guards remain in force. Stopping adds an annotation and requires no pending experimental shot.
+Unused steps do not create shot rows or affect grinder continuity.
+
+`ExperimentProgress` derives READY, IN_PROGRESS, FINISHED or STOPPED and counts from existing
+shots/stop evidence. Step state is the linked `Shot.status`, or unstarted when no shot exists.
+There is no duplicate acquisition state machine. Abandoned and invalidated attempts advance
+schedule progress but are not completed brews. Later invalidation changes descriptive counts,
+never the frozen design. Planned-versus-actual input differences are derived, not backfilled
+condition labels. See [experiments.md](experiments.md) for the typed observation access boundary.
+
+Initialization migrates v1/v2 through the existing migrations and adds v4 to v3 transactionally.
+The v3 fixture is frozen from main commit `7b17c8a`; tests preserve prior column values and
+explicit non-execution confirmations, test rollback and repeat initialization. Existing shots
+receive no invented normal/experimental label or membership. Historical CSV metadata is not
+inferred or imported. Back up before upgrading; older application versions reject v4.
