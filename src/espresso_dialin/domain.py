@@ -43,6 +43,11 @@ class ShotStatus(StrEnum):
     INVALIDATED = "INVALIDATED"
 
 
+class ShotIntent(StrEnum):
+    ASSISTED = "ASSISTED"
+    EXPERIMENT = "EXPERIMENT"
+
+
 @dataclass(frozen=True, kw_only=True)
 class ShotResolution:
     status: ShotStatus
@@ -148,6 +153,7 @@ class GrindingResult:
     output_g: float
     correction: CorrectionMode
     puck_dose_g: float | None = None
+    deviation_note: str = ""
 
     def __post_init__(self) -> None:
         required(self.setting, "actual setting")
@@ -188,6 +194,8 @@ class Shot:
     completed_at: datetime | None = None
     grinding_recorded_at: datetime | None = None
     resolution: ShotResolution | None = None
+    intent: ShotIntent | None = None
+    experiment_step_id: str | None = None
 
     @property
     def plan_frozen_at(self) -> datetime:
@@ -237,6 +245,8 @@ class Shot:
             raise ValueError("resolution cannot precede the recorded evidence")
 
     def __post_init__(self) -> None:
+        if (self.intent == ShotIntent.EXPERIMENT) != (self.experiment_step_id is not None):
+            raise ValueError("experimental intent requires a predefined experiment step")
         for name in ("id", "session_id", "selected_recommendation_id"):
             required(getattr(self, name), name)
         if self.sequence <= 0:

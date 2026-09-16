@@ -152,7 +152,7 @@ def test_v1_migration_preserves_every_original_value_and_unknown_times(v1_path):
                 db.execute(f"SELECT {','.join(columns)} FROM {table} ORDER BY id").fetchall()
                 == rows
             )
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
         assert not db.execute("PRAGMA foreign_key_check").fetchall()
     assert all(session.bag_opened_date is None for session in repo.sessions())
     complete, pending = repo.shots("one")
@@ -180,7 +180,7 @@ def test_v2_migration_keeps_ambiguous_pregrind_abandonment_conservative(
 ):
     repo = Repository(v2_ambiguous_pregrind_path)
     with closing(sqlite3.connect(v2_ambiguous_pregrind_path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
         columns = {row[1] for row in db.execute("PRAGMA table_info(shot_resolutions)")}
         assert "no_physical_grinding_confirmed" in columns
         assert db.execute(
@@ -218,17 +218,17 @@ def test_migration_failure_rolls_back_ddl_data_and_version(v1_path, monkeypatch)
 
 def test_fresh_schema_does_not_run_legacy_migration(tmp_path, monkeypatch):
     def unexpected_v1_migration(db):
-        pytest.fail("fresh databases must be created directly at v3")
+        pytest.fail("fresh databases must be created directly at v4")
 
     def unexpected_v2_migration(db):
-        pytest.fail("fresh databases must be created directly at v3")
+        pytest.fail("fresh databases must be created directly at v4")
 
     monkeypatch.setattr(schema, "migrate_v1_to_v2", unexpected_v1_migration)
     monkeypatch.setattr(schema, "migrate_v2_to_v3", unexpected_v2_migration)
     repo = Repository(tmp_path / "fresh.sqlite3")
     assert repo.sessions() == []
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
 
 
 # Streamlit AppTest currently triggers upstream sqlite3 ResourceWarnings under Python 3.14.
@@ -241,7 +241,7 @@ def test_app_launch_migrates_v1_and_shows_pending_phase(v1_path, monkeypatch):
     app = AppTest.from_file(str(Path(__file__).parents[1] / "streamlit_app.py")).run()
     assert not app.exception and not app.error
     with closing(sqlite3.connect(v1_path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
     app.selectbox(key="current_session").select("one").run()
     assert not app.exception and not app.error
     assert any(input.label == "Brew duration (s)" for input in app.number_input)

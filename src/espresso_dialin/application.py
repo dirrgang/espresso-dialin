@@ -93,6 +93,8 @@ class Acquisition:
         expected_sequence: int,
         strategy_id: str,
         manual_duration_s: float | None = None,
+        *,
+        experiment_step_id: str | None = None,
     ) -> Shot:
         preview = self.preview(session_id, setting)
         if preview.target.next_sequence != expected_sequence:
@@ -114,4 +116,21 @@ class Acquisition:
                     selected=True,
                 )
             )
-        return self.repository.freeze(session_id, expected_sequence, plans)
+        return self.repository.freeze(
+            session_id, expected_sequence, plans, experiment_step_id=experiment_step_id
+        )
+
+    def freeze_experiment_step(self, experiment_id: str, expected_step_id: str) -> Shot:
+        progress = self.repository.experiment_progress(experiment_id)
+        step = progress.next_step
+        if step is None or step.id != expected_step_id:
+            raise ValueError("stale or unavailable experiment step; reload before freezing")
+        session_id = progress.experiment.session_id
+        return self.freeze(
+            session_id,
+            step.setting,
+            len(self.repository.shots(session_id)) + 1,
+            "manual",
+            step.duration_s,
+            experiment_step_id=step.id,
+        )

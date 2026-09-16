@@ -266,3 +266,55 @@ def test_explicit_pregrind_cancel_survives_restart_and_preserves_history(session
         plan.model is not None and plan.model.observation_ids == (first.id,)
         for plan in repo.plans("session-2", 3)
     )
+
+
+@pytest.mark.parametrize("family", ["Fixed-condition replication", "Local grind-duration response"])
+def test_learning_preview_execute_restart_and_stop(session_app, family):
+    repo, app = session_app
+    widget(app.radio, "Use mode").set_value("Learning").run()
+    widget(app.selectbox, "Experiment design").select(family).run()
+    widget(app.text_input, "Reference grinder setting").input("5G").run()
+    widget(app.number_input, "Reference grind duration (s)").set_value(9.5).run()
+    assert len(app.table[0].value) == (3 if family.startswith("Fixed") else 7)
+    assert not repo.experiments("session-2")
+    widget(app.button, "Freeze experiment plan").click().run()
+    assert not app.exception and not app.error
+    experiment = repo.experiments("session-2")[0]
+    assert not repo.shots("session-2")
+    widget(app.button, "Freeze next experimental shot").click().run()
+    assert not app.exception and not app.error
+    app = start_app()
+    assert widget(app.radio, "Use mode").value == "Learning"
+    widget(app.text_input, "Actual grinder setting").input("5H")
+    widget(app.number_input, "Actual grind duration (s)").set_value(9.7)
+    widget(app.number_input, "Grinder output (g)").set_value(18.3)
+    widget(app.text_input, "Deviation / interruption note (optional)").input("dial moved")
+    widget(app.button, "Save grinding result").click().run()
+    assert not app.exception and not app.error
+    app = start_app()
+    widget(app.number_input, "Brew duration (s)").set_value(32.0)
+    widget(app.number_input, "Final beverage yield (g)").set_value(36.5)
+    widget(app.button, "Complete shot").click().run()
+    assert not app.exception and not app.error
+    assert widget(app.radio, "Use mode").value == "Learning"
+    widget(app.radio, "Use mode").set_value("Learning").run()
+    p = repo.experiment_progress(experiment.id)
+    assert p.finished == 1 and p.observations[0].deviations == ("setting", "duration_s")
+    assert p.observations[0].shot.grinding.deviation_note == "dial moved"
+    assert any("1/" in m.value for m in app.markdown)
+    widget(app.button, "Freeze next experimental shot").click().run()
+    widget(app.text_area, "Reason for cancelling frozen plan (required)").input("no coffee")
+    widget(app.checkbox, "I confirm that no physical grinding occurred for this plan").check()
+    widget(app.button, "Cancel frozen plan — no grinding performed").click().run()
+    assert not app.exception and not app.error
+    widget(app.radio, "Use mode").set_value("Learning").run()
+    assert repo.experiment_progress(experiment.id).finished == 2
+    widget(app.text_input, "Reason for stopping experiment").input("budget exhausted")
+    widget(app.button, "Stop experiment").click().run()
+    assert not app.exception and not app.error
+    assert repo.experiment_progress(experiment.id).status == "STOPPED"
+    app = start_app()
+    widget(app.radio, "Use mode").set_value("Learning").run()
+    assert any("budget exhausted" in m.value for m in app.markdown)
+    widget(app.radio, "Use mode").set_value("Assisted").run()
+    assert widget(app.text_input, "Grinder setting")

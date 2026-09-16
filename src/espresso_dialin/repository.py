@@ -17,12 +17,21 @@ from espresso_dialin.domain import (
     Plan,
     Session,
     Shot,
+    ShotIntent,
     ShotResolution,
     ShotStatus,
     compatible_dose_block,
+    required,
     utc_now,
 )
 from espresso_dialin.dose_control import DoseRecommendation
+from espresso_dialin.experiments import (
+    Experiment,
+    ExperimentFamily,
+    ExperimentObservation,
+    ExperimentProgress,
+    ExperimentStep,
+)
 from espresso_dialin.schema import initialize
 
 SHOT_QUERY = """SELECT s.*, r.status AS resolution_status,
@@ -164,12 +173,15 @@ class Repository:
             sequence=row["sequence"],
             created_at=datetime.fromisoformat(row["created_at"]),
             selected_recommendation_id=row["selected_recommendation_id"],
+            intent=ShotIntent(row["intent"]) if row["intent"] else None,
+            experiment_step_id=row["experiment_step_id"],
             grinding=GrindingResult(
                 setting=row["actual_setting"],
                 duration_s=row["actual_duration_s"],
                 output_g=row["grinder_output_g"],
                 correction=CorrectionMode(row["correction"]),
                 puck_dose_g=row["puck_dose_g"],
+                deviation_note=row["deviation_note"] or "",
             )
             if row["actual_duration_s"] is not None
             else None,
@@ -198,7 +210,14 @@ class Repository:
             else None,
         )
 
-    def freeze(self, session_id: str, sequence: int, plans: Sequence[Plan]) -> Shot:
+    def freeze(
+        self,
+        session_id: str,
+        sequence: int,
+        plans: Sequence[Plan],
+        *,
+        experiment_step_id: str | None = None,
+    ) -> Shot:
         """Atomically persist every candidate and exactly one choice before any outcome."""
         selected = [plan for plan in plans if plan.selected]
         if len(selected) != 1:
@@ -213,6 +232,8 @@ class Repository:
             sequence=sequence,
             created_at=selected[0].created_at,
             selected_recommendation_id=selected[0].id,
+            intent=ShotIntent.EXPERIMENT if experiment_step_id else ShotIntent.ASSISTED,
+            experiment_step_id=experiment_step_id,
         )
         if shot.created_at > utc_now():
             raise ValueError("plan creation cannot be in the future")
@@ -272,13 +293,16 @@ class Repository:
                 )
             db.execute(
                 "INSERT INTO shots (id, session_id, sequence, created_at, "
-                "selected_recommendation_id) VALUES (?, ?, ?, ?, ?)",
+                "selected_recommendation_id, intent, experiment_step_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     shot.id,
                     session_id,
                     sequence,
                     _timestamp(shot.created_at),
                     shot.selected_recommendation_id,
+                    shot.intent,
+                    shot.experiment_step_id,
                 ),
             )
         return shot
@@ -287,7 +311,7 @@ class Repository:
         with self._connection() as db:
             cursor = db.execute(
                 "UPDATE shots SET actual_setting=?, actual_duration_s=?, grinder_output_g=?, "
-                "correction=?, puck_dose_g=?, grinding_recorded_at=? "
+                "correction=?, puck_dose_g=?, grinding_recorded_at=?, deviation_note=? "
                 "WHERE id=? AND completed_at IS NULL AND actual_duration_s IS NULL "
                 "AND NOT EXISTS (SELECT 1 FROM shot_resolutions WHERE shot_id=shots.id)",
                 (
@@ -297,6 +321,7 @@ class Repository:
                     result.correction.value,
                     result.puck_dose_g,
                     _timestamp(utc_now()),
+                    result.deviation_note,
                     shot_id,
                 ),
             )
@@ -357,4 +382,98 @@ class Repository:
                     resolution.reason,
                     1 if resolution.no_physical_grinding_confirmed is True else None,
                 ),
+            )
+
+    def add_experiment(self, experiment: Experiment) -> None:
+        """Seal the entire schedule in one transaction, before any linked shot exists."""
+        if experiment.created_at > utc_now():
+            raise ValueError("experiment creation cannot be in the future")
+        with self._connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            # Deferred FK permits inserting steps first. The header seals their membership.
+            for step in experiment.steps:
+                db.execute(
+                    "INSERT INTO experiment_steps VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        step.id,
+                        experiment.id,
+                        step.sequence,
+                        step.setting,
+                        step.duration_s,
+                        step.condition,
+                        step.replicate,
+                        step.role,
+                        step.reference_sequence,
+                    ),
+                )
+            db.execute(
+                "INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    experiment.id,
+                    experiment.session_id,
+                    _timestamp(experiment.created_at),
+                    experiment.family.value,
+                    experiment.question,
+                    experiment.stopping_rule,
+                    experiment.controls,
+                    experiment.estimated_coffee_g,
+                    len(experiment.steps),
+                ),
+            )
+
+    def experiments(self, session_id: str) -> list[Experiment]:
+        with self._connection() as db:
+            rows = db.execute(
+                "SELECT * FROM experiments WHERE session_id=? ORDER BY created_at, id",
+                (session_id,),
+            ).fetchall()
+            result = []
+            for row in rows:
+                steps = db.execute(
+                    "SELECT id, sequence, setting, duration_s, condition, replicate, role, "
+                    "reference_sequence FROM experiment_steps WHERE experiment_id=? "
+                    "ORDER BY sequence",
+                    (row["id"],),
+                ).fetchall()
+                result.append(
+                    Experiment(
+                        id=row["id"],
+                        session_id=row["session_id"],
+                        created_at=datetime.fromisoformat(row["created_at"]),
+                        family=ExperimentFamily(row["family"]),
+                        question=row["question"],
+                        stopping_rule=row["stopping_rule"],
+                        controls=row["controls"],
+                        estimated_coffee_g=row["estimated_coffee_g"],
+                        steps=tuple(ExperimentStep(**dict(s)) for s in steps),
+                    )
+                )
+        return result
+
+    def experiment_progress(self, experiment_id: str) -> ExperimentProgress:
+        """Return every planned step, raw shot evidence and derived input deviations."""
+        with self._connection() as db:
+            row = db.execute(
+                "SELECT session_id FROM experiments WHERE id=?", (experiment_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("unknown experiment")
+            stop = db.execute(
+                "SELECT * FROM experiment_stops WHERE experiment_id=?", (experiment_id,)
+            ).fetchone()
+        experiment = next(e for e in self.experiments(row["session_id"]) if e.id == experiment_id)
+        shots = {s.experiment_step_id: s for s in self.shots(experiment.session_id)}
+        return ExperimentProgress(
+            experiment,
+            tuple(ExperimentObservation(s, shots.get(s.id)) for s in experiment.steps),
+            datetime.fromisoformat(stop["recorded_at"]) if stop else None,
+            stop["reason"] if stop else None,
+        )
+
+    def stop_experiment(self, experiment_id: str, reason: str) -> None:
+        required(reason, "stop reason")
+        with self._connection() as db:
+            db.execute(
+                "INSERT INTO experiment_stops VALUES (?, ?, ?)",
+                (experiment_id, _timestamp(utc_now()), reason),
             )

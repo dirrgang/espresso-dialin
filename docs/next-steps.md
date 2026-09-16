@@ -75,7 +75,7 @@ schema-v2/v3 hardening subsequently extended this persistence model; v1 is no lo
 live schema. No prospective efficacy claim has been established; live collection and later
 evaluation remain necessary.
 
-Grind-setting optimisation remains manual. Learning Mode and Phase 4 have not been implemented.
+Grind-setting optimisation remains manual. The first Phase-4 infrastructure increment is described below.
 
 ## Phase 3.1 — Acquisition hardening
 
@@ -85,7 +85,7 @@ abandonment/invalidation records, reason/confirmation UI, and lifecycle-aware co
 eligibility. Users can release a blocked session without deleting measurements or frozen plans.
 No model improvement, retrospective replacement editor, or Learning Mode is included.
 
-A same-day follow-up upgraded the **current live schema to v3** to distinguish frozen intent from
+A same-day follow-up upgraded the **then-current live schema to v3** to distinguish frozen intent from
 physical grinder execution. `shot_resolutions.no_physical_grinding_confirmed` is persisted only
 after explicit confirmation that a pre-grind frozen plan was never executed. Such a confirmed
 unexecuted plan remains in the audit trail but is transparent to physical grinder continuity;
@@ -96,9 +96,11 @@ identified mistaken pre-grind invalidation and preserves a backup plus original 
 See [data-model.md](data-model.md), [validation.md](validation.md), and
 [live-workflow.md](live-workflow.md) for the authoritative current semantics.
 
-## Phase 4 — Learning / Experiment mode and first designed experiments (not implemented)
+## Phase 4 — Learning / Experiment mode (infrastructure implemented; collection pending)
 
-Add an explicit experiment intent distinct from normal assisted use. The first version should use transparent Design-of-Experiments principles rather than autonomous Bayesian optimisation.
+Implemented 2026-09-16: explicit intent, immutable complete schedules, restartable step execution through ordinary acquisition, deviations, progress and early stopping. Schema v4 preserves v3 continuity semantics. The UI offers fixed-condition replication first and a balanced seven-attempt local duration response. See [experiments.md](experiments.md) for the checked historical gaps, coffee budgets and limitations.
+
+No real designed outcomes were collected in this increment. The remaining Phase-4 work is to choose a useful current operating point, collect the predefined shots, inspect deviations/resolutions, and assess whether the specific identification gap has narrowed. The broader families below remain research work, not a completion checklist satisfied by shipping software.
 
 Experiment families should be selected for concrete identification questions **after checking what the corrected historical dataset already tells us**. Candidate families include:
 

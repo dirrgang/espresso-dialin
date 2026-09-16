@@ -2,7 +2,7 @@
 
 Experimental, local-first proof of concept for adaptive espresso dial-in.
 
-**Phase 3.1 is usable for prospective collection:** a local Streamlit + SQLite app freezes
+**Assisted and Learning modes are usable for prospective collection:** a local Streamlit + SQLite app freezes
 dose recommendations before grinding and records actual grinding/brewing results separately.
 Grinder settings remain manually chosen. Start with the [live workflow guide](docs/live-workflow.md).
 
@@ -81,12 +81,12 @@ The project is being treated primarily as a **system-identification and adaptive
 
 The preferred direction is **gray-box modelling**: use known process structure where it improves sample efficiency, and learn the unknown parameters, residuals, drift, or latent state from data.
 
-Two operating objectives should eventually be explicit:
+Two operating objectives are explicit:
 
 - **Normal / assisted mode:** prioritize a good next drink with minimal waste.
 - **Learning / experiment mode:** deliberately request informative, controlled shots to identify process behaviour efficiently.
 
-Learning Mode should begin with transparent Design-of-Experiments principles such as replication and controlled factor changes. Gaussian-process / Bayesian-optimisation methods are later candidates once the action-space representation and uncertainty model are trustworthy.
+Learning Mode offers frozen fixed-condition replication and balanced local duration-response schedules. See [experiment designs and evidence](docs/experiments.md). Real designed data collection and empirical validation remain outstanding. Gaussian-process / Bayesian-optimisation methods are later candidates once the action-space representation and uncertainty model are trustworthy.
 
 See:
 

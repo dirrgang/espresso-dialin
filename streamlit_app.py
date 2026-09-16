@@ -17,6 +17,7 @@ from espresso_dialin.domain import (
     ShotStatus,
     utc_now,
 )
+from espresso_dialin.experiments import ExperimentFamily, build_experiment
 from espresso_dialin.repository import Repository
 
 DEFAULT_DATABASE = Path(__file__).parent / "data" / "live.sqlite3"
@@ -30,6 +31,146 @@ def input_errors():
         yield
     except (ValueError, sqlite3.Error) as error:
         st.error(str(error))
+
+
+def learning_mode(repo, app, session, shots, pending):
+    st.header("Learning / Experiment mode")
+    st.caption(
+        "Follow a predefined schedule to answer a research question. "
+        "These are experimental shots, not ordinary dial-in recommendations."
+    )
+    experiments = repo.experiments(session.id)
+    if session.ended_at is None and pending is None:
+        with st.expander("Create experiment", expanded=not experiments):
+            family = st.selectbox("Experiment design", list(ExperimentFamily))
+            default_question = (
+                "How variable is grinder output at this fixed condition in this session?"
+                if family == ExperimentFamily.REPLICATION
+                else "Does output scale proportionally with duration near this operating point?"
+            )
+            question = st.text_input("Research question", value=default_question, key=f"q_{family}")
+            last = next((s.grinding for s in reversed(shots) if s.grinding), None)
+            setting = st.text_input("Reference grinder setting", value=last.setting if last else "")
+            duration = st.number_input(
+                "Reference grind duration (s)",
+                value=last.duration_s if last else None,
+                min_value=0.001,
+                format="%.3f",
+            )
+            expected = st.number_input(
+                "Estimated reference output (g)", value=session.target_puck_dose_g, min_value=0.001
+            )
+            replicates = 3
+            delta = 0.5
+            if family == ExperimentFamily.REPLICATION:
+                replicates = st.number_input(
+                    "Predefined replicate count", value=3, min_value=3, max_value=6
+                )
+            else:
+                delta = st.number_input("Duration offset (s)", value=0.5, min_value=0.001)
+            if setting.strip() and duration is not None:
+                with input_errors():
+                    design = build_experiment(
+                        session.id,
+                        ExperimentFamily(family),
+                        setting,
+                        duration,
+                        expected,
+                        replicates=replicates,
+                        delta_s=delta,
+                        question=question,
+                    )
+                    st.write(design.controls)
+                    st.write(
+                        "Varied: grind duration."
+                        if family == ExperimentFamily.DURATION
+                        else "Varied: nothing deliberately; repeat the same inputs."
+                    )
+                    st.table(
+                        [
+                            {
+                                "Step": s.sequence,
+                                "Setting": s.setting,
+                                "Duration (s)": s.duration_s,
+                                "Condition": s.condition,
+                                "Replicate": s.replicate,
+                                "Role": s.role,
+                            }
+                            for s in design.steps
+                        ]
+                    )
+                    st.write(
+                        f"{len(design.steps)} planned shots; approximately "
+                        f"{design.estimated_coffee_g:.1f} g of grinder output."
+                    )
+                    st.caption(
+                        "Planning estimate assumes proportional output; excludes any "
+                        "purge or extra correction coffee. This is not a prediction."
+                    )
+                    st.write(design.stopping_rule)
+                    if st.button("Freeze experiment plan"):
+                        repo.add_experiment(design)
+                        st.session_state[f"experiment_{session.id}"] = design.id
+                        st.rerun()
+    if not experiments:
+        return
+    choices = {e.id: e for e in experiments}
+    selected = st.selectbox(
+        "Experiment",
+        list(choices),
+        format_func=lambda key: f"{choices[key].family} · {key[:8]}",
+        key=f"experiment_{session.id}",
+    )
+    progress = repo.experiment_progress(selected)
+    st.write(progress.experiment.question)
+    st.caption(progress.experiment.controls)
+    st.write(progress.experiment.stopping_rule)
+    st.write(
+        f"{progress.status}: {progress.finished}/{len(progress.observations)} attempts "
+        f"finished; {progress.completed} completed brews; "
+        f"{sum(o.shot is None for o in progress.observations)} steps not started."
+    )
+    if progress.stop_reason:
+        st.write(f"Stopped: {progress.stop_reason}")
+    st.dataframe(
+        [
+            {
+                "Step": o.step.sequence,
+                "Condition": o.step.condition,
+                "Replicate": o.step.replicate,
+                "Planned setting": o.step.setting,
+                "Planned s": o.step.duration_s,
+                "State": o.shot.status.value if o.shot else "NOT_STARTED",
+                "Actual setting": o.shot.grinding.setting if o.shot and o.shot.grinding else None,
+                "Actual s": o.shot.grinding.duration_s if o.shot and o.shot.grinding else None,
+                "Output g": o.shot.grinding.output_g if o.shot and o.shot.grinding else None,
+                "Deviations": ", ".join(o.deviations),
+                "Deviation note": o.shot.grinding.deviation_note
+                if o.shot and o.shot.grinding
+                else None,
+            }
+            for o in progress.observations
+        ],
+        hide_index=True,
+    )
+    step = progress.next_step
+    if step and pending is None and session.ended_at is None:
+        st.info(f"Next experimental step {step.sequence}: {step.setting} · {step.duration_s:.3f} s")
+        st.caption(
+            "Record any intervening grinding as ordinary shots and describe interruptions "
+            "in the deviation note. Unrecorded grinding limits interpretation."
+        )
+        if st.button("Freeze next experimental shot"):
+            with input_errors():
+                app.freeze_experiment_step(selected, step.id)
+                st.rerun()
+    if progress.status in ("READY", "IN_PROGRESS") and pending is None:
+        with st.form(f"stop_{selected}", enter_to_submit=False):
+            reason = st.text_input("Reason for stopping experiment")
+            if st.form_submit_button("Stop experiment"):
+                with input_errors():
+                    repo.stop_experiment(selected, reason)
+                    st.rerun()
 
 
 def main():
@@ -110,7 +251,15 @@ def main():
         with input_errors():
             repo.end_session(session_id)
             st.rerun()
+    st.session_state.setdefault(
+        "use_mode", "Learning" if pending and pending.experiment_step_id else "Assisted"
+    )
+    use_mode = st.radio("Use mode", ["Assisted", "Learning"], key="use_mode")
+    if use_mode == "Learning":
+        learning_mode(repo, app, session, shots, pending)
     if pending:
+        if pending.experiment_step_id:
+            st.info(f"Experimental shot · step {pending.experiment_step_id}")
         plans = repo.plans(session_id, pending.sequence)
         selected = next(p for p in plans if p.selected)
         st.header(f"Shot {pending.sequence} · frozen plan")
@@ -138,6 +287,7 @@ def main():
                     min_value=0.001,
                     disabled=mode != CorrectionMode.MEASURED,
                 )
+                deviation_note = st.text_input("Deviation / interruption note (optional)")
                 if st.form_submit_button("Save grinding result"):
                     with input_errors():
                         if duration is None or output is None:
@@ -145,6 +295,7 @@ def main():
                         repo.save_grinding(
                             pending.id,
                             GrindingResult(
+                                deviation_note=deviation_note,
                                 setting=actual_setting,
                                 duration_s=duration,
                                 output_g=output,
@@ -204,7 +355,7 @@ def main():
                             ),
                         )
                         st.rerun()
-    elif session.ended_at is None:
+    elif session.ended_at is None and use_mode == "Assisted":
         st.header("Next shot")
         st.caption("Choose the grinder setting manually. Freeze the plan before grinding.")
         setting = st.text_input("Grinder setting", key=f"setting_{session_id}_{len(shots) + 1}")
@@ -250,6 +401,12 @@ def main():
             {
                 "Shot": shot.sequence,
                 "State": shot.status.value,
+                "Intent": shot.intent.value if shot.intent else "Unknown (legacy)",
+                "Experiment step": shot.experiment_step_id,
+                "Deviation note": grind.deviation_note if grind else None,
+                "Input deviation": bool(
+                    grind and (grind.setting != plan.setting or grind.duration_s != plan.duration_s)
+                ),
                 "Strategy": plan.strategy_id,
                 "Planned setting": plan.setting,
                 "Actual setting": grind.setting if grind else None,

@@ -1,8 +1,8 @@
-"""Explicit, transactional SQLite schema initialization and v1 to v3 migration."""
+"""Explicit, transactional SQLite schema initialization and v1 to v4 migration."""
 
 import sqlite3
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 RESOLUTION_UPDATE_TRIGGER = """CREATE TRIGGER resolution_update
 BEFORE UPDATE ON shot_resolutions
@@ -141,8 +141,10 @@ def initialize(db: sqlite3.Connection) -> None:
         migrate_v2_to_v3(db)
     elif version == 2:
         migrate_v2_to_v3(db)
-    elif version != SCHEMA_VERSION:
+    elif version not in (3, SCHEMA_VERSION):
         raise ValueError(f"unsupported database schema version: {version}")
+    if version < 4:
+        _execute_schema(db, EXPERIMENT_SCHEMA)
     db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -210,4 +212,92 @@ WHEN NEW.id != OLD.id OR NEW.bean_id != OLD.bean_id OR NEW.bean_name != OLD.bean
   OR NEW.target_time_min_s != OLD.target_time_min_s
   OR NEW.target_time_max_s != OLD.target_time_max_s
 BEGIN SELECT RAISE(ABORT, 'session context is immutable'); END;
+"""
+
+EXPERIMENT_SCHEMA = """
+CREATE TABLE experiments (
+    id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
+    created_at TEXT NOT NULL, family TEXT NOT NULL, question TEXT NOT NULL,
+    stopping_rule TEXT NOT NULL, controls TEXT NOT NULL,
+    estimated_coffee_g REAL NOT NULL CHECK(estimated_coffee_g > 0),
+    step_count INTEGER NOT NULL CHECK(step_count > 0)
+);
+CREATE TABLE experiment_steps (
+    id TEXT PRIMARY KEY,
+    experiment_id TEXT NOT NULL REFERENCES experiments(id) DEFERRABLE INITIALLY DEFERRED,
+    sequence INTEGER NOT NULL CHECK(sequence > 0),
+    setting TEXT NOT NULL, duration_s REAL NOT NULL CHECK(duration_s > 0),
+    condition TEXT NOT NULL, replicate INTEGER NOT NULL CHECK(replicate > 0),
+    role TEXT NOT NULL, reference_sequence INTEGER,
+    UNIQUE(experiment_id, sequence), UNIQUE(experiment_id, condition, replicate),
+    FOREIGN KEY(experiment_id, reference_sequence)
+        REFERENCES experiment_steps(experiment_id, sequence),
+    CHECK(reference_sequence IS NULL OR reference_sequence < sequence)
+);
+CREATE TABLE experiment_stops (
+    experiment_id TEXT PRIMARY KEY REFERENCES experiments(id),
+    recorded_at TEXT NOT NULL, reason TEXT NOT NULL CHECK(length(trim(reason)) > 0)
+);
+ALTER TABLE shots ADD COLUMN intent TEXT CHECK(intent IN ('ASSISTED', 'EXPERIMENT'));
+ALTER TABLE shots ADD COLUMN experiment_step_id TEXT REFERENCES experiment_steps(id);
+ALTER TABLE shots ADD COLUMN deviation_note TEXT;
+CREATE UNIQUE INDEX one_shot_per_step ON shots(experiment_step_id);
+CREATE TRIGGER experiment_update BEFORE UPDATE ON experiments
+BEGIN SELECT RAISE(ABORT, 'experiments are immutable'); END;
+CREATE TRIGGER experiment_delete BEFORE DELETE ON experiments
+BEGIN SELECT RAISE(ABORT, 'experiments are immutable'); END;
+CREATE TRIGGER step_update BEFORE UPDATE ON experiment_steps
+BEGIN SELECT RAISE(ABORT, 'experiment steps are immutable'); END;
+CREATE TRIGGER step_delete BEFORE DELETE ON experiment_steps
+BEGIN SELECT RAISE(ABORT, 'experiment steps are immutable'); END;
+CREATE TRIGGER step_insert BEFORE INSERT ON experiment_steps
+WHEN EXISTS (SELECT 1 FROM experiments WHERE id = NEW.experiment_id)
+BEGIN SELECT RAISE(ABORT, 'cannot extend a frozen experiment'); END;
+CREATE TRIGGER experiment_insert BEFORE INSERT ON experiments
+WHEN (SELECT count(*) FROM experiment_steps WHERE experiment_id = NEW.id) != NEW.step_count
+  OR (SELECT max(sequence) FROM experiment_steps WHERE experiment_id = NEW.id) != NEW.step_count
+  OR NOT EXISTS (SELECT 1 FROM sessions WHERE id = NEW.session_id AND ended_at IS NULL
+                 AND julianday(started_at) <= julianday(NEW.created_at))
+BEGIN SELECT RAISE(ABORT, 'experiment requires a complete schedule and active session'); END;
+CREATE TRIGGER stop_update BEFORE UPDATE ON experiment_stops
+BEGIN SELECT RAISE(ABORT, 'experiment stops are immutable'); END;
+CREATE TRIGGER stop_delete BEFORE DELETE ON experiment_stops
+BEGIN SELECT RAISE(ABORT, 'experiment stops are immutable'); END;
+CREATE TRIGGER stop_insert BEFORE INSERT ON experiment_stops
+WHEN EXISTS (SELECT 1 FROM shots s JOIN experiment_steps e ON e.id = s.experiment_step_id
+             LEFT JOIN shot_resolutions r ON r.shot_id = s.id
+             WHERE e.experiment_id = NEW.experiment_id
+             AND ((s.completed_at IS NULL AND r.shot_id IS NULL)
+                  OR julianday(NEW.recorded_at) < julianday(
+                     coalesce(r.recorded_at, s.completed_at, s.created_at))))
+  OR EXISTS (SELECT 1 FROM experiments WHERE id = NEW.experiment_id
+             AND julianday(NEW.recorded_at) < julianday(created_at))
+BEGIN SELECT RAISE(ABORT, 'resolve pending experiment shot before stopping'); END;
+CREATE TRIGGER shot_intent_insert BEFORE INSERT ON shots
+WHEN NEW.intent IS NULL
+  OR (NEW.intent = 'EXPERIMENT') != (NEW.experiment_step_id IS NOT NULL)
+BEGIN SELECT RAISE(ABORT, 'new shots require explicit intent and matching step membership'); END;
+CREATE TRIGGER shot_intent_update BEFORE UPDATE ON shots
+WHEN NEW.intent IS NOT OLD.intent OR NEW.experiment_step_id IS NOT OLD.experiment_step_id
+  OR (OLD.actual_duration_s IS NOT NULL AND NEW.deviation_note IS NOT OLD.deviation_note)
+BEGIN SELECT RAISE(ABORT, 'shot intent and saved deviation notes are immutable'); END;
+CREATE TRIGGER experiment_shot_insert BEFORE INSERT ON shots
+WHEN NEW.experiment_step_id IS NOT NULL AND (
+    NOT EXISTS (
+        SELECT 1 FROM experiment_steps e JOIN experiments x ON x.id = e.experiment_id
+        JOIN recommendations p ON p.id = NEW.selected_recommendation_id
+        WHERE e.id = NEW.experiment_step_id AND x.session_id = NEW.session_id
+        AND julianday(x.created_at) <= julianday(NEW.created_at)
+        AND p.setting = e.setting AND p.duration_s = e.duration_s
+        AND NOT EXISTS (SELECT 1 FROM experiment_stops WHERE experiment_id = x.id)
+    ) OR EXISTS (
+        SELECT 1 FROM experiment_steps prior JOIN experiment_steps current
+          ON current.experiment_id = prior.experiment_id
+        LEFT JOIN shots s ON s.experiment_step_id = prior.id
+        LEFT JOIN shot_resolutions r ON r.shot_id = s.id
+        WHERE current.id = NEW.experiment_step_id AND prior.sequence < current.sequence
+          AND (s.id IS NULL OR (s.completed_at IS NULL AND r.shot_id IS NULL))
+    )
+)
+BEGIN SELECT RAISE(ABORT, 'experimental shot must follow the frozen schedule'); END;
 """

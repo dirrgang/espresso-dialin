@@ -110,3 +110,10 @@ The seven first-after-change/immediate-repeat pairs remain 7→8, 10→11, 16→
 Known bean identity removes one earlier uncertainty. Sessions, timestamps, ageing, purge/hopper state and preparation remain unrecorded; corrected puck doses remain approximate. Overlapping rolling training histories are not independent experimental trials. No causal setting effects, physical grinder calibration, uncertainty coverage or coffee savings can be inferred.
 
 **Next step:** use the already-implemented dose baselines in prospective acquisition, and choose Learning-Mode shots for these specific gaps. The refresh does not justify additional model complexity or a generic repetition campaign. See [next-steps.md](next-steps.md).
+
+## Phase-4 evidence recheck, 2026-09-16
+
+[Experiment design notes](experiments.md) record the current CSV fingerprint and rechecked
+identification gaps, including within-session drift and extraction response to setting. The
+reported eligibility/pair counts reproduce; the historical observational limitations remain.
+The first designs address those gaps without claiming new prospective results.
