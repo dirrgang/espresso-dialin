@@ -69,19 +69,32 @@ Initial live setup should make it easy to create/select the current bean **REWE 
 
 Delivered: session creation/selection, explicit manual fallback, both existing dose baselines
 as frozen candidates with one selected plan, resumable grinding/brewing entry, recent history,
-and schema version 1 with provenance guards. Automated repository and Streamlit workflow tests
-cover persistence, chronology, restart and immutable recommendations. No prospective efficacy
-claim has been established; live collection and later evaluation remain necessary.
+and the original schema version 1 provenance guards. Automated repository and Streamlit workflow
+tests cover persistence, chronology, restart and immutable recommendations. Phase 3.1 and its
+schema-v2/v3 hardening subsequently extended this persistence model; v1 is no longer the current
+live schema. No prospective efficacy claim has been established; live collection and later
+evaluation remain necessary.
 
 Grind-setting optimisation remains manual. Learning Mode and Phase 4 have not been implemented.
 
 ## Phase 3.1 — Acquisition hardening
 
-Implemented 2026-09-15: schema v2 and transactional v1 migration, explicit phase-recording
+Implemented 2026-09-15: schema v2 added transactional v1 migration, explicit phase-recording
 timestamps with unknown legacy grinding times preserved, optional bag-open context, immutable
 abandonment/invalidation records, reason/confirmation UI, and lifecycle-aware controller
 eligibility. Users can release a blocked session without deleting measurements or frozen plans.
 No model improvement, retrospective replacement editor, or Learning Mode is included.
+
+A same-day follow-up upgraded the **current live schema to v3** to distinguish frozen intent from
+physical grinder execution. `shot_resolutions.no_physical_grinding_confirmed` is persisted only
+after explicit confirmation that a pre-grind frozen plan was never executed. Such a confirmed
+unexecuted plan remains in the audit trail but is transparent to physical grinder continuity;
+invalidated, legacy-ambiguous, or merely missing evidence remains a conservative block boundary.
+The v2-to-v3 migration is additive and leaves existing rows `NULL`; fresh databases are created
+directly at v3. A narrow dry-run-first maintenance command exists only for the explicitly
+identified mistaken pre-grind invalidation and preserves a backup plus original audit metadata.
+See [data-model.md](data-model.md), [validation.md](validation.md), and
+[live-workflow.md](live-workflow.md) for the authoritative current semantics.
 
 ## Phase 4 — Learning / Experiment mode and first designed experiments (not implemented)
 

@@ -93,7 +93,7 @@ A future production frontend/backend architecture is explicitly premature until 
 - `data/historical_shots_corrected.csv` is the authoritative historical source for current modelling, backtests, and gap analysis; it may contain documented user-supplied corrections that are not inferable from the source image alone.
 - Do not use staging-based numeric findings as current benchmarks after the corrected dataset became authoritative; rerun/regenerate them first.
 - Python dependencies and Python-tool configuration belong in `pyproject.toml`; repository runtime/tool bootstrap belongs in `mise.toml`; commit-hook configuration belongs in `prek.toml`; resolved Python dependencies belong in `uv.lock`.
-- Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/`.
+- Keep public/core interfaces typed. `mypy` is configured in strict mode for `src/` and the destructive maintenance script under `scripts/`.
 - Use Ruff for both linting and formatting; do not introduce a second formatter/linter without a demonstrated need.
 - In GitHub Markdown, use literal `$...$` for inline mathematics and fenced `math` blocks (triple backticks followed by `math`) for display equations. Never substitute lookalike delimiters such as `§`, and do not put `$`/`$$` delimiters inside a `math` fence. GitHub's display-math pipeline can misparse a literal `<` or `>` inside TeX (for example `\sum_{i<j}`), so prefer TeX relation commands such as `\lt`, `\gt`, `\le`, `\ge`, or equivalent explicit index bounds. Avoid `\operatorname{...}` in repository math because it has rendered unreliably in GitHub; use established commands or `\mathrm{...}` for names such as `median`, `MAD`, and `MedAE`. A literal `*` inside inline math can also be consumed by Markdown emphasis parsing, so write superscript stars as `^{\ast}` rather than bare `^*`; do not “simplify” an escaped or `\ast` form back to a literal asterisk. Use ordinary code fences only for code, commands, schemas, or literal text.
 - Mathematical documentation may assume knowledge roughly equivalent to an Informatik/Computer-Science bachelor's degree. Do not explain standard algebra, calculus, linear-algebra notation, basic probability/statistics notation, or commonplace operators merely for completeness. Explain project-specific semantics, non-obvious modelling assumptions, and specialist methods where they matter.
@@ -111,16 +111,18 @@ Before considering a code change complete, run:
 mise run check
 ```
 
-This is the repository-level entry point for the same core gates enforced in CI:
+This is the authoritative repository-level entry point used by CI. It synchronizes the locked runtime/development environment once, then runs Ruff, strict mypy, and pytest/coverage without further environment mutation. After those core gates pass, it runs every `prek` hook across the repository so file hygiene and hook-only checks cannot diverge from CI.
 
-```sh
-uv run --locked ruff check .
-uv run --locked ruff format --check .
-uv run --locked mypy src
-uv run --locked pytest --cov=espresso_dialin --cov-report=term-missing
+The underlying commands are intentionally implementation details of `mise.toml`; do not duplicate them in automation unless there is a concrete reason. The current gates cover:
+
+```text
+Ruff lint + formatting
+strict mypy for src/ and scripts/reclassify_pregrind_invalidation.py
+pytest with branch coverage and the configured coverage floor
+prek run --all-files
 ```
 
-For normal development, bootstrap the environment and install the commit hook once per clone:
+For normal development, bootstrap the complete environment and install the commit hook once per clone:
 
 ```sh
 mise run setup

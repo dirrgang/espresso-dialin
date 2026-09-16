@@ -4,12 +4,16 @@ uv = "0.12.13"
 prek = "0.5.2"
 
 [tasks.sync]
-description = "Synchronize the locked development environment"
+description = "Synchronize the locked runtime/development environment"
+run = "uv sync --locked --group dev --inexact"
+
+[tasks.sync-all]
+description = "Synchronize the complete locked development environment"
 run = "uv sync --locked --all-groups"
 
 [tasks.setup]
-description = "Set up the development environment"
-depends = ["sync"]
+description = "Set up the complete development environment"
+depends = ["sync-all"]
 run = "prek install"
 
 [tasks.lint]
@@ -29,23 +33,24 @@ run = [
 ]
 
 [tasks.typecheck]
-description = "Run mypy"
+description = "Run strict mypy"
 depends = ["sync"]
-run = "uv run --no-sync mypy src"
+run = "uv run --no-sync mypy src scripts/reclassify_pregrind_invalidation.py"
 
 [tasks.test]
 description = "Run tests with coverage"
 depends = ["sync"]
 run = "uv run --no-sync pytest --cov=espresso_dialin --cov-report=term-missing"
 
-[tasks.app-smoke]
-description = "Run Streamlit integration smoke tests"
+[tasks.app-test]
+description = "Run Streamlit AppTest integration tests"
 depends = ["sync"]
 run = "uv run --no-sync pytest tests/test_app.py"
 
 [tasks.check]
-description = "Run all quality gates"
+description = "Run all repository quality gates"
 depends = ["lint", "typecheck", "test"]
+run = "prek run --all-files"
 
 [tasks.app]
 description = "Run the local Streamlit app"

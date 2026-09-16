@@ -17,7 +17,7 @@ From the repository root, run:
 mise run setup
 ```
 
-This installs the tool versions declared in `mise.toml`, synchronizes all project dependency groups from `uv.lock`, and installs the `prek` Git hook.
+This installs the tool versions declared in `mise.toml`, synchronizes the complete locked development environment including the optional analysis group, and installs the `prek` Git hook.
 
 If an older clone still has a legacy hook runner, `prek install` may deliberately enter migration mode instead of deleting the existing hook. After confirming that the old hook is obsolete, replace it once with:
 
@@ -27,20 +27,24 @@ mise exec -- prek install --force
 
 Do not add `--force` to the normal setup task: repository bootstrap should not silently overwrite arbitrary user-managed Git hooks.
 
-Development-only Python tooling is declared in the standardized `dev` dependency group and is synchronized by uv by default. Notebook and plotting tools live in the separate `analysis` group. `mise run setup` installs both groups for a full local development environment; CI only needs the default `dev` group.
+Development-only Python tooling is declared in the standardized `dev` dependency group. Notebook and plotting tools live in the separate `analysis` group. `mise run setup` installs both groups for a full local development environment. Routine application and quality tasks use the lean locked runtime/development environment instead; on an existing full environment they use uv's inexact synchronization so optional analysis packages are not unnecessarily removed.
 
 ## Common commands
 
 ```sh
-mise run sync       # synchronize the locked local environment
-mise run check      # sync once, then lint, formatting, mypy, tests + coverage
-mise run fix        # sync once, then apply safe Ruff fixes and formatting
-mise run test       # sync once, then tests + coverage
-mise run typecheck  # sync once, then strict mypy for src
-mise run app        # sync once, then local Streamlit application
+mise run setup      # full bootstrap: all groups + Git hook
+mise run sync       # locked runtime/dev sync; preserve already-installed optional analysis packages
+mise run sync-all   # exact sync of all dependency groups
+mise run check      # lint, formatting, mypy, tests + coverage, then all prek hooks
+mise run fix        # apply safe Ruff fixes and formatting
+mise run test       # tests + coverage
+mise run typecheck  # strict mypy for src and the maintenance script
+mise run app        # local Streamlit application
 ```
 
-All repository tasks depend on the shared `sync` task. mise executes a shared dependency only once, then may run independent quality gates in parallel. The quality commands themselves use `uv run --no-sync`, so concurrent Ruff, mypy, and pytest processes do not race while trying to modify the same `.venv`. The shared sync uses `uv sync --locked --all-groups`, so stale lockfiles fail rather than being silently rewritten and the complete local development environment stays installed.
+Quality/application tasks depend on the shared `sync` task. mise executes that shared dependency only once, then may run independent quality gates in parallel. The quality commands themselves use `uv run --no-sync`, so concurrent Ruff, mypy, and pytest processes do not race while trying to modify the same `.venv`. `sync` uses `uv sync --locked --group dev --inexact`: on a clean CI runner this installs only runtime plus development dependencies; on a local environment created by `setup`, it preserves optional analysis packages already present. `sync-all` uses `uv sync --locked --all-groups` for an exact full development environment.
+
+The final step of `mise run check` runs `prek run --all-files` only after the core parallel gates have passed. This deliberately avoids racing mutating commit hooks against Ruff/mypy/pytest while still making hook-only hygiene checks part of the same CI contract.
 
 ## VS Code
 
@@ -91,7 +95,9 @@ To apply formatting and safe Ruff fixes locally:
 mise run fix
 ```
 
-`prek` runs lightweight file checks and Ruff automatically on commit from `prek.toml`. Generic file checks use `prek`'s built-in hooks, while Ruff runs in an isolated hook environment pinned independently from the project environment. Full mypy and pytest checks remain repository-level quality gates rather than commit hooks. GitHub Actions independently synchronizes the locked environment once and then runs Ruff, mypy, and pytest without additional environment mutation on Python 3.14 for pull requests and pushes to `main`, with a focused Windows app smoke test on the same Python version.
+`mise run check` is the same repository-level contract used by the Linux CI job: Ruff lint/format, strict mypy for the package and destructive maintenance script, pytest with branch coverage and the configured coverage floor, then every `prek` hook over all files. `prek` still runs lightweight file checks and Ruff automatically on commit from `prek.toml`; the repository-wide CI invocation prevents hook-only hygiene from depending on whether an individual developer installed the hook.
+
+GitHub Actions uses the same mise-managed toolchain and locked dependency graph. Clean CI runners receive only runtime/development Python dependencies for routine quality/application tests; notebook/plotting dependencies remain local analysis tooling. The separate Windows job runs the focused Streamlit `AppTest` integration suite on Python 3.14.
 
 ## Research and coding-agent workflow
 

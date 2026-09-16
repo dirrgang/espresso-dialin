@@ -7,7 +7,7 @@ import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from espresso_dialin.schema import (
     CONFIRMED_NON_EXECUTION_TRIGGER,
@@ -69,7 +69,7 @@ def _target(db: sqlite3.Connection, session_id: str, shot_id: str) -> sqlite3.Ro
     row = db.execute(TARGET_QUERY, (session_id, shot_id)).fetchone()
     if row is None:
         raise ValueError("no resolution matches the explicit session and shot IDs")
-    return row
+    return cast(sqlite3.Row, row)
 
 
 def _verified_trigger_sql(db: sqlite3.Connection, name: str, expected: str) -> str:

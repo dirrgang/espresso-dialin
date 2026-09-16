@@ -36,10 +36,10 @@ The MVP must work without Bluetooth scales, machine telemetry, pressure sensors,
 
 For each shot the user can enter data at leisure:
 
-1. Before grinding: grinder setting and grind duration.
-2. After grinding: grinder output mass.
-3. Optionally correct the puck dose to the target (normally 18 g).
-4. After brewing: brew duration and final beverage yield.
+1. Before grinding: choose the intended grinder setting, review/select a model recommendation or manual grind duration, and freeze that plan.
+2. After grinding: record the **actual** grinder setting, actual grind duration, and raw grinder output mass.
+3. Record whether the puck dose was left unchanged, corrected approximately to target (normally 18 g), or separately measured after correction.
+4. After brewing: record brew duration and final beverage yield.
 
 The current application stores the observation and offers dose-duration recommendations
 for your manually chosen next setting when compatible live history exists. Automatic
