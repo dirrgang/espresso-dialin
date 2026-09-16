@@ -231,6 +231,11 @@ def test_fresh_schema_does_not_run_legacy_migration(tmp_path, monkeypatch):
         assert db.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
+# Streamlit AppTest currently triggers upstream sqlite3 ResourceWarnings under Python 3.14.
+# Keep the suppression local so unclosed connections elsewhere in the suite remain visible.
+@pytest.mark.filterwarnings(
+    "ignore:unclosed database in <sqlite3.Connection object.*:ResourceWarning"
+)
 def test_app_launch_migrates_v1_and_shows_pending_phase(v1_path, monkeypatch):
     monkeypatch.setenv("ESPRESSO_DIALIN_DB", str(v1_path))
     app = AppTest.from_file(str(Path(__file__).parents[1] / "streamlit_app.py")).run()

@@ -53,12 +53,13 @@ branch = true
 source = ["espresso_dialin"]
 
 [tool.coverage.report]
+fail_under = 95
 show_missing = true
 skip_covered = true
 
 [tool.mypy]
 python_version = "3.14"
-files = ["src"]
+files = ["src", "scripts/reclassify_pregrind_invalidation.py"]
 strict = true
 warn_unused_configs = true
 pretty = true

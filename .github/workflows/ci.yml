@@ -47,8 +47,8 @@ jobs:
         if: always()
         run: uv cache prune --ci
 
-  windows-app-smoke:
-    name: Python 3.14 Windows app smoke
+  windows-app-integration:
+    name: Python 3.14 Windows app integration
     runs-on: windows-latest
 
     steps:
@@ -75,8 +75,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-
 
-      - name: Run Streamlit integration smoke tests
-        run: mise run app-smoke
+      - name: Run Streamlit integration tests
+        run: mise run app-test
 
       - name: Minimize uv cache
         if: always()
