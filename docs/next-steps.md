@@ -100,6 +100,13 @@ See [data-model.md](data-model.md), [validation.md](validation.md), and
 
 Implemented 2026-09-16: explicit intent, immutable complete schedules, restartable step execution through ordinary acquisition, deviations, progress and early stopping. Schema v4 preserves v3 continuity semantics. The UI offers fixed-condition replication first and a balanced seven-attempt local duration response. See [experiments.md](experiments.md) for the checked historical gaps, coffee budgets and limitations.
 
+Added 2026-09-17: a six-attempt categorical extraction contrast (`A, B, B, A, A, B`) at a shared
+frozen duration, with puck correction toward the session target and actual brew-time/yield
+outcomes. Phase 4 now supports collection for both the grinder-output and extraction subsystems;
+neither mapping has yet been identified by this software. Transition/retention identification
+and controlled elapsed-time drift protocols remain later Phase-4 work. Setting selection and
+closed-loop recommendations remain manual; Phase-5 modelling is not implemented here.
+
 No real designed outcomes were collected in this increment. The remaining Phase-4 work is to choose a useful current operating point, collect the predefined shots, inspect deviations/resolutions, and assess whether the specific identification gap has narrowed. The broader families below remain research work, not a completion checklist satisfied by shipping software.
 
 Experiment families should be selected for concrete identification questions **after checking what the corrected historical dataset already tells us**. Candidate families include:
@@ -113,13 +120,13 @@ Experiment families should be selected for concrete identification questions **a
    - deliberately vary duration around the normal operating point;
    - test proportionality and whether an intercept/nonlinearity is measurable.
 
-3. **Setting effect on grinder output**
+3. **Setting effect on grinder output (descriptive contrast supported)**
    - repeat nearby settings at controlled durations;
    - determine whether output rate materially depends on setting.
 
-4. **Extraction response to setting**
+4. **Extraction response to setting (six-attempt pilot implemented)**
    - keep puck dose approximately fixed via manual correction;
-   - test selected neighbouring settings with replication;
+   - test two user-selected categorical settings with three predefined attempts each;
    - use the observed pair $(t_{\mathrm{brew}},Y)$ jointly rather than treating $T_{36}^{\mathrm{linear}}$ as truth.
 
 5. **Transition / retention signal**

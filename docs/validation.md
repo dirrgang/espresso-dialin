@@ -245,3 +245,11 @@ hypothesis confirmation. [experiments.md](experiments.md) specifies the selected
 remaining identification gaps. Count planned attempts, completed brews, abandoned/invalidated
 attempts and actual grinder mass separately. Never impute output for unexecuted steps or score
 experimental exploration costs as ordinary Assisted dial-in performance.
+
+The extraction-setting follow-up adds tests for six prospectively frozen categorical steps,
+shared duration, immutable membership, restart, custom session targets, all three correction
+modes, independent raw output/puck dose, actual brew-duration/yield pairs and visible input/dose
+differences. Confirmed cancellation of the comparison setting must not invent a physical
+transition. Existing lifecycle/immutability tests run against both replication and extraction;
+Streamlit tests execute the new family with each correction mode. These are synthetic integrity
+checks only; the extraction mapping still requires real designed collection and analysis.

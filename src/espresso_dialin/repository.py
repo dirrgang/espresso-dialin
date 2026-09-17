@@ -463,9 +463,14 @@ class Repository:
             ).fetchone()
         experiment = next(e for e in self.experiments(row["session_id"]) if e.id == experiment_id)
         shots = {s.experiment_step_id: s for s in self.shots(experiment.session_id)}
+        puck_target = (
+            self.session(experiment.session_id).target_puck_dose_g
+            if experiment.family == ExperimentFamily.EXTRACTION
+            else None
+        )
         return ExperimentProgress(
             experiment,
-            tuple(ExperimentObservation(s, shots.get(s.id)) for s in experiment.steps),
+            tuple(ExperimentObservation(s, shots.get(s.id), puck_target) for s in experiment.steps),
             datetime.fromisoformat(stop["recorded_at"]) if stop else None,
             stop["reason"] if stop else None,
         )

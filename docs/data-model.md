@@ -114,7 +114,8 @@ A planned experiment records **why** one or more shots are being requested befor
 The implemented `Experiment` and `ExperimentStep` records use typed fields and explicit SQL
 columns for schedule semantics; see **Current live schema (version 4)** below. Experiment status
 and step progress derive from existing shot evidence and an optional immutable early stop.
-The first families are fixed-condition replication and local duration response. Future selection
+The implemented families are fixed-condition replication, local duration response and categorical
+extraction response to grinder setting. Future selection
 methods must preserve the same pre-outcome design and immutable membership boundary.
 
 ### Shot
@@ -408,3 +409,8 @@ The v3 fixture is frozen from main commit `7b17c8a`; tests preserve prior column
 explicit non-execution confirmations, test rollback and repeat initialization. Existing shots
 receive no invented normal/experimental label or membership. Historical CSV metadata is not
 inferred or imported. Back up before upgrading; older application versions reject v4.
+
+The extraction-setting family uses the same v4 columns and guards; no migration is required.
+Its derived observations also expose the session puck-dose target and recorded-mass-minus-target
+difference (`MEASURED` or unchanged `NONE` output), leaving approximate `TO_TARGET` differences
+unknown. These fields are descriptive, not new measurements or acceptable-dose thresholds.
