@@ -258,3 +258,17 @@ experiment schedule alone cannot establish uninterrupted physical execution.
 
 See [experiments.md](experiments.md) for the first-offer rationale, designs, programmatic raw
 observation access and deferred protocols. No prospective experiment results are claimed yet.
+
+### Extraction response to grinder setting
+
+Choose this family to compare two user-entered setting labels at one **Shared grind duration**.
+Review all six attempts (`A, B, B, A, A, B`), the research question, controls, session targets,
+coffee estimate and stopping rule before freezing. The shared duration is never automatically
+changed after observing output. Correct puck dose toward the session target, aim for the
+configured beverage yield, and record the actual duration/yield pair. Describe departures in
+the ordinary deviation note; do not invent a corrected measurement.
+
+Experiment progress now shows correction mode, measured/approximate puck-dose evidence,
+brew duration, final yield, purge flag and resolution reason. The extraction-only puck-minus-
+target column is descriptive: no acceptable tolerance is assumed, and `TO_TARGET` differences
+remain unknown. The [design notes](experiments.md) explain the transition limitations.

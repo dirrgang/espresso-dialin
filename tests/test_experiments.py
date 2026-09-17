@@ -19,7 +19,11 @@ from espresso_dialin.domain import (
     ShotStatus,
     utc_now,
 )
-from espresso_dialin.experiments import ExperimentFamily, build_experiment
+from espresso_dialin.experiments import (
+    ExperimentFamily,
+    build_experiment,
+    build_extraction_experiment,
+)
 from espresso_dialin.repository import Repository
 
 
@@ -41,6 +45,17 @@ def design(**kwargs):
         18,
         question="Within-condition variability?",
         **kwargs,
+    )
+
+
+def extraction_design():
+    return build_extraction_experiment(
+        "s",
+        "opaque-setting",
+        "comparison / no numeric metric",
+        9.5,
+        18,
+        question="How does categorical setting affect brew time and actual yield?",
     )
 
 
@@ -190,11 +205,14 @@ def test_normal_intent_and_unstarted_design_do_not_change_continuity(repo):
         (ShotStatus.INVALIDATED, True, None, False),
     ],
 )
-def test_resolution_progress_and_v3_continuity(repo, status, physical, confirmed, eligible):
+@pytest.mark.parametrize("factory", [design, extraction_design])
+def test_resolution_progress_and_v3_continuity(
+    repo, status, physical, confirmed, eligible, factory
+):
     app = Acquisition(repo)
     first = app.freeze("s", "opaque-setting", 1, "manual", 9.5)
     finish(repo, first)
-    e = design()
+    e = factory()
     repo.add_experiment(e)
     shot = app.freeze_experiment_step(e.id, e.steps[0].id)
     if physical:
@@ -261,8 +279,9 @@ def test_stop_is_auditable_and_does_not_create_shots(repo):
         repo.stop_experiment(e.id, "second stop")
 
 
-def test_design_and_membership_immutable_in_storage(repo):
-    e = design()
+@pytest.mark.parametrize("factory", [design, extraction_design])
+def test_design_and_membership_immutable_in_storage(repo, factory):
+    e = factory()
     repo.add_experiment(e)
     shot = Acquisition(repo).freeze_experiment_step(e.id, e.steps[0].id)
     grind(repo, shot)
@@ -466,3 +485,160 @@ def test_incomplete_schedule_cannot_be_committed(repo):
                 (utc_now().isoformat(),),
             )
     assert not repo.experiments("s")
+
+
+def test_extraction_schedule_is_categorical_replicated_and_frozen():
+    e = extraction_design()
+    assert e.family == ExperimentFamily.EXTRACTION
+    assert [s.condition for s in e.steps] == list("ABBAAB")
+    assert [s.setting for s in e.steps] == [
+        "opaque-setting",
+        "comparison / no numeric metric",
+        "comparison / no numeric metric",
+        "opaque-setting",
+        "opaque-setting",
+        "comparison / no numeric metric",
+    ]
+    assert [s.replicate for s in e.steps] == [1, 1, 2, 2, 3, 3]
+    assert [s.reference_sequence for s in e.steps] == [None, None, 2, 1, 1, 2]
+    assert all(s.duration_s == 9.5 for s in e.steps)
+    assert e.estimated_coffee_g == 108
+    assert "6 planned attempts" in e.stopping_rule
+    assert "exact grinder setting fixed" not in e.controls
+    assert "Purging is not required" in e.controls
+    assert "final yield" in e.controls and "session target" in e.controls
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"reference_setting": " "},
+        {"comparison_setting": ""},
+        {"comparison_setting": "A"},
+        {"comparison_setting": " A "},
+        {"duration_s": 0},
+        {"duration_s": float("nan")},
+        {"reference_output_g": float("inf")},
+        {"question": " "},
+    ],
+)
+def test_extraction_rejects_invalid_controls(kwargs):
+    args = dict(
+        session_id="s",
+        reference_setting="A",
+        comparison_setting="B",
+        duration_s=9.5,
+        reference_output_g=18,
+        question="Extraction response?",
+    )
+    with pytest.raises(ValueError):
+        build_extraction_experiment(**(args | kwargs))
+
+
+def test_extraction_raw_outcomes_correction_and_restart(repo):
+    repo.add_session(
+        Session(
+            id="custom",
+            bean_id="b",
+            bean_name="Coffee",
+            started_at=utc_now(),
+            target_puck_dose_g=20,
+            target_yield_g=40,
+            target_time_min_s=28,
+            target_time_max_s=34,
+        )
+    )
+    e = build_extraction_experiment(
+        "custom",
+        "A/category",
+        "B/category",
+        10,
+        21,
+        question="Two categorical extraction conditions?",
+    )
+    repo.add_experiment(e)
+    assert not repo.shots("custom")
+    assert repo.experiment_progress(e.id).observations[0].puck_dose_difference_g is None
+    modes = [
+        CorrectionMode.TO_TARGET,
+        CorrectionMode.MEASURED,
+        CorrectionMode.NONE,
+        CorrectionMode.MEASURED,
+        CorrectionMode.TO_TARGET,
+        CorrectionMode.NONE,
+    ]
+    measured = [None, 20.07, None, 20, None, None]
+    outputs = [22, 21.5, 22, 19.5, 21, 20]
+    differences = [None, 0.07, 2, 0, None, 0]
+    for i, step in enumerate(e.steps):
+        shot = Acquisition(repo).freeze_experiment_step(e.id, step.id)
+        frozen = repo.plans("custom", shot.sequence)
+        assert next(p for p in frozen if p.selected).duration_s == 10
+        repo.save_grinding(
+            shot.id,
+            GrindingResult(
+                setting="operator override" if i == 1 else step.setting,
+                duration_s=10.2 if i == 1 else 10,
+                output_g=outputs[i],
+                correction=modes[i],
+                puck_dose_g=measured[i],
+                deviation_note="retained context",
+            ),
+        )
+        repo = Repository(repo.path)
+        observation = repo.experiment_progress(e.id).observations[i]
+        assert observation.shot.brewing is None
+        repo.complete(shot.id, BrewingResult(duration_s=30 + i, yield_g=39.5 + i / 10))
+        repo = Repository(repo.path)
+        progress = repo.experiment_progress(e.id)
+        observation = progress.observations[i]
+        assert progress.experiment == e and progress.completed == i + 1
+        assert observation.step == step
+        assert observation.shot.grinding.output_g == outputs[i]
+        assert observation.shot.grinding.correction == modes[i]
+        assert observation.shot.grinding.puck_dose_g == measured[i]
+        assert observation.shot.grinding.deviation_note == "retained context"
+        assert observation.shot.brewing.duration_s == 30 + i
+        assert observation.shot.brewing.yield_g == 39.5 + i / 10
+        assert observation.puck_dose_target_g == 20
+        if differences[i] is None:
+            assert observation.puck_dose_difference_g is None
+        else:
+            assert observation.puck_dose_difference_g == pytest.approx(differences[i])
+        if i == 1:
+            assert observation.deviations == ("setting", "duration_s", "puck_dose_g")
+        elif i == 2:
+            assert observation.deviations == ("puck_dose_g",)
+        else:
+            assert observation.deviations == ()
+        assert repo.plans("custom", shot.sequence) == frozen
+    assert progress.status == "FINISHED"
+    with closing(sqlite3.connect(repo.path)) as db:
+        assert db.execute("PRAGMA user_version").fetchone() == (4,)
+
+
+def test_unexecuted_comparison_step_preserves_actual_setting_continuity(repo):
+    e = extraction_design()
+    repo.add_experiment(e)
+    app = Acquisition(repo)
+    first = app.freeze_experiment_step(e.id, e.steps[0].id)
+    finish(repo, first)
+    cancelled = app.freeze_experiment_step(e.id, e.steps[1].id)
+    repo.resolve(
+        cancelled.id,
+        ShotStatus.ABANDONED,
+        "comparison never ground",
+        no_physical_grinding_confirmed=True,
+    )
+    assert all(
+        p.model.observation_ids == (first.id,) for p in app.preview("s", "opaque-setting").plans
+    )
+    assert not app.preview("s", e.steps[2].setting).plans
+    assert repo.experiment_progress(e.id).next_step == e.steps[2]
+    repeat = app.freeze_experiment_step(e.id, e.steps[2].id)
+    grind(repo, repeat, setting=e.steps[2].setting)
+    repo.resolve(repeat.id, ShotStatus.ABANDONED, "valid grind, no brew")
+    assert not app.preview("s", "opaque-setting").plans
+    assert all(
+        p.model.observation_ids == (repeat.id,) for p in app.preview("s", e.steps[2].setting).plans
+    )

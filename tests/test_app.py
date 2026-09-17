@@ -318,3 +318,84 @@ def test_learning_preview_execute_restart_and_stop(session_app, family):
     assert any("budget exhausted" in m.value for m in app.markdown)
     widget(app.radio, "Use mode").set_value("Assisted").run()
     assert widget(app.text_input, "Grinder setting")
+
+
+@pytest.mark.parametrize("correction", ["NONE", "TO_TARGET", "MEASURED"])
+def test_extraction_preview_execution_and_raw_progress(session_app, correction):
+    repo, app = session_app
+    repo.add_session(
+        Session(
+            id="extraction",
+            bean_id="b",
+            bean_name="Extraction bean",
+            started_at=utc_now(),
+            target_puck_dose_g=20,
+            target_yield_g=40,
+            target_time_min_s=28,
+            target_time_max_s=34,
+        )
+    )
+    app.run()
+    app.selectbox(key="current_session").select("extraction").run()
+    widget(app.radio, "Use mode").set_value("Learning").run()
+    widget(app.selectbox, "Experiment design").select(
+        "Extraction response to grinder setting"
+    ).run()
+    widget(app.text_input, "Reference grinder setting").input("A/opaque").run()
+    widget(app.text_input, "Comparison grinder setting").input("A/opaque").run()
+    widget(app.number_input, "Shared grind duration (s)").set_value(10.0).run()
+    assert app.error and not repo.experiments("extraction")
+    widget(app.text_input, "Comparison grinder setting").input("B/opaque").run()
+    assert not app.error and not app.exception
+    assert not any(w.label == "Duration offset (s)" for w in app.number_input)
+    preview = app.table[0].value
+    assert list(preview["Condition"]) == list("ABBAAB")
+    assert list(preview["Setting"]) == [
+        "A/opaque",
+        "B/opaque",
+        "B/opaque",
+        "A/opaque",
+        "A/opaque",
+        "B/opaque",
+    ]
+    assert list(preview["Duration (s)"]) == [10.0] * 6
+    assert any("20 g puck; 40 g beverage; 28-34 s" in c.value for c in app.caption)
+    assert any("120.0 g" in m.value for m in app.markdown)
+    widget(app.button, "Freeze experiment plan").click().run()
+    e = repo.experiments("extraction")[0]
+    assert len(e.steps) == 6 and not repo.shots("extraction")
+    widget(app.button, "Freeze next experimental shot").click().run()
+    app = start_app()
+    assert app.selectbox(key="current_session").value == "extraction"
+    assert widget(app.radio, "Use mode").value == "Learning"
+    widget(app.selectbox, "Dose correction").select(correction).run()
+    widget(app.text_input, "Actual grinder setting").input("actual override")
+    widget(app.number_input, "Actual grind duration (s)").set_value(10.2)
+    widget(app.number_input, "Grinder output (g)").set_value(22.0)
+    if correction == "MEASURED":
+        widget(app.number_input, "Measured puck dose (g)").set_value(20.15)
+    widget(app.text_input, "Deviation / interruption note (optional)").input("actual dose retained")
+    widget(app.button, "Save grinding result").click().run()
+    assert not app.exception and not app.error
+    app = start_app()
+    frame = app.dataframe[0].value
+    assert frame.iloc[0]["Correction"] == correction
+    assert frame.iloc[0]["Output g"] == 22.0
+    assert frame["Brew s"].isna().all()
+    if correction == "TO_TARGET":
+        assert "Approximately 20 g" in frame.iloc[0]["Puck dose evidence"]
+        assert frame["Puck minus target g"].isna().all()
+    else:
+        expected = 0.15 if correction == "MEASURED" else 2
+        assert frame.iloc[0]["Puck minus target g"] == pytest.approx(expected)
+        assert "puck_dose_g" in frame.iloc[0]["Deviations"]
+    widget(app.number_input, "Brew duration (s)").set_value(33.0)
+    widget(app.number_input, "Final beverage yield (g)").set_value(41.2)
+    widget(app.button, "Complete shot").click().run()
+    assert not app.error and not app.exception
+    frame = app.dataframe[0].value
+    assert frame.iloc[0]["Brew s"] == 33 and frame.iloc[0]["Yield g"] == 41.2
+    assert frame.iloc[0]["State"] == "COMPLETED"
+    assert frame.iloc[0]["Deviation note"] == "actual dose retained"
+    assert repo.experiment_progress(e.id).next_step.setting == "B/opaque"
+    assert repo.experiments("extraction")[0] == e

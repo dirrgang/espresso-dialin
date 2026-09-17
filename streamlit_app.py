@@ -17,7 +17,11 @@ from espresso_dialin.domain import (
     ShotStatus,
     utc_now,
 )
-from espresso_dialin.experiments import ExperimentFamily, build_experiment
+from espresso_dialin.experiments import (
+    ExperimentFamily,
+    build_experiment,
+    build_extraction_experiment,
+)
 from espresso_dialin.repository import Repository
 
 DEFAULT_DATABASE = Path(__file__).parent / "data" / "live.sqlite3"
@@ -33,6 +37,16 @@ def input_errors():
         st.error(str(error))
 
 
+def puck_dose_evidence(grind, target_g):
+    if grind is None:
+        return None
+    if grind.correction == CorrectionMode.TO_TARGET:
+        return f"Approximately {target_g:g} g (TO_TARGET; uncertainty unknown)"
+    if grind.correction == CorrectionMode.NONE:
+        return f"{grind.output_g:g} g (uncorrected grinder output)"
+    return f"{grind.puck_dose_g:g} g (separately measured)"
+
+
 def learning_mode(repo, app, session, shots, pending):
     st.header("Learning / Experiment mode")
     st.caption(
@@ -43,16 +57,31 @@ def learning_mode(repo, app, session, shots, pending):
     if session.ended_at is None and pending is None:
         with st.expander("Create experiment", expanded=not experiments):
             family = st.selectbox("Experiment design", list(ExperimentFamily))
-            default_question = (
-                "How variable is grinder output at this fixed condition in this session?"
-                if family == ExperimentFamily.REPLICATION
-                else "Does output scale proportionally with duration near this operating point?"
-            )
+            default_question = {
+                ExperimentFamily.REPLICATION: (
+                    "How variable is grinder output at this fixed condition in this session?"
+                ),
+                ExperimentFamily.DURATION: (
+                    "Does output scale proportionally with duration near this operating point?"
+                ),
+                ExperimentFamily.EXTRACTION: (
+                    "How do these two settings affect brew duration and final yield "
+                    "with puck dose controlled at the session target?"
+                ),
+            }[family]
             question = st.text_input("Research question", value=default_question, key=f"q_{family}")
             last = next((s.grinding for s in reversed(shots) if s.grinding), None)
             setting = st.text_input("Reference grinder setting", value=last.setting if last else "")
+            comparison = ""
+            if family == ExperimentFamily.EXTRACTION:
+                comparison = st.text_input("Comparison grinder setting")
+                st.caption(
+                    "Choose two distinct labels. No distance or finer/coarser order is assumed."
+                )
             duration = st.number_input(
-                "Reference grind duration (s)",
+                "Shared grind duration (s)"
+                if family == ExperimentFamily.EXTRACTION
+                else "Reference grind duration (s)",
                 value=last.duration_s if last else None,
                 min_value=0.001,
                 format="%.3f",
@@ -66,25 +95,44 @@ def learning_mode(repo, app, session, shots, pending):
                 replicates = st.number_input(
                     "Predefined replicate count", value=3, min_value=3, max_value=6
                 )
-            else:
+            elif family == ExperimentFamily.DURATION:
                 delta = st.number_input("Duration offset (s)", value=0.5, min_value=0.001)
             if setting.strip() and duration is not None:
                 with input_errors():
-                    design = build_experiment(
-                        session.id,
-                        ExperimentFamily(family),
-                        setting,
-                        duration,
-                        expected,
-                        replicates=replicates,
-                        delta_s=delta,
-                        question=question,
-                    )
+                    if family == ExperimentFamily.EXTRACTION:
+                        design = build_extraction_experiment(
+                            session.id,
+                            setting,
+                            comparison,
+                            duration,
+                            expected,
+                            question=question,
+                        )
+                        st.caption(
+                            f"Session targets: {session.target_puck_dose_g:g} g puck; "
+                            f"{session.target_yield_g:g} g beverage; "
+                            f"{session.target_time_min_s:g}-{session.target_time_max_s:g} s brew."
+                        )
+                    else:
+                        design = build_experiment(
+                            session.id,
+                            ExperimentFamily(family),
+                            setting,
+                            duration,
+                            expected,
+                            replicates=replicates,
+                            delta_s=delta,
+                            question=question,
+                        )
                     st.write(design.controls)
                     st.write(
-                        "Varied: grind duration."
-                        if family == ExperimentFamily.DURATION
-                        else "Varied: nothing deliberately; repeat the same inputs."
+                        {
+                            ExperimentFamily.REPLICATION: (
+                                "Varied: nothing deliberately; repeat the same inputs."
+                            ),
+                            ExperimentFamily.DURATION: "Varied: grind duration.",
+                            ExperimentFamily.EXTRACTION: "Varied: categorical grinder setting.",
+                        }[family]
                     )
                     st.table(
                         [
@@ -104,8 +152,13 @@ def learning_mode(repo, app, session, shots, pending):
                         f"{design.estimated_coffee_g:.1f} g of grinder output."
                     )
                     st.caption(
-                        "Planning estimate assumes proportional output; excludes any "
-                        "purge or extra correction coffee. This is not a prediction."
+                        (
+                            "Budget uses six times the estimated reference output; output at the "
+                            "comparison setting may differ. "
+                            if family == ExperimentFamily.EXTRACTION
+                            else "Planning estimate assumes proportional output. "
+                        )
+                        + "Excludes purge or extra correction coffee. This is not a prediction."
                     )
                     st.write(design.stopping_rule)
                     if st.button("Freeze experiment plan"):
@@ -132,6 +185,12 @@ def learning_mode(repo, app, session, shots, pending):
     )
     if progress.stop_reason:
         st.write(f"Stopped: {progress.stop_reason}")
+    if progress.experiment.family == ExperimentFamily.EXTRACTION:
+        st.caption(
+            "Puck differences are recorded mass minus session target, not a tolerance decision. "
+            "TO_TARGET is approximate: its numerical difference is unknown. "
+            "NONE means no correction; inspect output and describe any departure in the note."
+        )
     st.dataframe(
         [
             {
@@ -144,6 +203,19 @@ def learning_mode(repo, app, session, shots, pending):
                 "Actual setting": o.shot.grinding.setting if o.shot and o.shot.grinding else None,
                 "Actual s": o.shot.grinding.duration_s if o.shot and o.shot.grinding else None,
                 "Output g": o.shot.grinding.output_g if o.shot and o.shot.grinding else None,
+                "Correction": o.shot.grinding.correction.value
+                if o.shot and o.shot.grinding
+                else None,
+                "Puck dose evidence": puck_dose_evidence(
+                    o.shot.grinding if o.shot else None, session.target_puck_dose_g
+                ),
+                "Puck minus target g": o.puck_dose_difference_g,
+                "Brew s": o.shot.brewing.duration_s if o.shot and o.shot.brewing else None,
+                "Yield g": o.shot.brewing.yield_g if o.shot and o.shot.brewing else None,
+                "Purged": o.shot.brewing.purged_before_shot if o.shot and o.shot.brewing else None,
+                "Resolution reason": o.shot.resolution.reason
+                if o.shot and o.shot.resolution
+                else None,
                 "Deviations": ", ".join(o.deviations),
                 "Deviation note": o.shot.grinding.deviation_note
                 if o.shot and o.shot.grinding

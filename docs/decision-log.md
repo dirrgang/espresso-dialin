@@ -287,6 +287,28 @@ No grinder-label arithmetic, richer model, recency weighting or autonomous exper
 is introduced. Eligible experimental grinder results retain the existing Assisted controller
 eligibility rules, but evaluation must preserve and separate selection intent.
 
+## 2026-09-17 — Categorical extraction-response pilot
+
+**Decision:** Extend Phase 4 with two user-selected opaque grinder settings at one shared frozen
+grind duration, in `A, B, B, A, A, B` order. Each condition gets three attempts and an immediate
+repeat. Interleaving reduces simple chronological confounding relative to blocked A-then-B
+execution, but does not eliminate drift or isolate transition/retention effects. No purge is
+required. Use ordinary puck correction toward the immutable session target and preserve raw
+grinder output, correction mode/dose evidence and actual brew-duration/final-yield pairs.
+
+**Architecture:** Reuse schema v4, immutable steps, ordinary acquisition, resolutions and
+physical-continuity rules. A separate extraction builder shares only schedule assembly with the
+existing grinder builders. No later duration is adapted from experimental outcomes. The UI
+shows extraction evidence and exact recorded puck-minus-target differences; approximate
+`TO_TARGET` differences remain unknown. A nonzero difference is not a tolerance or exclusion
+rule. No shot is relabelled or discarded for violating the intended control.
+
+**Evidence boundary:** The historical setting contrasts remain operator-adapted. This schedule
+makes a designed comparison possible; no real designed outcomes or empirical identification
+claim accompany it. Both grinder and extraction mappings still need collection and analysis.
+Dedicated retention/drift protocols remain later Phase-4 work; regression/RLS/GP, setting
+optimisation and closed-loop control remain Phase 5 or later. See [experiments.md](experiments.md).
+
 ## Open decisions
 
 The following are intentionally unresolved:

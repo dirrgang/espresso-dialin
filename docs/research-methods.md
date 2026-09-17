@@ -266,9 +266,17 @@ This does not imply that a CCD is automatically the best design for our exact wo
 ## 6. Learning / Experiment mode
 
 The application distinguishes two objectives. The first implementation uses frozen fixed-condition
-replication and balanced local duration-response schedules; [experiments.md](experiments.md)
+replication, balanced local duration-response schedules and a categorical extraction-setting
+contrast; [experiments.md](experiments.md)
 records the checked historical gaps, design rationale, stopping rules, costs and limitations.
 The infrastructure is implemented; real designed collection and empirical conclusions remain pending.
+
+The extraction pilot tests two opaque settings at a shared grind duration with puck-dose
+correction toward the session target. Its six attempts interleave conditions and retain an
+immediate repeat at each. Correction separates raw grinder-output evidence from extraction-dose
+evidence; it does not remove uncertainty in approximate puck dose or all transition effects.
+Use the observed brew-duration/final-yield pair jointly. Phase 4 now supports collection for
+both subsystem mappings; fitting either mapping and closing the control loop remain later work.
 
 ### Assisted / normal mode
 

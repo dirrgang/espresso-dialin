@@ -86,7 +86,7 @@ Two operating objectives are explicit:
 - **Normal / assisted mode:** prioritize a good next drink with minimal waste.
 - **Learning / experiment mode:** deliberately request informative, controlled shots to identify process behaviour efficiently.
 
-Learning Mode offers frozen fixed-condition replication and balanced local duration-response schedules. See [experiment designs and evidence](docs/experiments.md). Real designed data collection and empirical validation remain outstanding. Gaussian-process / Bayesian-optimisation methods are later candidates once the action-space representation and uncertainty model are trustworthy.
+Learning Mode offers frozen fixed-condition replication, balanced local duration response and categorical extraction-setting contrasts. See [experiment designs and evidence](docs/experiments.md). Real designed data collection and empirical validation remain outstanding. Gaussian-process / Bayesian-optimisation methods are later candidates once the action-space representation and uncertainty model are trustworthy.
 
 See:
 
