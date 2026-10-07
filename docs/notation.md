@@ -125,6 +125,17 @@ t_{\mathrm{brew}}\frac{36}{Y}.
 
 It assumes constant average flow and must not be treated as ground truth. Model estimates are written $\hat T_{36}$ to distinguish them from the historical linear approximation.
 
+## Session-target linear estimate
+
+For the live session-target baseline, $T_{\mathrm{target}}^{\mathrm{linear}}$ generalizes
+$T_{36}^{\mathrm{linear}}$ to the configured beverage target $Y^{\ast}$:
+
+```math
+T_{\mathrm{target}}^{\mathrm{linear}} = t_{\mathrm{brew}}\frac{Y^{\ast}}{Y}.
+```
+
+It remains a crude approximation, not ground truth; see [extraction-feedback.md](extraction-feedback.md).
+
 ## Recommendation/action superscripts
 
 Where recommendation and execution must be distinguished:

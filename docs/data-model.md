@@ -371,7 +371,7 @@ before adding the v3 field, all within one transaction. V3 originally created fr
 directly at v3; current initialization adds the v4 structures below. Migration tests verify data preservation, conservative legacy behavior, idempotence and
 rollback after failure.
 
-## Current live schema (version 4)
+## Live schema version 4
 
 V4 adds three explicit tables and three nullable shot columns. No schedule is stored as JSON.
 
@@ -414,3 +414,13 @@ The extraction-setting family uses the same v4 columns and guards; no migration 
 Its derived observations also expose the session puck-dose target and recorded-mass-minus-target
 difference (`MEASURED` or unchanged `NONE` output), leaving approximate `TO_TARGET` differences
 unknown. These fields are descriptive, not new measurements or acceptable-dose thresholds.
+
+## Current live schema (version 5)
+
+V5 adds separate immutable `extraction_recommendations` and nullable frozen
+`shots.extraction_recommendation_id`. Source ID/sequence, next sequence, creation time,
+strategy/version, session target snapshot, derived linear time and direction/bad-shot suppression
+are stored prospectively. Completion/review persists feedback; Assisted freeze links it.
+Legacy links remain NULL; migration does not backfill recommendations. Later invalidation
+preserves frozen history while excluding the source from new decisions. See
+[extraction-feedback.md](extraction-feedback.md) for fields, transactional migration and audit semantics.

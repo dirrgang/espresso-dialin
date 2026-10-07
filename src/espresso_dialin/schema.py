@@ -2,7 +2,7 @@
 
 import sqlite3
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 RESOLUTION_UPDATE_TRIGGER = """CREATE TRIGGER resolution_update
 BEFORE UPDATE ON shot_resolutions
@@ -141,11 +141,56 @@ def initialize(db: sqlite3.Connection) -> None:
         migrate_v2_to_v3(db)
     elif version == 2:
         migrate_v2_to_v3(db)
-    elif version not in (3, SCHEMA_VERSION):
+    elif version not in (3, 4, SCHEMA_VERSION):
         raise ValueError(f"unsupported database schema version: {version}")
     if version < 4:
         _execute_schema(db, EXPERIMENT_SCHEMA)
+    if version < 5:
+        _execute_schema(db, EXTRACTION_SCHEMA)
     db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+
+EXTRACTION_SCHEMA = """
+CREATE TABLE extraction_recommendations (
+    id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
+    target_sequence INTEGER NOT NULL, source_shot_id TEXT NOT NULL REFERENCES shots(id),
+    history_through_sequence INTEGER NOT NULL, created_at TEXT NOT NULL,
+    target_yield_g REAL NOT NULL CHECK(target_yield_g > 0),
+    target_time_min_s REAL NOT NULL CHECK(target_time_min_s > 0),
+    target_time_max_s REAL NOT NULL CHECK(target_time_max_s >= target_time_min_s),
+    linear_target_yield_time_s REAL NOT NULL CHECK(linear_target_yield_time_s > 0),
+    direction TEXT NOT NULL CHECK(direction IN ('KEEP','FINER','COARSER','NO_UPDATE_BAD_SHOT')),
+    strategy_id TEXT NOT NULL, model_version TEXT NOT NULL,
+    UNIQUE(session_id, target_sequence, source_shot_id),
+    CHECK(history_through_sequence > 0 AND history_through_sequence < target_sequence)
+);
+ALTER TABLE shots ADD COLUMN extraction_recommendation_id TEXT
+    REFERENCES extraction_recommendations(id);
+CREATE TRIGGER extraction_update BEFORE UPDATE ON extraction_recommendations
+BEGIN SELECT RAISE(ABORT, 'extraction recommendations are immutable'); END;
+CREATE TRIGGER extraction_delete BEFORE DELETE ON extraction_recommendations
+BEGIN SELECT RAISE(ABORT, 'extraction recommendations are immutable'); END;
+CREATE TRIGGER extraction_insert BEFORE INSERT ON extraction_recommendations
+WHEN EXISTS (SELECT 1 FROM shots WHERE session_id=NEW.session_id
+    AND sequence >= NEW.target_sequence)
+ OR NOT EXISTS (SELECT 1 FROM shots s WHERE s.id=NEW.source_shot_id
+    AND s.session_id=NEW.session_id AND s.sequence=NEW.history_through_sequence
+    AND s.completed_at IS NOT NULL AND s.completed_at <= NEW.created_at
+    AND s.brew_duration_s > 0 AND s.final_yield_g > 0
+    AND NOT EXISTS (SELECT 1 FROM shot_resolutions r WHERE r.shot_id=s.id))
+BEGIN SELECT RAISE(ABORT, 'extraction feedback requires a prior valid completed source'); END;
+CREATE TRIGGER extraction_link_update BEFORE UPDATE OF extraction_recommendation_id ON shots
+WHEN NEW.extraction_recommendation_id IS NOT OLD.extraction_recommendation_id
+BEGIN SELECT RAISE(ABORT, 'extraction link is frozen'); END;
+CREATE TRIGGER extraction_link_insert BEFORE INSERT ON shots
+WHEN NEW.extraction_recommendation_id IS NOT NULL AND (
+ NEW.intent IS NOT 'ASSISTED' OR NOT EXISTS (
+ SELECT 1 FROM extraction_recommendations e WHERE e.id=NEW.extraction_recommendation_id
+ AND e.session_id=NEW.session_id AND e.target_sequence=NEW.sequence
+ AND e.created_at <= NEW.created_at
+ AND NOT EXISTS (SELECT 1 FROM shot_resolutions r WHERE r.shot_id=e.source_shot_id)))
+BEGIN SELECT RAISE(ABORT, 'invalid prospective extraction link'); END;
+"""
 
 
 FRESH_SCHEMA = """

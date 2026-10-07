@@ -145,6 +145,12 @@ See [`research-methods.md`](research-methods.md).
 
 ## Phase 5 — Structured system identification / richer models
 
+Implemented 2026-10-07: a [bounded Assisted extraction-direction baseline](extraction-feedback.md)
+using crude linear yield normalization and explicit bad-shot suppression, with schema-v5
+prospective provenance. Concrete labels remain manually selected; no learned extraction model
+or validated optimisation is claimed. Collect baseline decisions and the existing designed
+contrasts before defining a joint brew-duration/yield model in a separate bounded increment.
+
 Add complexity incrementally based on the prospective evidence.
 
 Candidate progression:

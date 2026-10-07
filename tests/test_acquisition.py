@@ -85,7 +85,7 @@ def test_empty_path_schema_idempotence_and_restart(repo):
     offset = shot.created_at.utcoffset()
     assert offset is not None and offset.total_seconds() == 0
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
 
 
 def test_unknown_schema_is_not_overwritten(tmp_path):
