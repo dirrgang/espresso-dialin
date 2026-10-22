@@ -52,6 +52,26 @@ When an implementation introduces or falsifies a material modelling assumption, 
 
 This split is a default workflow, not a hard tool restriction: use the tool best suited to the task. The important distinction is that **educational explanation and production implementation are separate objectives**, connected through durable repository documentation.
 
+## Work tracking and handoffs
+
+Follow `docs/workflow.md`. GitHub Issues own task scope, acceptance criteria, dependencies
+and current status; PRs own delivery/review evidence. `docs/work-log.md` provides short dated
+milestones and handoffs, while `docs/decision-log.md` records durable rationale.
+
+- Before substantive work, read the latest work-log entry and relevant issue/decision records;
+  inspect the current branch/base and preserve unrelated local changes.
+- Prefer a bounded issue and one coherent PR per substantive work package. Use the repository
+  issue/PR templates; small fixes do not require a separate issue just for bookkeeping.
+- Record material findings, blockers and verification in the issue. If GitHub is unavailable,
+  leave a temporary work-log handoff and identify what needs synchronization.
+- At meaningful milestones or interrupted handoffs, add a concise work-log entry with the
+  outcome, evidence links, remaining work and next action. Do not duplicate issue checklists
+  or tool transcripts.
+- New consequential decisions use the stable ID/status format in `docs/workflow.md`.
+  Preserve earlier rationale and link superseding decisions rather than silently rewriting it.
+- Distinguish implemented, integrated and empirically validated work. Closing a software issue
+  must not close a separate validation task whose evidence criteria remain unmet.
+
 ## Engineering principles
 
 - Keep the proof of concept small.

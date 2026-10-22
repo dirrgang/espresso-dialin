@@ -4,6 +4,21 @@ The project should validate modelling assumptions with prospective data and deli
 
 Project-wide mathematical symbols used below are defined in [`notation.md`](notation.md).
 
+## Current work packages
+
+The [work log](work-log.md) records the latest dated handoff. GitHub Issues own current task
+status and acceptance criteria; the phases below describe the broader research direction.
+
+1. [Review and integrate the extraction-direction baseline (#17)](https://github.com/dirrgang/espresso-dialin/issues/17).
+2. [Inventory available prospective evidence (#18)](https://github.com/dirrgang/espresso-dialin/issues/18).
+3. [Predefine the next pilot and evaluation criteria (#19)](https://github.com/dirrgang/espresso-dialin/issues/19),
+   informed by the inventory and, if applicable, the integrated baseline.
+4. [Collect and assess that pilot (#20)](https://github.com/dirrgang/espresso-dialin/issues/20),
+   after the protocol is fixed and with physical shots performed by the operator.
+
+Integration review and evidence inventory can proceed independently. See
+[workflow.md](workflow.md) for task, verification and decision-record conventions.
+
 ## Phase 0 — Historical dataset
 
 Completed.
