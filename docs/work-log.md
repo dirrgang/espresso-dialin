@@ -5,6 +5,31 @@ these entries are snapshots, not a second backlog. Follow [workflow.md](workflow
 For each meaningful entry record the outcome, evidence/verification, remaining work and next
 action. Identify the branch/commit when relevant; link PRs and decisions once available.
 
+## 2026-10-22 — Move remaining actionable roadmap work to issues
+
+**Outcome:** Migrated the dedicated retention and drift protocol tasks to
+[#23](https://github.com/dirrgang/espresso-dialin/issues/23) and
+[#24](https://github.com/dirrgang/espresso-dialin/issues/24). The later convergence/coffee-use
+evaluation is the deferred parent
+[#25](https://github.com/dirrgang/espresso-dialin/issues/25). These complement #17–#20;
+they do not start physical collection or change the next pilot's scope.
+
+**Documentation:** Shortened [next steps](next-steps.md) to phase summaries, issue links and
+conditional research options. Delivered implementation details point to domain documents;
+the earlier handoff and its verification evidence remain below. [Workflow](workflow.md)
+now distinguishes a roadmap, a bounded issue and a parent issue.
+
+**Verification:** Reviewed the migration against the roadmap at
+[c52b0be](https://github.com/dirrgang/espresso-dialin/blob/c52b0be46f73430b40a273d7d8ca96ecdf7e2125/docs/next-steps.md),
+the domain documents and existing issues. Checked changed-document links and preserved phase
+anchors. This documentation-only follow-up was prepared through GitHub; local shell execution
+is unavailable, so no new local `mise run check` result is claimed. Latest revision and CI
+evidence belong to [PR #21](https://github.com/dirrgang/espresso-dialin/pull/21).
+
+**Remaining work:** Task status and dependencies live in the linked issues. Begin with the
+independent baseline review (#17) and evidence inventory (#18); activate later protocols and
+evaluation only when their evidence requirements are met.
+
 ## 2026-10-22 — Establish work tracking and record the project handoff
 
 **Outcome:** Added the [workflow guide](workflow.md), implementation and research issue
@@ -38,14 +63,11 @@ The October 7 baseline commit's historical full-gate limitation is therefore res
 this inspected working tree; isolated baseline review, PR/CI evidence and integration remain
 the separate scope of #17.
 
-**Follow-up links:**
-
-- [#17 — Review and integrate the extraction-direction baseline](https://github.com/dirrgang/espresso-dialin/issues/17).
-- [#18 — Inventory prospective sessions and experiment evidence](https://github.com/dirrgang/espresso-dialin/issues/18).
-- [#19 — Predefine the next pilot and evaluation criteria](https://github.com/dirrgang/espresso-dialin/issues/19),
-  dependent on the inventory and, if needed, baseline integration.
-- [#20 — Collect and assess the pilot](https://github.com/dirrgang/espresso-dialin/issues/20),
-  dependent on the predefined protocol; physical collection belongs to the operator.
+**Follow-up links:** [#17](https://github.com/dirrgang/espresso-dialin/issues/17),
+[#18](https://github.com/dirrgang/espresso-dialin/issues/18),
+[#19](https://github.com/dirrgang/espresso-dialin/issues/19) and
+[#20](https://github.com/dirrgang/espresso-dialin/issues/20).
+Their issue records own the detailed scope and dependencies.
 
 **PR verification:** `mise run check` passed on Python 3.14.7 on the isolated main-based
 workflow branch: Ruff, strict mypy, 195 tests, 97.02% branch-inclusive coverage and repository

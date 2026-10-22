@@ -20,6 +20,19 @@ detailed work log. A Project board is optional; it should display the same issue
 introduce another task list. Do not record every tool invocation or copy chat transcripts into
 repository logs.
 
+## Roadmap, tasks and parent issues
+
+Keep broad phases, priorities and conditional research options in [next-steps.md](next-steps.md).
+Move selected, actionable work into issues with explicit outcomes and acceptance criteria;
+leave a short issue link in the roadmap. Do not create an implementation commitment for every
+possible future model or product feature.
+
+A parent issue (epic) represents one coherent, finishable goal spanning several bounded tasks.
+Use sub-issues when those tasks are ready to scope. A deferred parent states its activation
+criteria; being tracked does not authorize immediate execution. A roadmap can contain several
+such goals and is not itself an epic. Keep current status and detailed dependencies in issues,
+and preserve dated work-log snapshots when later plans change.
+
 ## Start a work package
 
 1. Read the repository guidance and relevant decisions, then inspect the branch, base commit
