@@ -5,6 +5,34 @@ these entries are snapshots, not a second backlog. Follow [workflow.md](workflow
 For each meaningful entry record the outcome, evidence/verification, remaining work and next
 action. Identify the branch/commit when relevant; link PRs and decisions once available.
 
+## 2026-10-22 — Retire obsolete branches
+
+**Outcome:** Deleted remote branches `chore/bootstrap-python-poc`,
+`feature/dose-control-baseline` and `fix/pregrind-abandonment-continuity`.
+Their exact heads remain available under the corresponding
+`archive/2026-10-22/` tags (`bootstrap-python-poc`, `dose-control-baseline`,
+`pregrind-abandonment-continuity`). The bootstrap/dose work was integrated through
+[PR #1](https://github.com/dirrgang/espresso-dialin/pull/1),
+[PR #2](https://github.com/dirrgang/espresso-dialin/pull/2) and
+[PR #4](https://github.com/dirrgang/espresso-dialin/pull/4).
+The old pre-grind fix was superseded by the conservative implementation in
+[PR #13](https://github.com/dirrgang/espresso-dialin/pull/13); its remaining tooling
+changes were archived rather than merged.
+
+Removed the clean, merged `chore/agent-workflow` worktree and local branch;
+fast-forwarded local `main` from `df83d24` to `8a6474f`. There were no open PRs
+to merge. Retained `feat/extraction-setting-experiment` locally/remotely for
+[#17](https://github.com/dirrgang/espresso-dialin/issues/17) and the current
+`codex/issues-17-18` checkout with all existing uncommitted work and its stash.
+
+**Verification and next action:** Refreshed remote refs and verified published archive
+tags and remaining branch heads. Existing source changes and the stash were left
+in place; concurrent #17 work added its own handoff during cleanup. This cleanup
+changed only Git refs/worktree registration and this entry, with no application edits;
+no new quality-gate result is claimed. Continue the isolated review/integration
+in #17 and evidence inventory in #18; this cleanup does not complete either task.
+
+
 ## 2026-10-22 — Move remaining actionable roadmap work to issues
 
 **Outcome:** Migrated the dedicated retention and drift protocol tasks to
