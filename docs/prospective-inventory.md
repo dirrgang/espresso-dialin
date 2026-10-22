@@ -17,17 +17,28 @@ mkdir -p data/local-inventory
 python scripts/inventory_prospective.py data/live.sqlite3 > data/local-inventory/current.json
 ```
 
-The script supports schemas v4 and v5 and requires an existing file. It opens SQLite with
+The script supports schemas v4 and v5 in rollback-journal mode and requires an existing file.
+It opens SQLite with
 `mode=ro`, enables `query_only`, and reads all relevant tables in one transaction. It never
 constructs `Repository`, initializes a schema, migrates, saves feedback or launches Streamlit.
 Unsupported schema and missing-source errors are explicit; missing access is never reported
 as zero observations. V4 extraction feedback is unavailable, not counted as zero v5 evidence.
-Do not use `immutable=1` for a possibly live database: it can ignore committed WAL contents.
+WAL-mode sources and sources with `-wal` or `-shm` sidecars are rejected **before** opening
+SQLite. A `mode=ro` WAL connection can create a missing `-shm` or update existing shared
+memory. Rejection also covers WAL headers without sidecars, preventing accidental creation
+of empty WAL/SHM files. No inventory is emitted for these unsupported inputs.
+
+For a WAL source, obtain a consistent separate backup through the owning application's
+SQLite backup workflow and prepare that copy in `DELETE` journal mode before inventory.
+The inventory never checkpoints, changes journal mode or removes sidecars from the supplied
+source. Do not copy only the main file from a live WAL database: committed observations may
+still be in its WAL. Do not use `immutable=1` to bypass the guard; it can ignore that evidence.
+Keep journal mode unchanged while an inventory runs.
 
 The JSON includes source path, observation time in UTC, schema version, quick integrity and
 foreign-key checks, table counts and ordered raw rows, including NULLs and immutable links.
-The logical SHA-256 covers schema definitions and the raw rows visible to that transaction,
-including committed WAL data. It identifies the inspected evidence rather than depending on
+The logical SHA-256 covers schema definitions and the raw rows visible to that transaction.
+It identifies the inspected evidence rather than depending on
 the main SQLite file alone. Keep a supplied snapshot/backup if later reproduction of that
 exact state is needed; an export does not guarantee a changing runtime source remains available.
 

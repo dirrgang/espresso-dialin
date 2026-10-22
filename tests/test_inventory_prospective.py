@@ -1,7 +1,6 @@
 """Exercise the standalone export without letting acquisition migrate its source."""
 
 import importlib.util
-import json
 import sqlite3
 import subprocess
 import sys
@@ -77,20 +76,32 @@ def test_inventory_missing_and_unsupported_sources_do_not_create_or_migrate(tmp_
     assert path.read_bytes() == before
 
 
-def test_inventory_cli_reads_committed_wal_rows(tmp_path):
-    path = tmp_path / "live.sqlite3"
-    Repository(path)
-    with closing(sqlite3.connect(path)) as db, db:
+@pytest.mark.parametrize("sidecars", [("-wal", "-shm"), ("-wal",), ()])
+def test_inventory_rejects_wal_snapshots_without_touching_source_directory(tmp_path, sidecars):
+    writer = tmp_path / "writer.sqlite3"
+    Repository(writer)
+    source_dir = tmp_path / "supplied"
+    source_dir.mkdir()
+    path = source_dir / "snapshot.sqlite3"
+    with closing(sqlite3.connect(writer)) as db, db:
         db.execute("PRAGMA journal_mode=WAL")
-        # Keep the writer open so the latest committed row remains in the WAL.
         db.execute(
             "INSERT INTO sessions VALUES ('wal','b','Coffee','2026-10-01T08:00:00+00:00',"
             "NULL,'Grinder','Machine',NULL,NULL,18,36,30,35,NULL)"
         )
         db.commit()
-        before = path.read_bytes()
+        # Copy a supplied snapshot while the writer keeps uncheckpointed evidence
+        # in the WAL. Missing SHM is a legitimate supplied-snapshot shape.
+        path.write_bytes(writer.read_bytes())
+        for suffix in sidecars:
+            Path(str(path) + suffix).write_bytes(Path(str(writer) + suffix).read_bytes())
+        before = {file.name: file.read_bytes() for file in source_dir.iterdir()}
+        with pytest.raises(ValueError, match="WAL-mode sources"):
+            inventory.read_inventory(path)
         result = subprocess.run(
-            [sys.executable, str(SCRIPT), str(path)], check=True, capture_output=True, text=True
+            [sys.executable, str(SCRIPT), str(path)], capture_output=True, text=True
         )
-        assert json.loads(result.stdout)["tables"]["sessions"][0]["id"] == "wal"
-        assert path.read_bytes() == before
+        assert result.returncode != 0
+        assert result.stdout == ""
+        assert "WAL-mode sources" in result.stderr
+        assert {file.name: file.read_bytes() for file in source_dir.iterdir()} == before

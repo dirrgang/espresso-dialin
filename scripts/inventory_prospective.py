@@ -25,8 +25,19 @@ TABLE_ORDER = {
 def read_inventory(path: Path) -> dict[str, object]:
     """Retain raw rows, NULLs and sequence boundaries without initializing the schema."""
     path = path.resolve(strict=True)
+    # SQLite's file-header read/write versions (offsets 18/19) are 2 in WAL mode.
+    # Even mode=ro can create WAL sidecars or write shared-memory read marks. Reject
+    # these sources before connecting, including checkpointed WAL files with no sidecars.
+    with path.open("rb") as source:
+        source.seek(18)
+        wal_mode = 2 in source.read(2)
+    if wal_mode or any(Path(str(path) + suffix).exists() for suffix in ("-wal", "-shm")):
+        raise ValueError(
+            "WAL-mode sources or WAL sidecars are unsupported; supply a consistent "
+            "snapshot in DELETE journal mode. The source was not opened by SQLite."
+        )
     # mode=ro prevents accidental creation/migration; query_only also rejects writes
-    # through this connection. Do not use immutable=1, which can ignore live WAL data.
+    # through this connection. Journal mode must stay unchanged during inventory.
     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA query_only=ON")
@@ -49,8 +60,7 @@ def read_inventory(path: Path) -> dict[str, object]:
                 "SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name"
             )
         ]
-        # A logical fingerprint includes the rows visible in this read transaction,
-        # including WAL contents; a hash of the main SQLite file alone would not.
+        # Fingerprint schema and the rows visible together in this read transaction.
         payload = {"schema_version": version, "schema": schema, "tables": tables}
         fingerprint = hashlib.sha256(
             json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
