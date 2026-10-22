@@ -12,7 +12,8 @@ templates, a PR template, agent handoff rules and links from README/roadmap.
 [D-001](decision-log.md#d-001--2026-10-22--work-tracking-and-agent-handoffs) records the accepted
 workflow. Created the four linked work packages below. The workflow changes are prepared
 on `chore/agent-workflow`, based on `origin/main` at `df83d24`, independently of the October
-extraction baseline. PR publication and review evidence will be linked below.
+extraction baseline. Published for review in
+[PR #21](https://github.com/dirrgang/espresso-dialin/pull/21); integration remains pending.
 
 **Initial inspected state:** The original checkout was `feat/extraction-setting-experiment` at `369c4c0`
 (2026-10-07). Local main is `df83d24`, the September 17 merge of
@@ -50,9 +51,8 @@ the separate scope of #17.
 workflow branch: Ruff, strict mypy, 195 tests, 97.02% branch-inclusive coverage and repository
 hooks. The suite emitted eight unclosed-SQLite `ResourceWarning`s in the existing maintenance
 test; no application/test code was changed. Local links and issue-template headers were
-rechecked on this branch using the original checkout's available YAML parser. The fresh
-locked runtime/dev environment does not include that optional parser; dependencies were
-not changed. Newly added files are explicitly included in the final hook run.
+rechecked on this branch (43 local links and both template headers). Newly added files are
+explicitly included in the final hook run.
 
 **Next action:** Review/integrate the baseline through #17; inventory available real evidence
 through #18 independently. Use the inventory to choose the next specific identification
