@@ -105,9 +105,11 @@ The separation is about objectives, not a hard tool boundary. Production code sh
 
 Use [GitHub Issues](https://github.com/dirrgang/espresso-dialin/issues) for bounded tasks,
 acceptance criteria, dependencies and progress. The [workflow guide](docs/workflow.md)
-defines how issues, PRs and repository documentation fit together. Start a new session with
-the [work log](docs/work-log.md); durable rationale lives in the
-[decision log](docs/decision-log.md), and broad priorities in [next steps](docs/next-steps.md).
+defines how issues, commits, PRs and repository documentation fit together. Start a session
+with the relevant issue's latest comments and linked PR, or use [next steps](docs/next-steps.md)
+to select work. Commit bodies and PR descriptions retain verification and handoff context;
+durable rationale lives in the [decision log](docs/decision-log.md). The
+[work log](docs/work-log.md) is a historical archive and no longer receives routine updates.
 See `AGENTS.md` for the detailed agent-facing conventions.
 
 ## Proof-of-concept architecture

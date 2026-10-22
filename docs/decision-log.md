@@ -315,7 +315,9 @@ optimisation and closed-loop control remain Phase 5 or later. See [experiments.m
 
 ## D-001 — 2026-10-22 — Work tracking and agent handoffs
 
-**Status:** accepted.
+**Status:** superseded by
+[D-002](#d-002--2026-10-22--issue-commit-and-pr-handoffs).
+The original rationale and follow-up snapshot remain below for provenance.
 
 **Context:** Development has been documented through commits, PRs, research documents and
 this decision log. A new session still needs a concise entry point, bounded tasks and clear
@@ -346,6 +348,36 @@ inspected main decision log did not yet contain the October baseline. Follow-up 
 [#18](https://github.com/dirrgang/espresso-dialin/issues/18),
 [#19](https://github.com/dirrgang/espresso-dialin/issues/19) and
 [#20](https://github.com/dirrgang/espresso-dialin/issues/20).
+
+## D-002 — 2026-10-22 — Issue, commit and PR handoffs
+
+**Status:** accepted. Supersedes
+[D-001](#d-001--2026-10-22--work-tracking-and-agent-handoffs).
+
+**Context:** D-001 moved task ownership to Issues but still required agents to read and update
+an additional work log. New runs continued to create overlapping handoff entries. The owner
+requested retirement of that routine log and explicit handoff context in commit and PR messages.
+
+**Decision:** Issues own task scope, dependencies, current progress and ongoing handoffs. Commit
+bodies preserve change-specific purpose, outcome, relevant verification and applicable remaining
+work; PR descriptions hold delivery/review evidence and the current delivery handoff. Start
+sessions with the relevant issue's latest comments, linked PR and decisions, using the roadmap
+to select work when needed. Retain the work log as an archive with no routine read/write duty.
+Durable rationale and research findings still belong in the decision log and domain documents.
+Follow [workflow.md](workflow.md) and the updated PR template.
+
+**Alternatives considered:** Keeping a milestone-only work log leaves a broad trigger that
+agents interpret as a requirement for most runs. Deleting it would lose historical evidence.
+Using commit messages alone would omit uncommitted blockers and later status changes; Issues
+and current PR descriptions retain those updates without rewriting published commit history.
+
+**Consequences:** Existing work-log entries and anchors remain intact as dated snapshots.
+Future progress and handoffs do not add repository log entries. If GitHub is unavailable,
+report a temporary untracked handoff location and the required later synchronization; do not
+commit unrelated work or temporary transcripts for bookkeeping. Substantive commits and PRs
+identify verification scope and distinguish committed, integrated and empirically validated
+states where relevant. Small fixes remain exempt from creating an issue solely for bookkeeping.
+This decision changes documentation practice, not modelling assumptions or empirical claims.
 
 ## Open decisions
 
