@@ -26,6 +26,7 @@ dist/
 .streamlit/secrets.toml
 
 # Local databases and runtime state
+data/local-inventory/
 *.db
 *.db-shm
 *.db-wal

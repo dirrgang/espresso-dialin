@@ -5,6 +5,26 @@ these entries are snapshots, not a second backlog. Follow [workflow.md](workflow
 For each meaningful entry record the outcome, evidence/verification, remaining work and next
 action. Identify the branch/commit when relevant; link PRs and decisions once available.
 
+## 2026-10-22 — Complete the available-source inventory (#18)
+
+**Outcome:** Inspected the owner-supplied runtime source read-only and completed the local
+report/export described in [prospective-inventory.md](prospective-inventory.md). The report
+retains source identity, fingerprints, chronology, missingness, intent, links, deviations,
+owner clarification and remaining evidence gaps. Runtime details stay in the gitignored
+`data/local-inventory/` directory. The database was not initialized, migrated or modified.
+
+**Delivery:** Added a standalone v4/v5 inventory command using a read transaction and a logical
+schema/rows fingerprint, including committed WAL evidence. Tests check source preservation,
+raw values/NULLs and invalidated evidence, unsupported/missing-source handling and WAL reads.
+The PR records its checked revision, `mise run check` result and CI evidence. The independent
+baseline review is [PR #27](https://github.com/dirrgang/espresso-dialin/pull/27).
+
+**Remaining work:** Use the local inventory for #19, confirm current operating conditions and
+budget, and freeze the next question/protocol before #20 collection. The owner's follow-up
+about auditable correction or evaluation exclusion is tracked separately in
+[#26](https://github.com/dirrgang/espresso-dialin/issues/26). Inventory completion establishes
+no model efficacy, identified causal response or coffee savings.
+
 ## 2026-10-22 — Move remaining actionable roadmap work to issues
 
 **Outcome:** Migrated the dedicated retention and drift protocol tasks to
