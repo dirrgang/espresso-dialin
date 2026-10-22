@@ -6,6 +6,7 @@ import json
 import sqlite3
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -31,6 +32,11 @@ from espresso_dialin.experiments import (
     ExperimentObservation,
     ExperimentProgress,
     ExperimentStep,
+)
+from espresso_dialin.extraction import (
+    ExtractionDirection,
+    ExtractionRecommendation,
+    recommend_extraction,
 )
 from espresso_dialin.schema import initialize
 
@@ -175,6 +181,7 @@ class Repository:
             selected_recommendation_id=row["selected_recommendation_id"],
             intent=ShotIntent(row["intent"]) if row["intent"] else None,
             experiment_step_id=row["experiment_step_id"],
+            extraction_recommendation_id=row["extraction_recommendation_id"],
             grinding=GrindingResult(
                 setting=row["actual_setting"],
                 duration_s=row["actual_duration_s"],
@@ -291,10 +298,16 @@ class Repository:
                         int(plan.selected),
                     ),
                 )
+            feedback = (
+                None
+                if experiment_step_id
+                else self._ensure_extraction(db, session_id, sequence, shot.created_at)
+            )
+            shot = replace(shot, extraction_recommendation_id=feedback.id if feedback else None)
             db.execute(
                 "INSERT INTO shots (id, session_id, sequence, created_at, "
-                "selected_recommendation_id, intent, experiment_step_id) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "selected_recommendation_id, intent, experiment_step_id, "
+                "extraction_recommendation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     shot.id,
                     session_id,
@@ -303,6 +316,7 @@ class Repository:
                     shot.selected_recommendation_id,
                     shot.intent,
                     shot.experiment_step_id,
+                    shot.extraction_recommendation_id,
                 ),
             )
         return shot
@@ -330,6 +344,7 @@ class Repository:
 
     def complete(self, shot_id: str, result: BrewingResult) -> None:
         with self._connection() as db:
+            db.execute("BEGIN IMMEDIATE")
             cursor = db.execute(
                 "UPDATE shots SET brew_duration_s=?, final_yield_g=?, purged_before_shot=?, "
                 "obviously_bad_shot=?, notes=?, completed_at=? "
@@ -349,6 +364,94 @@ class Repository:
                 raise ValueError(
                     "shot must have grinding results and not already be completed or resolved"
                 )
+            row = db.execute("SELECT session_id FROM shots WHERE id=?", (shot_id,)).fetchone()
+            assert row is not None
+            count = db.execute(
+                "SELECT COUNT(*) FROM shots WHERE session_id=?", (row["session_id"],)
+            ).fetchone()[0]
+            self._ensure_extraction(db, row["session_id"], count + 1, utc_now())
+
+    @staticmethod
+    def _extraction(row: sqlite3.Row) -> ExtractionRecommendation:
+        return ExtractionRecommendation(
+            **(
+                dict(row)
+                | {
+                    "created_at": datetime.fromisoformat(row["created_at"]),
+                    "direction": ExtractionDirection(row["direction"]),
+                }
+            )
+        )
+
+    def extraction_recommendations(self, session_id: str) -> list[ExtractionRecommendation]:
+        """Read immutable feedback, including superseded or later-invalidated sources."""
+        with self._connection() as db:
+            rows = db.execute(
+                "SELECT * FROM extraction_recommendations WHERE session_id=? "
+                "ORDER BY target_sequence, created_at",
+                (session_id,),
+            ).fetchall()
+        return [self._extraction(row) for row in rows]
+
+    def extraction_feedback(self, session_id: str) -> ExtractionRecommendation | None:
+        """Persist current feedback at review time; never backfill existing shots."""
+        with self._connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            rows = db.execute(SHOT_QUERY + " WHERE s.session_id=?", (session_id,)).fetchall()
+            shots = [self._shot(row) for row in rows]
+            if any(s.pending for s in shots):
+                raise ValueError("complete or resolve the pending shot first")
+            return self._ensure_extraction(db, session_id, len(shots) + 1, utc_now())
+
+    def _ensure_extraction(
+        self, db: sqlite3.Connection, session_id: str, sequence: int, now: datetime
+    ) -> ExtractionRecommendation | None:
+        session_row = db.execute("SELECT * FROM sessions WHERE id=?", (session_id,)).fetchone()
+        if session_row is None:
+            raise ValueError("unknown session")
+        # Only the target context is needed; use the same validated Session type as the core.
+        session = Session(
+            id=session_id,
+            bean_id=session_row["bean_id"],
+            bean_name=session_row["bean_name"],
+            started_at=datetime.fromisoformat(session_row["started_at"]),
+            target_yield_g=session_row["target_yield_g"],
+            target_time_min_s=session_row["target_time_min_s"],
+            target_time_max_s=session_row["target_time_max_s"],
+        )
+        rows = db.execute(SHOT_QUERY + " WHERE s.session_id=?", (session_id,)).fetchall()
+        feedback = recommend_extraction(session, [self._shot(r) for r in rows], sequence, now)
+        if feedback is None:
+            return None
+        existing = db.execute(
+            "SELECT * FROM extraction_recommendations WHERE session_id=? "
+            "AND target_sequence=? AND source_shot_id=?",
+            (session_id, sequence, feedback.source_shot_id),
+        ).fetchone()
+        if existing is not None:
+            saved = self._extraction(existing)
+            if saved.created_at > now:
+                raise ValueError("extraction feedback postdates the plan; reload before freezing")
+            return saved
+        db.execute(
+            "INSERT INTO extraction_recommendations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                feedback.id,
+                feedback.session_id,
+                feedback.target_sequence,
+                feedback.source_shot_id,
+                feedback.history_through_sequence,
+                _timestamp(feedback.created_at),
+                feedback.target_yield_g,
+                feedback.target_time_min_s,
+                feedback.target_time_max_s,
+                feedback.linear_target_yield_time_s,
+                feedback.direction,
+                feedback.strategy_id,
+                feedback.model_version,
+            ),
+        )
+        return feedback
 
     def resolve(
         self,

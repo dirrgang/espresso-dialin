@@ -4,6 +4,8 @@ Experimental, local-first proof of concept for adaptive espresso dial-in.
 
 **Assisted and Learning modes are usable for prospective collection:** a local Streamlit + SQLite app freezes
 dose recommendations before grinding and records actual grinding/brewing results separately.
+Assisted mode also provides a [prospective extraction-direction baseline](docs/extraction-feedback.md)
+using crude linear yield normalization, not validated physical truth.
 Grinder settings remain manually chosen. Start with the [live workflow guide](docs/live-workflow.md).
 
 For development, install `mise` once, then bootstrap the repository with:
@@ -43,7 +45,8 @@ For each shot the user can enter data at leisure:
 
 The current application stores the observation and offers dose-duration recommendations
 for your manually chosen next setting when compatible live history exists. Automatic
-grinder-setting selection and extraction optimisation remain future work.
+grinder-setting selection and learned joint extraction models remain future work.
+Directional feedback does not establish validated extraction optimisation.
 
 ### Dose correction is intentional
 

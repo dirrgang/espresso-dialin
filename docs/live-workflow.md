@@ -3,7 +3,10 @@
 Phases 3.1 and 4 provide a local Streamlit application backed by Python's standard SQLite driver.
 Grinder setting remains your manual choice. The application reuses the two existing dose
 controllers; neither is declared the winner. Learning mode adds predefined experiments. There is
-no extraction optimisation, retention model, hardware integration, or historical-data import.
+no validated extraction optimisation, retention model, hardware integration, or historical-data import.
+Assisted mode now offers [directional extraction feedback](extraction-feedback.md): review the
+saved linear target-yield estimate and direction before manually entering the next grinder label.
+First-shot/no-source feedback is neutral; an obviously bad source explicitly suppresses the update.
 
 ## Install and start
 
@@ -46,7 +49,8 @@ remain versioned; neither historical source is modified or automatically pooled 
    requires a manual duration. No estimated rate or expected output is invented.
 4. Click **Freeze plan before grinding**. Wait for the saved-plan confirmation before
    grinding. All available model candidates and the selected plan are saved together.
-   Merely displaying the preview does not persist it. If the wrong plan was frozen and the
+   Merely displaying the dose preview does not persist it. Extraction feedback is persisted
+   at completion or review and linked at freeze. If the wrong plan was frozen and the
    grinder has not been run, use **Cancel frozen plan — no grinding performed** instead of
    inventing measurements or deleting the frozen intent.
 5. Grind, then record the **actual** setting, duration and raw grinder output. The duration
@@ -183,7 +187,7 @@ has that meaning. Arbitrary missing or invalid data must not be bridged.
 `scripts/reclassify_pregrind_invalidation.py` corrects a known, explicitly identified row that
 was invalidated even though the operator confirms the grinder was never run. It is not a general
 shot editor. First launch the updated app once so the database is migrated to the current schema
-v4. Then stop Streamlit before running the maintenance command. The database path, session ID, and shot ID are
+v5. Then stop Streamlit before running the maintenance command. The database path, session ID, and shot ID are
 all required; the default is a read-only dry run:
 
 ```powershell
@@ -201,12 +205,12 @@ status/reason/timestamp in the corrected reason, restores the guard, and runs SQ
 foreign-key checks before commit. The shot, frozen recommendations, sequence, and recording
 timestamps are not changed. Ordinary app startup never performs this reclassification.
 
-## Schema v4 and recording timestamps
+## Schema v5 and recording timestamps
 
-Launching the app automatically migrates valid v1, v2 or v3 databases to v4 in one transaction.
+Launching the app automatically migrates valid v1-v4 databases to v5 in one transaction.
 Back up the database before updating (see above). A failed migration rolls back all changes,
-including the schema version, and can be retried. Reopening v4 is idempotent; unsupported versions
-are rejected. Fresh databases are created directly at v4. Older app versions cannot open the
+including the schema version, and can be retried. Reopening v5 is idempotent; unsupported versions
+are rejected. Fresh databases are created directly at v5. Older app versions cannot open the
 upgraded database; reverting requires the pre-upgrade backup.
 
 Schema v3 adds nullable `shot_resolutions.no_physical_grinding_confirmed`. New explicit pre-grind

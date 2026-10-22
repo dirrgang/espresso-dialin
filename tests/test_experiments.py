@@ -391,7 +391,7 @@ def test_v3_migration_preserves_existing_evidence_and_unknown_intent(v3_path):
     assert shot.intent is None and shot.experiment_step_id is None
     assert shot.resolution.no_physical_grinding_confirmed is True
     with closing(sqlite3.connect(v3_path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone() == (4,)
+        assert db.execute("PRAGMA user_version").fetchone() == (5,)
         assert not db.execute("PRAGMA foreign_key_check").fetchall()
         for table, rows in before.items():
             after = db.execute(f"SELECT * FROM {table}").fetchall()
@@ -425,6 +425,42 @@ def test_v3_migration_failure_rolls_back(v3_path, monkeypatch):
         assert not db.execute("SELECT name FROM sqlite_master WHERE name='experiments'").fetchall()
         assert "intent" not in [r[1] for r in db.execute("PRAGMA table_info(shots)")]
     Repository(v3_path)
+
+
+def test_v4_extraction_migration_preserves_evidence_and_rolls_back(v3_path, monkeypatch):
+    with closing(sqlite3.connect(v3_path)) as db, db:
+        schema._execute_schema(db, schema.EXPERIMENT_SCHEMA)
+        db.execute("PRAGMA user_version=4")
+        tables = ("sessions", "recommendations", "shots", "shot_resolutions")
+        before = {t: db.execute(f"SELECT * FROM {t}").fetchall() for t in tables}
+    execute = schema._execute_schema
+
+    def fail(db, script):
+        execute(db, script)
+        if script == schema.EXTRACTION_SCHEMA:
+            raise sqlite3.OperationalError("extraction migration failed")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(schema, "_execute_schema", fail)
+        with pytest.raises(sqlite3.OperationalError, match="extraction migration failed"):
+            Repository(v3_path)
+    with closing(sqlite3.connect(v3_path)) as db:
+        assert db.execute("PRAGMA user_version").fetchone() == (4,)
+        assert not db.execute(
+            "SELECT name FROM sqlite_master WHERE name='extraction_recommendations'"
+        ).fetchall()
+        assert "extraction_recommendation_id" not in [
+            r[1] for r in db.execute("PRAGMA table_info(shots)")
+        ]
+    repo = Repository(v3_path)
+    with closing(sqlite3.connect(v3_path)) as db:
+        for table, rows in before.items():
+            after = db.execute(f"SELECT * FROM {table}").fetchall()
+            assert [r[: len(rows[0])] for r in after] == rows
+        assert not db.execute("PRAGMA foreign_key_check").fetchall()
+    assert not repo.extraction_recommendations("other")
+    assert all(s.extraction_recommendation_id is None for s in repo.shots("other"))
+    assert Repository(v3_path).shots("other") == repo.shots("other")
 
 
 def test_step_plan_cannot_predate_experiment_or_relabel_completed_shot(repo):
@@ -614,7 +650,7 @@ def test_extraction_raw_outcomes_correction_and_restart(repo):
         assert repo.plans("custom", shot.sequence) == frozen
     assert progress.status == "FINISHED"
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone() == (4,)
+        assert db.execute("PRAGMA user_version").fetchone() == (5,)
 
 
 def test_unexecuted_comparison_step_preserves_actual_setting_continuity(repo):

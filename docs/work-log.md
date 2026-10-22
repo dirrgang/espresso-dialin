@@ -38,6 +38,20 @@ no new quality-gate result is claimed. Continue the isolated review/integration
 in #17 and evidence inventory in #18; this cleanup does not complete either task.
 
 
+## 2026-10-22 — Review the independent extraction baseline (#17)
+
+**Outcome:** Isolated October source `369c4c0` from the September experiment already merged
+through PR #16. The integration branch starts at fetched main `8a6474f`, including the merged
+workflow PR #21. Preserved the owner's local `pyproject.toml` edit and excluded unrelated
+notebook metadata. [Extraction feedback](extraction-feedback.md#integration-review-2026-10-22-17)
+records the review of targets, yield, eligibility, suppression, frozen provenance and migration.
+Added a populated schema-v4/custom-target migration and review regression check; existing
+migration failure and freeze rollback checks remain in place. No efficacy claim is made.
+
+**Verification and remaining work:** The PR records the exact checked revision, full
+`mise run check` result and CI evidence. Integration requires that PR's normal review/merge.
+Evidence inventory remains the independent scope of #18, followed by pilot selection in #19.
+
 ## 2026-10-22 — Move remaining actionable roadmap work to issues
 
 **Outcome:** Migrated the dedicated retention and drift protocol tasks to

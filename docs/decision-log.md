@@ -313,6 +313,26 @@ claim accompany it. Both grinder and extraction mappings still need collection a
 Dedicated retention/drift protocols remain later Phase-4 work; regression/RLS/GP, setting
 optimisation and closed-loop control remain Phase 5 or later. See [experiments.md](experiments.md).
 
+## 2026-10-07 — Prospective directional extraction baseline
+
+**Decision:** Add the [linear-yield direction baseline](extraction-feedback.md) to Assisted mode
+as an inspectable prospective comparator, not validated physical truth. Use the latest eligible
+completed same-session brew, including experimental raw observations with intent retained.
+Exclude invalidated sources; a latest eligible bad-shot flag suppresses the update without
+falling back to an older good shot. Compare the derived session-target time with the inclusive
+session time band for FINER/KEEP/COARSER. No puck-dose tolerance or causal correction is invented.
+
+Schema v5 stores separate immutable feedback and a frozen Assisted-shot FK. Completion saves
+next-decision feedback atomically; review saves missing feedback now, including legacy sources.
+Freeze rechecks source eligibility. Later invalidation preserves frozen links and superseded
+records; new decisions exclude that source. Migration backfills neither feedback nor links.
+Learning schedules remain outcome-independent. No second acquisition state machine is added.
+
+FINER/COARSER are physical directions, never concrete Sette labels or numeric step sizes.
+Setting selection remains manual. Linear scaling, monotone response, puck-dose uncertainty and
+efficacy remain unvalidated; learned joint outcomes require prospective comparison and designed
+evidence. Shipping this controller establishes no empirical extraction-optimisation claim.
+
 ## D-001 — 2026-10-22 — Work tracking and agent handoffs
 
 **Status:** superseded by

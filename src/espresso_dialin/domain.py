@@ -196,6 +196,7 @@ class Shot:
     resolution: ShotResolution | None = None
     intent: ShotIntent | None = None
     experiment_step_id: str | None = None
+    extraction_recommendation_id: str | None = None
 
     @property
     def plan_frozen_at(self) -> datetime:
