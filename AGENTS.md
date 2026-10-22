@@ -54,19 +54,28 @@ This split is a default workflow, not a hard tool restriction: use the tool best
 
 ## Work tracking and handoffs
 
-Follow `docs/workflow.md`. GitHub Issues own task scope, acceptance criteria, dependencies
-and current status; PRs own delivery/review evidence. `docs/work-log.md` provides short dated
-milestones and handoffs, while `docs/decision-log.md` records durable rationale.
+Follow `docs/workflow.md`. GitHub Issues own task scope, acceptance criteria, dependencies,
+current status and ongoing handoffs. Commit messages preserve change-specific context and
+verification; PR descriptions provide the delivery/review evidence and current handoff.
+`docs/decision-log.md` records durable rationale. `docs/work-log.md` is a historical archive:
+do not append routine entries or use it as the required session entry point.
 
-- Before substantive work, read the latest work-log entry and relevant issue/decision records;
-  inspect the current branch/base and preserve unrelated local changes.
+- Before substantive work, read the relevant issue and its latest comments, linked PR and
+  decision records; use `docs/next-steps.md` to find the current priorities when no task is
+  identified. Inspect the branch/base and preserve unrelated local changes.
 - Prefer a bounded issue and one coherent PR per substantive work package. Use the repository
   issue/PR templates; small fixes do not require a separate issue just for bookkeeping.
-- Record material findings, blockers and verification in the issue. If GitHub is unavailable,
-  leave a temporary work-log handoff and identify what needs synchronization.
-- At meaningful milestones or interrupted handoffs, add a concise work-log entry with the
-  outcome, evidence links, remaining work and next action. Do not duplicate issue checklists
-  or tool transcripts.
+- Record material findings, blockers, verification and interrupted handoffs in the issue;
+  keep the PR description current when a PR exists. Identify the outcome, remaining work,
+  branch/commit, checked revision or working-tree scope, and next action when needed.
+- For substantive commits, use a concise subject and a body with the change's purpose,
+  outcome, relevant verification and unresolved limitations or next action where applicable.
+  Link the issue/PR when available. Do not copy tool transcripts or imply that uncommitted
+  work or another revision was verified by that commit.
+- If GitHub is unavailable, preserve a temporary untracked handoff outside the work-log
+  archive, report its location and identify what must be synchronized to the issue/PR.
+  Put change-specific context in the commit body when committing; do not commit unrelated
+  or incomplete work merely to create a handoff.
 - New consequential decisions use the stable ID/status format in `docs/workflow.md`.
   Preserve earlier rationale and link superseding decisions rather than silently rewriting it.
 - Distinguish implemented, integrated and empirically validated work. Closing a software issue

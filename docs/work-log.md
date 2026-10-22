@@ -1,9 +1,14 @@
 # Work log
 
-Short dated milestones and handoffs, newest first. GitHub Issues own current task status;
-these entries are snapshots, not a second backlog. Follow [workflow.md](workflow.md).
-For each meaningful entry record the outcome, evidence/verification, remaining work and next
-action. Identify the branch/commit when relevant; link PRs and decisions once available.
+**Archived 2026-10-22.** Existing dated entries are historical snapshots, preserved in place.
+Do not append routine entries or treat their next actions as current task status. Their earlier
+workflow instructions have been superseded by
+[D-002](decision-log.md#d-002--2026-10-22--issue-commit-and-pr-handoffs).
+
+Current progress and handoffs belong in the relevant GitHub Issue and PR description;
+substantive commit bodies retain change-specific context and verification. Start with the
+issue's latest comments and linked PR, or [next steps](next-steps.md) to select work.
+See [workflow.md](workflow.md), including its temporary offline-handoff exception.
 
 ## 2026-10-22 — Move remaining actionable roadmap work to issues
 

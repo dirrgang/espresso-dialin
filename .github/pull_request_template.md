@@ -15,5 +15,12 @@ For documentation/templates, report relevant link/content/structure checks. -->
 ## Limitations and documentation
 
 <!-- State material risks, unresolved inputs and empirical limits, or None.
-Link updated domain docs, decision records and any milestone/handoff work-log entry.
+Link updated domain docs and decision records. The work log is archived; do not add an entry.
 Keep empirical-validation tasks open when only their supporting software is delivered. -->
+
+## Handoff and remaining work
+
+<!-- State what remains, blockers and next action, or None for this PR's scope.
+Identify the branch/commit and relevant issue; distinguish committed work from local changes.
+Keep the issue and this description current. Commit bodies retain change-specific purpose,
+verification and applicable handoff context; do not copy tool transcripts. -->

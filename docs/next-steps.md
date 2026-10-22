@@ -2,8 +2,8 @@
 
 Validate modelling assumptions with prospective evidence before investing in richer models or
 product architecture. This roadmap records broad phases and priorities; GitHub Issues own
-task scope, acceptance criteria, dependencies and current status. See [workflow.md](workflow.md)
-and the latest dated [work-log handoff](work-log.md).
+task scope, acceptance criteria, dependencies, current status and handoffs. Start with the
+relevant issue's latest comments and linked PR; see [workflow.md](workflow.md) for conventions.
 
 ## Current work packages
 
