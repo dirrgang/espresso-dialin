@@ -1,6 +1,10 @@
 # Decision log
 
-This file records current project decisions separately from hypotheses. Change entries when the project learns something materially new.
+This file records project decisions separately from hypotheses. New decisions follow the
+stable ID/status and supersession conventions in [workflow.md](workflow.md). Existing dated
+records retain their anchors and historical context; later dated decisions take precedence
+where they explicitly change an earlier choice. New `proposed` records do not override
+accepted decisions.
 
 ## 2026-09-10 — Project framing
 
@@ -308,6 +312,40 @@ makes a designed comparison possible; no real designed outcomes or empirical ide
 claim accompany it. Both grinder and extraction mappings still need collection and analysis.
 Dedicated retention/drift protocols remain later Phase-4 work; regression/RLS/GP, setting
 optimisation and closed-loop control remain Phase 5 or later. See [experiments.md](experiments.md).
+
+## D-001 — 2026-10-22 — Work tracking and agent handoffs
+
+**Status:** accepted.
+
+**Context:** Development has been documented through commits, PRs, research documents and
+this decision log. A new session still needs a concise entry point, bounded tasks and clear
+separation between implemented infrastructure and demonstrated empirical value. The owner
+requested the proposed work/decision workflow be established.
+
+**Decision:** Use GitHub Issues for task scope, acceptance criteria, dependencies and current
+status; PRs for delivered changes and verification; [work-log.md](work-log.md) for dated
+milestones/handoffs; this log for durable rationale; and [next-steps.md](next-steps.md) for
+broad phases. Follow [workflow.md](workflow.md) and the issue/PR templates. Keep implementation
+and empirical-validation tasks separate when they have different completion criteria.
+
+**Alternatives considered:** A repository-only task list would require manual maintenance
+of task discussions and status. A GitHub-only log would make repository handoffs and durable
+decisions harder to discover from a checkout. A mandatory Project board and a full migration
+to separate ADR files add maintenance without a current need.
+
+**Consequences:** Link artifacts rather than copying checklists. Record only meaningful
+milestones in the work log. New decision records receive sequential IDs and explicit status;
+substantive reversals preserve the old rationale and link a superseding record. Existing
+dated entries are not retrospectively renumbered. This workflow adds no modelling assumption
+or empirical efficacy claim.
+
+**Evidence and follow-up:** The 2026-10-22 inspection found acquisition and experiment
+infrastructure plus an additional extraction baseline on the feature branch, while the
+inspected main decision log did not yet contain the October baseline. Follow-up tasks are
+[#17](https://github.com/dirrgang/espresso-dialin/issues/17),
+[#18](https://github.com/dirrgang/espresso-dialin/issues/18),
+[#19](https://github.com/dirrgang/espresso-dialin/issues/19) and
+[#20](https://github.com/dirrgang/espresso-dialin/issues/20).
 
 ## Open decisions
 

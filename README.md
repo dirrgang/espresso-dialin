@@ -103,6 +103,11 @@ Repository-aware interactive ChatGPT sessions are used primarily for mathematica
 
 The separation is about objectives, not a hard tool boundary. Production code should remain concise and maintainable rather than becoming tutorial material, while important mathematical assumptions and design rationale discovered in either workflow should be committed to durable repository documentation.
 
+Use [GitHub Issues](https://github.com/dirrgang/espresso-dialin/issues) for bounded tasks,
+acceptance criteria, dependencies and progress. The [workflow guide](docs/workflow.md)
+defines how issues, PRs and repository documentation fit together. Start a new session with
+the [work log](docs/work-log.md); durable rationale lives in the
+[decision log](docs/decision-log.md), and broad priorities in [next steps](docs/next-steps.md).
 See `AGENTS.md` for the detailed agent-facing conventions.
 
 ## Proof-of-concept architecture
