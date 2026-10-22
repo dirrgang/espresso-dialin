@@ -83,6 +83,11 @@ See [research-methods.md](research-methods.md) for experiment-selection discipli
 
 ## Phase 5 — Structured system identification / richer models
 
+The [directional extraction baseline](extraction-feedback.md), implemented on October 7,
+is reviewed for integration through #17. It uses actual yield with explicitly unvalidated
+linear scaling, preserves prospective provenance and suppresses flagged bad-shot updates.
+Concrete settings remain manual; no learned extraction model or efficacy claim accompanies it.
+
 Conditional research options, not committed implementation tasks. Introduce complexity only
 when prospective evidence justifies a bounded comparison:
 

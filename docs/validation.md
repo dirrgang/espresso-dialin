@@ -24,6 +24,12 @@ At minimum compare against:
 
 ### A. Human-style heuristic
 
+The [implemented extraction baseline](extraction-feedback.md) now provides a prospective
+comparator using crude linear yield normalization and session time bands. Synthetic core,
+SQLite migration/immutability and AppTest checks establish chronology and manual-setting
+behavior, not physical accuracy or coffee savings. Learned joint duration/yield models remain
+future work and must be compared with frozen baseline decisions prospectively.
+
 - shot too fast -> grind finer;
 - shot too slow -> grind coarser;
 - grinder output too low -> increase grind duration;

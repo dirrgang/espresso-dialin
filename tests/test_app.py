@@ -19,6 +19,37 @@ def start_app():
     return AppTest.from_file(str(APP), default_timeout=APP_TEST_TIMEOUT_S).run()
 
 
+@pytest.mark.parametrize("bad,expected", [(False, "FINER"), (True, "NO_UPDATE_BAD_SHOT")])
+def test_extraction_before_freeze_keeps_setting_manual(session_app, bad, expected):
+    from espresso_dialin.application import Acquisition
+    from espresso_dialin.domain import BrewingResult, CorrectionMode, GrindingResult
+
+    repo, app = session_app
+    assert any("No prior valid brew outcome" in item.value for item in app.info)
+    source = Acquisition(repo).freeze("session-2", "3E", 1, "manual", 10)
+    repo.save_grinding(
+        source.id,
+        GrindingResult(
+            setting="3E", duration_s=10, output_g=18, correction=CorrectionMode.TO_TARGET
+        ),
+    )
+    repo.complete(source.id, BrewingResult(duration_s=31, yield_g=39, obviously_bad_shot=bad))
+    saved = repo.extraction_recommendations("session-2")[0]
+    app.run()
+    assert not app.exception
+    assert any(f"Recommendation: {expected}" in item.value for item in app.markdown)
+    assert any("28.6 s" in item.value for item in app.markdown)
+    assert widget(app.text_input, "Grinder setting").value == ""
+    widget(app.text_input, "Grinder setting").input("user opaque choice").run()
+    assert repo.extraction_feedback("session-2") == saved
+    widget(app.number_input, "Manual planned duration (s)").set_value(9.5).run()
+    widget(app.button, "Freeze plan before grinding").click().run()
+    assert not app.error and not app.exception
+    next_shot = repo.shots("session-2")[1]
+    assert next_shot.extraction_recommendation_id == saved.id
+    assert repo.plans("session-2", 2)[-1].setting == "user opaque choice"
+
+
 @pytest.fixture
 def session_app(tmp_path, monkeypatch):
     path = tmp_path / "sessions.sqlite3"

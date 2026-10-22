@@ -128,7 +128,11 @@ This assumes approximately constant average flow and is not physically exact. Hi
 
 ### Preferred direction
 
-Use $(t_{\mathrm{brew}},Y)$ jointly and learn the relationship empirically. Do not hard-code linear yield/time scaling unless new evidence shows it is adequate.
+Use $(t_{\mathrm{brew}},Y)$ jointly and learn the relationship empirically. The implemented
+[extraction-feedback baseline](extraction-feedback.md) deliberately uses crude linear scaling
+as a prospective comparator, not as established physical truth. It uses session targets and
+returns direction only; concrete setting selection remains manual. Learned joint models
+must demonstrate out-of-sample value against this baseline.
 
 ## 4. Dose correction
 

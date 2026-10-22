@@ -152,7 +152,7 @@ def test_v1_migration_preserves_every_original_value_and_unknown_times(v1_path):
                 db.execute(f"SELECT {','.join(columns)} FROM {table} ORDER BY id").fetchall()
                 == rows
             )
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         assert not db.execute("PRAGMA foreign_key_check").fetchall()
     assert all(session.bag_opened_date is None for session in repo.sessions())
     complete, pending = repo.shots("one")
@@ -180,7 +180,7 @@ def test_v2_migration_keeps_ambiguous_pregrind_abandonment_conservative(
 ):
     repo = Repository(v2_ambiguous_pregrind_path)
     with closing(sqlite3.connect(v2_ambiguous_pregrind_path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         columns = {row[1] for row in db.execute("PRAGMA table_info(shot_resolutions)")}
         assert "no_physical_grinding_confirmed" in columns
         assert db.execute(
@@ -218,17 +218,68 @@ def test_migration_failure_rolls_back_ddl_data_and_version(v1_path, monkeypatch)
 
 def test_fresh_schema_does_not_run_legacy_migration(tmp_path, monkeypatch):
     def unexpected_v1_migration(db):
-        pytest.fail("fresh databases must be created directly at v4")
+        pytest.fail("fresh databases must be created directly at v5")
 
     def unexpected_v2_migration(db):
-        pytest.fail("fresh databases must be created directly at v4")
+        pytest.fail("fresh databases must be created directly at v5")
 
     monkeypatch.setattr(schema, "migrate_v1_to_v2", unexpected_v1_migration)
     monkeypatch.setattr(schema, "migrate_v2_to_v3", unexpected_v2_migration)
     repo = Repository(tmp_path / "fresh.sqlite3")
     assert repo.sessions() == []
     with closing(sqlite3.connect(repo.path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+
+
+@pytest.fixture
+def v4_path(tmp_path):
+    path = tmp_path / "legacy-v4.sqlite3"
+    source = Path(__file__).parent / "fixtures" / "schema_v4.sql"
+    with closing(sqlite3.connect(path)) as db, db:
+        db.executescript(source.read_text(encoding="utf-8"))
+        db.execute("PRAGMA user_version = 4")
+        db.execute(
+            "INSERT INTO sessions VALUES "
+            "('s','b','Coffee','2026-09-01T08:00:00+00:00',NULL,'Grinder','Machine',"
+            "NULL,NULL,19,50,20,25,NULL)"
+        )
+        db.execute(
+            "INSERT INTO recommendations VALUES "
+            "('r','s',1,'2026-09-01T08:01:00+00:00','opaque',10,19,"
+            "'manual','1',NULL,NULL,NULL,1)"
+        )
+        db.execute(
+            "INSERT INTO shots (id,session_id,sequence,created_at,selected_recommendation_id,"
+            "actual_setting,actual_duration_s,grinder_output_g,correction,puck_dose_g,"
+            "grinding_recorded_at,brew_duration_s,final_yield_g,completed_at,intent) VALUES "
+            "('shot','s',1,'2026-09-01T08:01:00+00:00','r','opaque',10,18,'MEASURED',19,"
+            "'2026-09-01T08:02:00+00:00',24,49,'2026-09-01T08:03:00+00:00','ASSISTED')"
+        )
+    return path
+
+
+def test_v4_migration_preserves_evidence_without_backfilling_feedback(v4_path):
+    before = snapshot(v4_path)
+    repo = Repository(v4_path)
+    with closing(sqlite3.connect(v4_path)) as db:
+        for table, (columns, rows) in before.items():
+            assert (
+                db.execute(f"SELECT {','.join(columns)} FROM {table} ORDER BY id").fetchall()
+                == rows
+            )
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert not db.execute("PRAGMA foreign_key_check").fetchall()
+    assert repo.extraction_recommendations("s") == []
+    assert repo.shots("s")[0].extraction_recommendation_id is None
+    after = snapshot(v4_path)
+    reopened = Repository(v4_path)
+    assert snapshot(v4_path) == after
+    feedback = reopened.extraction_feedback("s")
+    assert feedback.target_yield_g == 50
+    assert feedback.linear_target_yield_time_s == pytest.approx(24 * 50 / 49)
+    assert feedback.direction == "KEEP"
+    assert feedback.created_at > reopened.shots("s")[0].completed_at
+    assert reopened.shots("s")[0].extraction_recommendation_id is None
 
 
 # Streamlit AppTest currently triggers upstream sqlite3 ResourceWarnings under Python 3.14.
@@ -241,7 +292,7 @@ def test_app_launch_migrates_v1_and_shows_pending_phase(v1_path, monkeypatch):
     app = AppTest.from_file(str(Path(__file__).parents[1] / "streamlit_app.py")).run()
     assert not app.exception and not app.error
     with closing(sqlite3.connect(v1_path)) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
     app.selectbox(key="current_session").select("one").run()
     assert not app.exception and not app.error
     assert any(input.label == "Brew duration (s)" for input in app.number_input)

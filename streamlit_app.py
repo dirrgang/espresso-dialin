@@ -22,6 +22,7 @@ from espresso_dialin.experiments import (
     build_experiment,
     build_extraction_experiment,
 )
+from espresso_dialin.extraction import ExtractionDirection
 from espresso_dialin.repository import Repository
 
 DEFAULT_DATABASE = Path(__file__).parent / "data" / "live.sqlite3"
@@ -429,6 +430,32 @@ def main():
                         st.rerun()
     elif session.ended_at is None and use_mode == "Assisted":
         st.header("Next shot")
+        st.subheader("Extraction feedback")
+        feedback = repo.extraction_feedback(session_id)
+        if feedback is None:
+            st.info(
+                "No prior valid brew outcome available; "
+                "choose the initial grinder setting manually."
+            )
+        else:
+            st.write(
+                f"Estimated time at {feedback.target_yield_g:.1f} g: "
+                f"{feedback.linear_target_yield_time_s:.1f} s"
+            )
+            st.write(f"Target: {feedback.target_time_min_s:.1f}-{feedback.target_time_max_s:.1f} s")
+            st.write(f"Recommendation: {feedback.direction}")
+            if feedback.direction == ExtractionDirection.NO_UPDATE_BAD_SHOT:
+                st.info(
+                    "The observation was marked obviously bad and is not being used "
+                    "to recommend a grinder-setting change."
+                )
+            st.caption(
+                f"Source shot {feedback.history_through_sequence} · {feedback.source_shot_id} · "
+                f"{feedback.strategy_id} v{feedback.model_version} · "
+                f"saved {feedback.created_at.isoformat()}. "
+                "Crude linear yield normalization, not validated physical truth. "
+                "Choose the concrete next setting manually."
+            )
         st.caption("Choose the grinder setting manually. Freeze the plan before grinding.")
         setting = st.text_input("Grinder setting", key=f"setting_{session_id}_{len(shots) + 1}")
         if setting.strip():
