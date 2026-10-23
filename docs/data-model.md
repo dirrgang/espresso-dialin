@@ -424,3 +424,23 @@ are stored prospectively. Completion/review persists feedback; Assisted freeze l
 Legacy links remain NULL; migration does not backfill recommendations. Later invalidation
 preserves frozen history while excluding the source from new decisions. See
 [extraction-feedback.md](extraction-feedback.md) for fields, transactional migration and audit semantics.
+
+
+## Current retrospective exclusion policy
+
+Issue [#26](https://github.com/dirrgang/espresso-dialin/issues/26) reuses immutable
+`shot_resolutions` rather than adding field edits or replacement rows. `INVALIDATED` excludes
+an entire shot from future dose/extraction sources and current outcome scoring. Even an error
+in only `actual_duration_s` excludes separately recorded brewing evidence conservatively;
+those measurements remain preserved, not declared physically false. No evaluation-only
+exclusion or numeric revision is supported, and a probable replacement in free text never
+becomes a verified measurement. No schema migration is needed.
+
+`Repository.completed_shots()` returns currently `COMPLETED` shots in original sequence order,
+including bad-brew flags and intent. A non-null `completed_at` alone is not eligibility.
+`Repository.shots()` retains all attempts and resolutions for audit and coffee accounting.
+Invalidation changes no raw shot column, recommendation, source ID, experiment membership or
+chronology. Frozen records describe information available when the decision was made; a later
+eligible analysis view must also report subsequent exclusions. See the
+[live workflow](live-workflow.md#erroneous-past-results-and-evaluation-eligibility) and
+[validation policy](validation.md#retrospective-exclusions-and-decision-time-evidence).

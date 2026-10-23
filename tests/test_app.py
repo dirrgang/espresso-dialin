@@ -251,6 +251,20 @@ def test_completed_shot_can_be_invalidated_through_ui(session_app):
     invalid = repo.shots("session-2")[0]
     assert invalid.status == ShotStatus.INVALIDATED
     assert invalid.grinding.duration_s == 97
+    restarted = start_app()
+    assert not restarted.exception
+    frame = restarted.dataframe[0].value
+    assert frame.iloc[0]["State"] == "INVALIDATED"
+    assert frame.iloc[0]["Actual s"] == 97
+    assert frame.iloc[0]["Resolution reason"] == "97 seconds was a typo for 9.7"
+    assert frame.iloc[0]["Resolution recorded (UTC)"] == invalid.resolution.recorded_at.isoformat()
+    widget(restarted.text_input, "Grinder setting").input("3E").run()
+    assert any("Insufficient" in info.value for info in restarted.info)
+    widget(restarted.selectbox, "History view").select("Completed eligible outcomes").run()
+    assert not restarted.dataframe
+    assert any("No completed eligible outcomes" in info.value for info in restarted.info)
+    widget(restarted.selectbox, "History view").select("All attempts (audit)").run()
+    assert restarted.dataframe[0].value.iloc[0]["State"] == "INVALIDATED"
 
 
 def test_explicit_pregrind_cancel_survives_restart_and_preserves_history(session_app):

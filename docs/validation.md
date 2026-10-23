@@ -259,3 +259,38 @@ differences. Confirmed cancellation of the comparison setting must not invent a 
 transition. Existing lifecycle/immutability tests run against both replication and extraction;
 Streamlit tests execute the new family with each correction mode. These are synthetic integrity
 checks only; the extraction mapping still requires real designed collection and analysis.
+
+
+## Retrospective exclusions and decision-time evidence
+
+For live data, use the whole-shot integrity policy in
+[live-workflow.md](live-workflow.md#erroneous-past-results-and-evaluation-eligibility).
+An entry error or explicitly uncertain measurement can be invalidated with an immutable
+reason/time annotation. This excludes all fields of that shot from later source selection
+and current outcome scoring, conservatively including separately recorded brew evidence.
+It does not establish that every field is wrong. Field-specific revisions and evaluation-only
+exclusions are not implemented. Uncertain recollection and planned duration cannot substitute
+for measured actual duration. A free-text inventory warning has no eligibility effect.
+
+Current eligible completed outcomes come from `Repository.completed_shots(session_id)`.
+Do not select outcomes merely by `completed_at IS NOT NULL`, or pass an invalidated shot's
+raw duration/output to the low-level dose scorer. An obviously bad brew is a retained process
+outcome with an explicit flag, not an entry error; report its frequency and suppression,
+and predefine any metric-specific stratification/exclusion rather than hiding poor results.
+Keep Assisted versus Learning analysis separate.
+
+Retrospective filtering must never rewrite the prospective record. Preserve and report the
+original selected/shadow predictions, source IDs, decision times and later exclusion times.
+If a source was invalidated after a linked decision, retain that decision and label its source
+as subsequently excluded; do not reconstruct it using later knowledge. Report current integrity
+filtering and its reasons/counts alongside the original decision record. Freeze evaluation
+criteria before collection (#19/#20 and later #25); explicitly disclose later integrity findings
+and any sensitivity analysis. This issue supplies no live comparative evaluator or efficacy result.
+
+Use `Repository.shots()` for the full attempt ledger. Invalidated and abandoned physical attempts
+still consume coffee and count toward attempts/grams-to-target as specified by the protocol.
+Only confirmed pre-grind non-execution can be excluded from physical attempts. Preserve recorded
+output even when excluded from fitting; if mass itself is uncertain, report that uncertainty
+instead of treating it as a verified resource total. Purges, correction additions/discards and
+unrecorded grinding remain separately documented costs or missing information. Invalidation
+must not make unfavorable attempts disappear from convergence or coffee-use accounting.

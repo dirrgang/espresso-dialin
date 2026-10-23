@@ -217,6 +217,14 @@ class Repository:
             else None,
         )
 
+    def completed_shots(self, session_id: str) -> list[Shot]:
+        """Current eligible outcomes in shot order, excluding whole-shot invalidations.
+
+        Use shots() for physical-attempt accounting and raw audit evidence. This view
+        retains bad-brew flags and does not reconstruct eligibility at decision time.
+        """
+        return [shot for shot in self.shots(session_id) if shot.status == ShotStatus.COMPLETED]
+
     def freeze(
         self,
         session_id: str,

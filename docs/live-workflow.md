@@ -152,7 +152,7 @@ Backups are your responsibility; Git does not preserve runtime data.
 
 ## Abandonment and invalidation
 
-Use **Abandon or invalidate a shot** below recent history. Select the shot and action,
+Use **Exclude an erroneous past result / resolve a shot** below recent history. Select the shot and action,
 enter a required reason, check the confirmation, and click **Confirm shot resolution**.
 The selector includes older shots, not just the 20 shown in the recent-history table.
 
@@ -162,7 +162,7 @@ The selector includes older shots, not just the 20 shown in the recent-history t
 - **Abandon brew — keep valid grinder result:** explicitly declares the saved grinding result
   valid while ending the brew attempt. The actual-setting continuity rules apply normally and
   the grinder result can inform later dose predictions.
-- **Invalidate — execution or evidence is uncertain:** use when execution or recorded evidence
+- **Invalidate — exclude whole shot from sources and scoring:** use when execution or recorded evidence
   is wrong or uncertain, including a completed shot. It excludes the entire shot from future
   controller history and always breaks continuity. The wrong value remains visible alongside
   the invalidation reason and timestamp; it is never overwritten.
@@ -181,6 +181,55 @@ or retrospective-entry UI.
 
 Missing measurements alone never prove non-execution. Only the persisted explicit confirmation
 has that meaning. Arbitrary missing or invalid data must not be bridged.
+
+### Erroneous past results and evaluation eligibility
+
+For an entry error (for example a mistyped actual grind duration), select the original shot
+in the resolution panel, choose **Invalidate**, and describe the affected field and evidence
+in the required reason. Distinguish a confirmed entry error from an uncertain recollection;
+for example, `grind_duration_s is unreliable; replacement unknown`. Confirm the whole-shot
+scope and save. No numeric correction is inferred from the reason or from the frozen plan.
+A robust median cannot protect a baseline whose only observation contains a positive typo.
+
+**History view** offers recent attempts, all attempts, and **Completed eligible outcomes**.
+The last view excludes invalidated shots; audit views retain original values, status, reason
+and UTC resolution time after restart. Select an ended session to inspect or invalidate its
+past results as well. Resolutions are permanent, so review the scope before confirming.
+
+The current exclusion is deliberately coarse: even an error limited to grind duration excludes
+both the dose/rate observation and the separately recorded brew from automatic source selection
+and outcome scoring. Brewing evidence remains stored; it is not thereby proven physically wrong.
+There is no field-specific revision, replacement measurement, evaluation-only switch or automatic
+salvage of unaffected fields. In particular, do not relabel a questionable duration as trustworthy
+because brew time/yield are plausible. A later field-specific workflow would require audited
+original/replacement values, field, reason, timestamp and certainty before restoring eligibility.
+
+An **obviously bad shot** describes a physical brew anomaly with measurements still believed
+correct. It retains the dose observation; extraction feedback emits `NO_UPDATE_BAD_SHOT`. It
+is not an entry-error correction or a general scoring exclusion. An unfavorable result alone
+is no reason to invalidate a shot. **Abandonment** ends an unfinished attempt and can retain
+valid grinder data; it cannot resolve an already completed brew.
+
+For current live outcome analysis, use `Repository.completed_shots(session_id)` rather than
+filtering by non-null `completed_at`: invalidated shots retain that original timestamp.
+The accessor includes bad-brew flags and both Assisted and Learning intent; apply predefined
+metric-specific criteria and stratify by intent. `Repository.shots()` remains the complete
+audit/attempt ledger. The low-level `score_recommendation` has no resolution context: callers
+must select eligible outcomes first and require matching actual setting. See
+[validation.md](validation.md#retrospective-exclusions-and-decision-time-evidence).
+
+Whole-shot invalidation immediately stops later dose previews using the observation and breaks
+the contiguous block; without compatible data, both controllers require manual fallback.
+Extraction feedback selects another eligible same-session brew or becomes neutral. Existing
+frozen dose and extraction recommendations, source IDs and shot links remain unchanged, even
+when their source is invalidated later. A later analysis must distinguish the original decision
+information from the current eligible view and report decisions based on subsequently excluded
+sources. Never refit the frozen recommendation or re-enter the old result as a new physical shot.
+
+Exclusion does not erase coffee or attempts. Count physically executed invalidated/abandoned
+attempts in resource accounting, retaining uncertain mass as uncertain and reporting missing
+purge/correction coffee. Only explicitly confirmed pre-grind non-execution is not a physical
+attempt. No automatic total-coffee estimator or model-efficacy claim is added here.
 
 ### Narrow maintenance correction
 

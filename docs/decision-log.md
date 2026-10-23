@@ -399,6 +399,37 @@ identify verification scope and distinguish committed, integrated and empiricall
 states where relevant. Small fixes remain exempt from creating an issue solely for bookkeeping.
 This decision changes documentation practice, not modelling assumptions or empirical claims.
 
+## D-003 — 2026-10-22 — Conservative audited exclusion of erroneous results
+
+**Status:** accepted.
+
+**Context:** A positive but mistyped duration can be the sole source for both dose baselines.
+An inventory note does not change eligibility; a median offers no protection with one input.
+[#26](https://github.com/dirrgang/espresso-dialin/issues/26) requires auditable retrospective
+exclusion without rewriting frozen decisions or elevating uncertain recall to measurement.
+
+**Decision:** Reuse whole-shot `INVALIDATED` resolutions with required reason and UTC timestamp.
+Expose the scope explicitly in the UI and offer current completed-eligible and full audit views.
+No field revisions, numeric replacements or evaluation-only exclusion are introduced. Invalidation
+excludes dose and extraction sources and current outcome scoring, while leaving raw brewing
+measurements intact even when only grinding evidence is in doubt. It breaks dose continuity;
+manual fallback is required when no compatible observations remain. Bad-brew flags continue
+to denote retained process anomalies rather than data-entry errors.
+
+**Alternatives considered:** Silent edits or re-entering past results would destroy provenance
+or chronology. A scoring-only switch would leave known erroneous inputs in future controllers.
+Field-specific revision/salvage would preserve more usable evidence but needs dependency and
+certainty rules beyond this bounded integrity fix.
+
+**Consequences and evidence:** Existing schema and immutable resolutions suffice. The limitation
+is explicit loss of automatic use of unaffected fields, not proof that those fields are wrong.
+Frozen source links/predictions remain decision-time evidence; later analysis reports exclusions
+without refitting them. Attempts and actual/uncertain coffee expenditure remain in accounting.
+Synthetic tests cover a sole mistyped source, linked frozen decisions, restart and unchanged raw
+rows. See [live workflow](live-workflow.md#erroneous-past-results-and-evaluation-eligibility) and
+[validation policy](validation.md#retrospective-exclusions-and-decision-time-evidence).
+This establishes data integrity, not efficacy, and does not modify the owner's runtime records.
+
 ## Open decisions
 
 The following are intentionally unresolved:
