@@ -60,7 +60,11 @@ def test_inventory_preserves_populated_source_and_raw_nulls(tmp_path):
     if first["schema_version"] == 4:
         assert "extraction_recommendations" not in first["counts"]
     else:
-        assert first["counts"]["extraction_recommendations"] == 0
+        assert first["counts"]["extraction_recommendations"] == 1
+        feedback = first["tables"]["extraction_recommendations"][0]
+        assert feedback["source_shot_id"] == shot.id
+        assert feedback["target_sequence"] == 2
+        assert raw["extraction_recommendation_id"] is None
 
 
 def test_inventory_missing_and_unsupported_sources_do_not_create_or_migrate(tmp_path):
