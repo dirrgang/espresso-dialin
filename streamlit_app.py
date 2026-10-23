@@ -492,8 +492,23 @@ def main():
                     app.freeze(session_id, setting, preview.target.next_sequence, strategy, manual)
                     st.rerun()
     st.header("Recent history")
+    history_view = st.selectbox(
+        "History view",
+        ["Recent attempts (audit)", "All attempts (audit)", "Completed eligible outcomes"],
+        key=f"history_{session_id}",
+    )
+    if history_view == "Completed eligible outcomes":
+        displayed = repo.completed_shots(session_id)
+    elif history_view == "Recent attempts (audit)":
+        displayed = shots[-20:]
+    else:
+        displayed = shots
+    st.caption(
+        "Invalidated shots are excluded from eligible outcomes and future recommendation sources. "
+        "Audit views retain attempts, original measurements, reasons and resolution times."
+    )
     history = []
-    for shot in reversed(shots[-20:]):
+    for shot in reversed(displayed):
         plan = next(p for p in repo.plans(session_id, shot.sequence) if p.selected)
         grind, brew_result = shot.grinding, shot.brewing
         history.append(
@@ -537,9 +552,11 @@ def main():
         )
     if history:
         st.dataframe(history, hide_index=True)
+    elif shots:
+        st.info("No completed eligible outcomes in this session. Audit views retain all attempts.")
     actionable = {shot.id: shot for shot in shots if shot.resolution is None}
     if actionable:
-        with st.expander("Abandon or invalidate a shot"):
+        with st.expander("Exclude an erroneous past result / resolve a shot"):
             shot_id = st.selectbox(
                 "Shot to resolve",
                 list(reversed(actionable)),
@@ -553,7 +570,7 @@ def main():
                 ShotStatus.ABANDONED: "Abandon brew — keep valid grinder result"
                 if target_shot.grinding
                 else "Abandon before grinding — confirm no physical grinding occurred",
-                ShotStatus.INVALIDATED: "Invalidate — execution or evidence is uncertain",
+                ShotStatus.INVALIDATED: "Invalidate — exclude whole shot from sources and scoring",
             }
             actions = (
                 [ShotStatus.ABANDONED, ShotStatus.INVALIDATED]
@@ -579,10 +596,17 @@ def main():
                     "I confirm the saved grinding result is valid and brewing was abandoned"
                 )
             else:
+                st.warning(
+                    "Permanent whole-shot exclusion: neither grinding nor separately recorded "
+                    "brewing evidence will be eligible for future recommendations or outcome "
+                    "scoring. This also breaks grinder continuity. Original values, frozen "
+                    "predictions and physical attempts remain in the audit history. "
+                    "No replacement measurement is created."
+                )
                 st.caption(
-                    "Use invalidation when physical execution or recorded evidence is wrong or "
-                    "uncertain. It breaks grinder continuity. Original values and frozen "
-                    "predictions stay unchanged."
+                    "Use this for erroneous or uncertain evidence, not simply an unfavorable "
+                    "result. An obviously bad brew is a separate flag. In the reason, identify "
+                    "the affected fields and what is known versus uncertain."
                 )
                 confirmation = "I confirm that execution or recorded evidence is wrong or uncertain"
             with st.form(f"resolution_{shot_id}_{action.value}", enter_to_submit=False):

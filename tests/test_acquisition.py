@@ -14,6 +14,7 @@ from espresso_dialin.domain import (
     Plan,
     Session,
     Shot,
+    ShotStatus,
     utc_now,
 )
 from espresso_dialin.dose_control import DoseRecommendation, score_recommendation
@@ -75,6 +76,7 @@ def test_empty_path_schema_idempotence_and_restart(repo):
     restarted = Repository(repo.path)
     assert restarted.session("session") == session
     assert restarted.shots("session") == [shot]
+    assert restarted.completed_shots("session") == [shot]  # bad-brew flag is retained
     assert restarted.plans("session", 1) == plans
     assert shot.grinding is not None
     assert shot.grinding.duration_s == 9.70
@@ -330,3 +332,66 @@ def test_duplicate_candidate_failure_rolls_back_entire_freeze(repo):
         repo.freeze("session", 2, [plan, replace(plan, selected=False)])
     assert not repo.plans("session", 2)
     assert len(repo.shots("session")) == 1
+
+
+@pytest.mark.parametrize("linked", [False, True])
+def test_mistyped_only_source_exclusion_preserves_decisions_and_attempts(repo, linked):
+    app = Acquisition(repo)
+    first = app.freeze("session", "3E", 1, "manual", 9.7)
+    repo.save_grinding(first.id, grind(duration_s=97, output_g=18))
+    repo.complete(first.id, BrewingResult(duration_s=32, yield_g=36.8))
+    original = repo.shots("session")[0]
+    preview = app.preview("session", "3E")
+    assert {p.strategy_id for p in preview.plans} == {
+        "last-shot-proportional",
+        "past-only-median-rate",
+    }
+    assert all(p.model.observation_ids == (first.id,) for p in preview.plans)
+    assert all(p.duration_s == pytest.approx(97) for p in preview.plans)
+    assert repo.completed_shots("session") == [original]
+    if linked:
+        second = app.freeze("session", "3E", 2, "past-only-median-rate")
+        assert second.extraction_recommendation_id is not None
+    plans = [repo.plans("session", n) for n in range(1, 3 if linked else 2)]
+    feedback = repo.extraction_recommendations("session")
+    with closing(sqlite3.connect(repo.path)) as db:
+        raw_shots = db.execute("SELECT * FROM shots ORDER BY sequence").fetchall()
+        raw_plans = db.execute("SELECT * FROM recommendations ORDER BY id").fetchall()
+    with pytest.raises(ValueError, match="blank"):
+        repo.resolve(first.id, ShotStatus.INVALIDATED, "  ")
+    assert repo.shots("session")[0] == original
+    reason = "grind_duration_s: 97 is erroneous; replacement duration uncertain"
+    repo.resolve(first.id, ShotStatus.INVALIDATED, reason)
+    restarted = Repository(repo.path)
+    invalid = restarted.shots("session")[0]
+    assert invalid.status == ShotStatus.INVALIDATED and not invalid.dose_eligible
+    assert invalid.resolution.reason == reason
+    assert original.completed_at <= invalid.resolution.recorded_at <= utc_now()
+    assert replace(invalid, resolution=None) == original
+    assert restarted.completed_shots("session") == []
+    assert restarted.extraction_recommendations("session") == feedback
+    assert [restarted.plans("session", n) for n in range(1, len(plans) + 1)] == plans
+    with closing(sqlite3.connect(repo.path)) as db:
+        assert db.execute("SELECT * FROM shots ORDER BY sequence").fetchall() == raw_shots
+        assert db.execute("SELECT * FROM recommendations ORDER BY id").fetchall() == raw_plans
+    if linked:
+        # The decision already made from the typo remains frozen and auditable.
+        assert restarted.shots("session")[1] == second
+        repo.resolve(
+            second.id, ShotStatus.ABANDONED, "not executed", no_physical_grinding_confirmed=True
+        )
+    app = Acquisition(restarted)
+    assert app.preview("session", "3E").plans == ()
+    assert restarted.extraction_feedback("session") is None
+    next_sequence = 3 if linked else 2
+    assert app.preview("session", "3E").target.next_sequence == next_sequence
+    fresh = app.freeze("session", "3E", next_sequence, "manual", 9.7)
+    repo.save_grinding(fresh.id, grind(duration_s=9.7, output_g=18))
+    repo.complete(fresh.id, BrewingResult(duration_s=32, yield_g=36))
+    recovered = app.preview("session", "3E")
+    assert len(recovered.plans) == 2
+    assert all(p.model.observation_ids == (fresh.id,) for p in recovered.plans)
+    assert [s.id for s in restarted.completed_shots("session")] == [fresh.id]
+    assert [s.sequence for s in restarted.shots("session")] == list(range(1, next_sequence + 1))
+    # Raw output on the excluded physical attempt still belongs in coffee accounting.
+    assert sum(s.grinding.output_g for s in restarted.shots("session") if s.grinding) == 36
