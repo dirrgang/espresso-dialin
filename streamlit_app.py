@@ -551,9 +551,7 @@ def main():
             }
         )
     if history:
-        st.dataframe(
-            history, hide_index=True, alt="Shot history with original evidence and resolutions"
-        )
+        st.dataframe(history, hide_index=True)
     elif shots:
         st.info("No completed eligible outcomes in this session. Audit views retain all attempts.")
     actionable = {shot.id: shot for shot in shots if shot.resolution is None}
